@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 17: Optimization &amp; Quantization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.4em; text-align: right; }
+.big { font-family: var(--hand); font-size: 22px; font-weight: 700; color: var(--ink); }
+.qt td, .qt th { font-size: 14px; }
+.qt td { font-family: var(--mono); font-size: 13px; }
+.qt td.zero { color: #c0472f; font-weight: 700; }
+.ebar { display: inline-block; height: 10px; background: #c0472f; border-radius: 3px; vertical-align: middle; }
+.levels { display: flex; gap: 2px; flex-wrap: wrap; margin: 6px 0; }
+.levels span { width: 6px; height: 18px; background: var(--tint); border-radius: 2px; }
+.levels span.used { background: var(--ink); }
+/* formats */
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ft td { font-family: var(--mono); font-size: 13.5px; }
+.flag-over { color: #c0472f; font-weight: 700; } .flag-under { color: #8a4b00; font-weight: 700; } .flag-ok { color: #2e7d5b; }
+/* zero */
+.zbars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; font-size: 14.5px; margin: 10px 0; }
+.zbar { position: relative; height: 22px; background: var(--tint); border-radius: 6px; }
+.zbar > i { display: block; height: 100%; border-radius: 6px; width: 0; background: #1b2fa8; }
+.zbar.bad > i { background: #c0472f; }
+.zbar .line { position: absolute; top: -4px; bottom: -4px; border-left: 2px dashed #8a4b00; }
+.zval { font-family: var(--mono); font-size: 13px; min-width: 6.5em; text-align: right; }
+/* spec */
+.rounds { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.round { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.round .lab { font-family: var(--mono); color: var(--muted); min-width: 4.5em; }
+.tk { font-family: var(--mono); font-size: 12px; border-radius: 4px; padding: 1px 6px; border: 1.5px solid; }
+.tk.acc { background: #e3f4ea; border-color: #2e7d5b; color: #1d5a3e; }
+.tk.rej { background: #fde7e2; border-color: #c0472f; color: #8a2b16; text-decoration: line-through; }
+.tk.own { background: var(--gold-fill); border-color: var(--gold); color: #7a5500; }
+.tk.skip { background: #f2f2f6; border-color: #d0d3df; color: #9aa0b4; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 17</p>
+  <h1>Optimization &amp; Quantization</h1>
+  <p class="lede"><strong>In one line:</strong> large models are only practical because of a toolbox of efficiency tricks — <strong>lower-precision numbers</strong> (BF16, INT8, INT4), <strong>memory-saving training</strong> (mixed precision, gradient checkpointing, ZeRO/FSDP sharding, model parallelism), and <strong>cheaper inference</strong> (quantization, distillation, pruning, speculative decoding).</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Compare</strong> number formats (FP32, FP16, BF16, FP8, INT8, INT4) by range and precision, and explain why BF16 is preferred for training.</li>
+  <li><strong>Quantize</strong> a list of weights to INT8 and INT4 by hand (absmax scaling), and explain why outliers and group-wise scales matter.</li>
+  <li><strong>Calculate</strong> per-GPU training memory under data parallelism and ZeRO stages 1–3.</li>
+  <li><strong>Explain</strong> gradient checkpointing, gradient accumulation, and tensor/pipeline parallelism.</li>
+  <li><strong>Estimate</strong> the speed-up from speculative decoding, and describe distillation and pruning.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 12:</strong> AdamW training needs ≈ 16 bytes per parameter (weights, gradients, master weights, \(m\), \(v\)).</li>
+  <li><strong>Section 14:</strong> decoding is memory-bandwidth bound — fewer bytes per weight means faster tokens.</li>
+  <li><strong>Binary numbers:</strong> with \(b\) bits you can represent \(2^b\) different values (8 bits → 256).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — floating-point numbers</span>
+  A floating-point number is stored like scientific notation in base 2: a <strong>sign</strong>, an <strong>exponent</strong> (sets the range — how big or small) and a <strong>mantissa</strong> (sets the precision — how many significant digits). More exponent bits → bigger range; more mantissa bits → finer steps.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: the numbers are too big</h2>
+<p>A 70-billion-parameter model:</p>
+<ul>
+  <li><strong>Weights alone</strong> in 32-bit floats: \(70 \times 10^9 \times 4 = 280\) GB. In 16-bit: 140 GB. Neither fits on one 80 GB GPU.</li>
+  <li><strong>Training</strong> with AdamW: ≈ \(16 \times 70 \times 10^9 = 1{,}120\) GB of weights, gradients and optimizer states — before activations.</li>
+  <li><strong>Generation</strong> reads every weight for every token (Section 14), so the number of bytes directly sets the speed.</li>
+</ul>
+<p>Every byte saved per parameter is multiplied by tens of billions. This section is about saving those bytes — and the compute that goes with them — without losing much accuracy.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: packing for a trip</h2>
+<p>You're moving a huge library to a new city.</p>
+<ul>
+  <li><strong>Lower precision</strong> = writing measurements with fewer decimal places. "1.23456789 m" becomes "1.23 m": less space, slightly less exact, usually good enough.</li>
+  <li><strong>Quantization</strong> = sorting books onto a fixed set of shelves (only 16 shelves for INT4) instead of placing each at its exact height. One enormous book (an <strong>outlier</strong>) forces you to space all the shelves far apart, and small books all end up on the bottom shelf — unless each section of the library gets its own shelf spacing (<strong>group-wise scales</strong>).</li>
+  <li><strong>ZeRO / sharding</strong> = several friends each carry one part of the library instead of everyone carrying a full copy.</li>
+  <li><strong>Gradient checkpointing</strong> = not photocopying every page you read; if you need a page again later, re-read it.</li>
+  <li><strong>Distillation</strong> = a great teacher writes a short study guide that a smaller student learns from.</li>
+  <li><strong>Speculative decoding</strong> = a fast assistant drafts the next few sentences; the expert just checks them, which is quicker than writing.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>Quantization error isn't random clutter — it systematically shifts each weight to its nearest allowed value, and errors in thousands of weights can add up.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Number formats</h3>
+<div class="tw"><table>
+  <tr><th>Format</th><th>Bits (sign / exponent / mantissa)</th><th>Largest value</th><th>Step just above 1.0</th><th>Typical use</th></tr>
+  <tr><td>FP32</td><td>1 / 8 / 23</td><td>\(\approx 3.4 \times 10^{38}\)</td><td>\(1.2 \times 10^{-7}\)</td><td>master weights, optimizer states</td></tr>
+  <tr><td>FP16</td><td>1 / 5 / 10</td><td>65,504</td><td>\(9.8 \times 10^{-4}\)</td><td>older mixed-precision training, inference</td></tr>
+  <tr><td><strong>BF16</strong></td><td>1 / 8 / 7</td><td>\(\approx 3.4 \times 10^{38}\)</td><td>\(7.8 \times 10^{-3}\)</td><td><strong>training today</strong></td></tr>
+  <tr><td>FP8 (E4M3)</td><td>1 / 4 / 3</td><td>448</td><td>0.125</td><td>newest GPUs: training and inference</td></tr>
+  <tr><td>INT8</td><td>integer</td><td>127</td><td>1 (with a scale)</td><td>inference weights/activations</td></tr>
+  <tr><td>INT4</td><td>integer</td><td>7</td><td>1 (with a scale)</td><td>inference weights</td></tr>
+</table></div>
+<p><strong>Why BF16 for training:</strong> it has the <strong>same range as FP32</strong> (8 exponent bits), so values rarely overflow or underflow; it gives up precision, which training tolerates well. FP16 has more precision but a tiny range: gradients smaller than about \(6 \times 10^{-8}\) round to zero, so FP16 training needs <strong>loss scaling</strong> (multiply the loss by e.g. 1,024 before the backward pass, divide the gradients afterwards).</p>
+<p><strong>Mixed precision:</strong> do the heavy matrix multiplications in BF16/FP16 (fast), but keep a <strong>32-bit master copy</strong> of the weights and the optimizer states, so tiny updates aren't lost to rounding.</p>
+
+<div class="demo" id="fmt">
+  <p class="demo-title">Try it: how does each format store your number?</p>
+  <div class="demo-bar">
+    <button class="btn" type="button" data-v="1.0007">1.0007</button>
+    <button class="btn" type="button" data-v="0.1">0.1</button>
+    <button class="btn" type="button" data-v="1e-8">10⁻⁸ (a tiny gradient)</button>
+    <button class="btn" type="button" data-v="0.00001024">10⁻⁸ × 1024 (loss-scaled)</button>
+    <button class="btn" type="button" data-v="100000">100,000</button>
+    <button class="btn" type="button" data-v="500">500</button>
+  </div>
+  <div class="calc-in" style="max-width:300px"><label>value<input id="fm-x" type="number" step="any" value="1.0007"></label></div>
+  <div class="tw"><table class="ft" id="fm-out"></table></div>
+  <p class="demo-status" id="fm-status" aria-live="polite"></p>
+</div>
+
+<h3>5.2 Quantization</h3>
+<p><strong>Quantization</strong> maps real numbers onto a small set of integers plus a <strong>scale</strong>. The simplest scheme is <strong>symmetric absmax</strong> quantization to \(b\) bits:</p>
+<div class="math-block">$$s = \frac{\max_i |w_i|}{q_{\max}}, \quad q_{\max} = 2^{b-1} - 1 \qquad q_i = \text{round}\!\left(\frac{w_i}{s}\right) \qquad \hat w_i = s \cdot q_i$$</div>
+<ul>
+  <li>Store the small integers \(q_i\) (8 or 4 bits each) plus one scale \(s\) per group.</li>
+  <li>At use time, <strong>dequantize</strong> \(\hat w_i = s\, q_i\) (or compute directly with integers on supporting hardware).</li>
+  <li>The rounding error per weight is at most \(s/2\).</li>
+</ul>
+<p><strong>Granularity:</strong> one scale for a whole tensor is cheapest but fragile; <strong>per-channel</strong> or <strong>per-group</strong> scales (e.g. one scale per 64 or 128 weights) keep errors small, at a small storage cost.</p>
+<p><strong>The outlier problem:</strong> a single very large value inflates \(s\) for its whole group, so ordinary small weights all round to 0. Fixes: smaller groups, keeping outliers in higher precision (as in LLM.int8()), or rescaling channels before quantizing (as in SmoothQuant/AWQ).</p>
+<p><strong>When to quantize:</strong></p>
+<ul>
+  <li><strong>Post-training quantization (PTQ):</strong> quantize a finished model; methods like <strong>GPTQ</strong> and <strong>AWQ</strong> choose roundings/scales that minimise the error on sample data. Takes minutes to hours; INT8 is nearly lossless and 4-bit usually loses only a little.</li>
+  <li><strong>Quantization-aware training (QAT):</strong> simulate quantization during training so the model learns to tolerate it; better at very low bit widths.</li>
+</ul>
+
+<h3>5.3 Saving memory during training</h3>
+<ul>
+  <li><strong>Gradient accumulation:</strong> run several small batches, add up their gradients, then do one optimizer step — same effective batch size with less activation memory.</li>
+  <li><strong>Gradient (activation) checkpointing:</strong> store activations only at a few layer boundaries and <strong>recompute</strong> the rest during the backward pass. Saves most activation memory for about one extra forward pass (≈ 33% more compute, since a training step ≈ 1 forward + 2 forward-equivalents of backward).</li>
+  <li><strong>Data parallelism:</strong> every GPU holds a full model copy and processes different data; gradients are averaged (all-reduce) each step.</li>
+  <li><strong>ZeRO / FSDP:</strong> remove the redundant copies across data-parallel GPUs by <strong>sharding</strong>:</li>
+</ul>
+<div class="tw"><table>
+  <tr><th>Stage</th><th>What is split across the \(G\) GPUs</th><th>Bytes per parameter per GPU</th></tr>
+  <tr><td>none (plain data parallel)</td><td>nothing</td><td>\(2 + 2 + 12 = 16\)</td></tr>
+  <tr><td>ZeRO-1</td><td>optimizer states (12 B)</td><td>\(2 + 2 + 12/G\)</td></tr>
+  <tr><td>ZeRO-2</td><td>+ gradients</td><td>\(2 + 14/G\)</td></tr>
+  <tr><td>ZeRO-3 / FSDP</td><td>+ weights</td><td>\(16/G\)</td></tr>
+</table></div>
+<p class="cap">(2 bytes 16-bit weights, 2 bytes 16-bit gradients, 12 bytes for the FP32 master copy, \(m\) and \(v\).) Higher stages save more memory but communicate more.</p>
+<ul>
+  <li><strong>Tensor parallelism:</strong> split each big matrix multiplication across GPUs (e.g. different attention heads or columns of \(W\) on different GPUs). Needs very fast links; used within a server.</li>
+  <li><strong>Pipeline parallelism:</strong> put different layers on different GPUs, passing activations along like an assembly line; micro-batches keep all stages busy.</li>
+</ul>
+<p>Real large-scale training combines all of these ("3-D parallelism").</p>
+
+<h3>5.4 Cheaper inference</h3>
+<ul>
+  <li><strong>Weight quantization</strong> (INT8/INT4): fewer bytes → less memory and, because decoding is bandwidth-bound, faster generation.</li>
+  <li><strong>Knowledge distillation:</strong> train a small <strong>student</strong> to match a large <strong>teacher</strong>'s output probabilities (softened with a temperature), not just the correct labels. The student learns the teacher's "dark knowledge" about which wrong answers are nearly right.</li>
+  <li><strong>Pruning:</strong> remove weights (unstructured) or whole heads/neurons/layers (structured) that matter least. Structured pruning gives real speed-ups on ordinary hardware; unstructured pruning needs special support.</li>
+  <li><strong>Speculative decoding:</strong> a small <strong>draft</strong> model proposes \(k\) tokens; the large model checks all of them in <strong>one</strong> forward pass and keeps the longest prefix it agrees with (plus one token of its own). The output distribution is exactly the large model's. If each drafted token is accepted with probability \(\alpha\), the expected number of tokens per large-model pass is</li>
+</ul>
+<div class="math-block">$$E = \frac{1 - \alpha^{k+1}}{1 - \alpha}$$</div>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 What can each format represent?</h3>
+<ul>
+  <li><strong>Step size near 1.0:</strong> FP16 can represent 1 and \(1 + 2^{-10} = 1.000977\) but nothing in between; BF16 only 1 and \(1 + 2^{-7} = 1.0078\). BF16 is coarser — but its range is as large as FP32's.</li>
+  <li><strong>A tiny gradient</strong> of \(10^{-8}\): below FP16's smallest positive number (\(\approx 6 \times 10^{-8}\)), so it <strong>underflows to 0</strong>. With loss scaling by 1,024 it becomes \(1.024 \times 10^{-5}\) — safely representable — and is divided back after the backward pass. In BF16 it's representable without any scaling.</li>
+  <li><strong>A large activation</strong> of 100,000: overflows FP16 (max 65,504) but fits easily in BF16.</li>
+</ul>
+
+<h3>6.2 INT8 and INT4 quantization by hand</h3>
+<p>Weights: \(w = [0.52, -1.17, 0.03, 2.40, -0.71, 0.15]\). Largest magnitude: 2.40.</p>
+<p><strong>INT8</strong> (\(q_{\max} = 127\)): scale \(s = 2.40 / 127 = 0.0189\).</p>
+<div class="tw"><table>
+  <tr><th>\(w\)</th><th>\(w / s\)</th><th>\(q\)</th><th>\(\hat w = s q\)</th><th>error</th></tr>
+  <tr><td>0.52</td><td>27.52</td><td>28</td><td>0.529</td><td>0.009</td></tr>
+  <tr><td>−1.17</td><td>−61.91</td><td>−62</td><td>−1.172</td><td>0.002</td></tr>
+  <tr><td>0.03</td><td>1.59</td><td>2</td><td>0.038</td><td>0.008</td></tr>
+  <tr><td>2.40</td><td>127.00</td><td>127</td><td>2.400</td><td>0</td></tr>
+  <tr><td>−0.71</td><td>−37.57</td><td>−38</td><td>−0.718</td><td>0.008</td></tr>
+  <tr><td>0.15</td><td>7.94</td><td>8</td><td>0.151</td><td>0.001</td></tr>
+</table></div>
+<p>Average error <strong>0.005</strong> — tiny.</p>
+<p><strong>INT4</strong> (\(q_{\max} = 7\)): scale \(s = 2.40 / 7 = 0.343\).</p>
+<div class="tw"><table>
+  <tr><th>\(w\)</th><th>\(q\)</th><th>\(\hat w\)</th><th>error</th></tr>
+  <tr><td>0.52</td><td>2</td><td>0.686</td><td>0.166</td></tr>
+  <tr><td>−1.17</td><td>−3</td><td>−1.029</td><td>0.141</td></tr>
+  <tr><td>0.03</td><td>0</td><td>0</td><td>0.030</td></tr>
+  <tr><td>2.40</td><td>7</td><td>2.400</td><td>0</td></tr>
+  <tr><td>−0.71</td><td>−2</td><td>−0.686</td><td>0.024</td></tr>
+  <tr><td>0.15</td><td>0</td><td>0</td><td>0.150</td></tr>
+</table></div>
+<p>Average error <strong>0.085</strong> — 18× larger: only 15 levels are available. Small weights (0.03, 0.15) become exactly 0.</p>
+
+<h3>6.3 One outlier ruins a group</h3>
+<p>Replace 0.15 with an outlier, <strong>24.0</strong>. Now \(s = 24 / 7 = 3.43\) for INT4: 0.52, −1.17, 0.03 and −0.71 all round to <strong>0</strong>, and 2.40 becomes 3.43. Five of six weights are badly wrong.</p>
+<p><strong>Group-wise scales</strong> (groups of 3):</p>
+<ul>
+  <li>Group 1 \([0.52, -1.17, 0.03]\): \(s = 1.17 / 7 = 0.167\) → \([0.50, -1.17, 0]\) — good again.</li>
+  <li>Group 2 \([2.40, -0.71, 24.0]\): still dominated by the outlier → \([3.43, 0, 24.0]\).</li>
+</ul>
+<p>The damage is now confined to the outlier's own group. Real 4-bit methods use groups of 64–128 weights and extra tricks to protect outliers.</p>
+
+<div class="demo" id="quant">
+  <p class="demo-title">Try it: quantize six weights</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-w="0.52,-1.17,0.03,2.40,-0.71,0.15">6.2 weights</button>
+    <button class="btn" type="button" data-w="0.52,-1.17,0.03,2.40,-0.71,24">with outlier 24</button>
+  </div>
+  <div class="sliders">
+    <label>bits <input type="range" id="qt-b" min="2" max="8" step="1" value="8"><output id="qt-bo"></output></label>
+    <label>group size <input type="range" id="qt-g" min="0" max="2" step="1" value="0"><output id="qt-go"></output></label>
+  </div>
+  <div class="sliders" id="qt-ws"></div>
+  <div class="levels" id="qt-levels" aria-hidden="true"></div>
+  <div class="tw"><table class="qt" id="qt-table"></table></div>
+  <p class="big" id="qt-out"></p>
+  <p class="demo-status" id="qt-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 Memory for the weights</h3>
+<div class="tw"><table>
+  <tr><th>Model</th><th>FP16 / BF16</th><th>INT8</th><th>INT4</th></tr>
+  <tr><td>LLaMA-2 7B (6.74B)</td><td>13.5 GB</td><td>6.7 GB</td><td>3.4 GB (≈ 3.8 GB with group scales)</td></tr>
+  <tr><td>70B</td><td>140 GB</td><td>70 GB</td><td>35 GB</td></tr>
+</table></div>
+<p>A 70B model in INT4 fits on a single 48 GB GPU (with room for some KV cache); in FP16 it needs at least two 80 GB GPUs. And since decoding is bandwidth-bound, 4-bit weights can make generation roughly 2–3× faster in practice.</p>
+
+<h3>6.5 ZeRO on 64 GPUs (training LLaMA-2 7B)</h3>
+<p>\(N = 6.74 \times 10^9\), \(G = 64\):</p>
+<div class="tw"><table>
+  <tr><th>Setup</th><th>Bytes per parameter per GPU</th><th>Per-GPU memory (before activations)</th></tr>
+  <tr><td>Plain data parallel</td><td>16</td><td><strong>108 GB</strong> — doesn't fit on 80 GB</td></tr>
+  <tr><td>ZeRO-1</td><td>\(4 + 12/64 = 4.19\)</td><td>28.2 GB</td></tr>
+  <tr><td>ZeRO-2</td><td>\(2 + 14/64 = 2.22\)</td><td>15.0 GB</td></tr>
+  <tr><td>ZeRO-3 / FSDP</td><td>\(16/64 = 0.25\)</td><td><strong>1.7 GB</strong></td></tr>
+</table></div>
+
+<div class="demo" id="zero">
+  <p class="demo-title">Try it: training memory per GPU</p>
+  <div class="calc-in">
+    <label>parameters (B)<input id="zr-n" type="number" min="0.1" step="0.01" value="6.74"></label>
+    <label>number of GPUs<input id="zr-g" type="number" min="1" step="1" value="64"></label>
+    <label>GPU memory (GB)<input id="zr-m" type="number" min="1" value="80"></label>
+  </div>
+  <div class="zbars" id="zr-bars"></div>
+  <p class="demo-status" id="zr-status" aria-live="polite"></p>
+</div>
+
+<h3>6.6 Speculative decoding</h3>
+<p>A draft model proposes \(k = 4\) tokens; each is accepted with probability \(\alpha = 0.8\):</p>
+<div class="math-block">$$E = \frac{1 - 0.8^5}{1 - 0.8} = \frac{1 - 0.328}{0.2} = 3.36 \text{ tokens per large-model pass}$$</div>
+<p>If one draft-model step costs 5% of a large-model step, each round costs \(1 + 4 \times 0.05 = 1.2\) large-model steps, giving a speed-up of about \(3.36 / 1.2 \approx \mathbf{2.8\times}\) — with exactly the same output distribution.</p>
+
+<div class="demo" id="spec">
+  <p class="demo-title">Try it: speculative decoding</p>
+  <div class="sliders">
+    <label>draft length k <input type="range" id="sp-k" min="1" max="8" step="1" value="4"><output id="sp-ko"></output></label>
+    <label>acceptance α <input type="range" id="sp-a" min="0.1" max="0.95" step="0.05" value="0.8"><output id="sp-ao"></output></label>
+    <label>draft cost c <input type="range" id="sp-c" min="0.01" max="0.5" step="0.01" value="0.05"><output id="sp-co"></output></label>
+  </div>
+  <p class="big" id="sp-out"></p>
+  <div class="demo-bar"><button class="btn" type="button" id="sp-run">Simulate 8 rounds</button></div>
+  <div class="rounds" id="sp-rounds"></div>
+  <p class="demo-status" id="sp-status" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart TB
+    subgraph TRAIN["Training efficiency"]
+        T1["Mixed precision<br/>BF16 compute, FP32 master"]
+        T2["Gradient checkpointing<br/>recompute activations"]
+        T3["ZeRO / FSDP<br/>shard states, grads, weights"]
+        T4["Tensor & pipeline parallel<br/>split matrices / layers"]
+    end
+    subgraph INFER["Inference efficiency"]
+        I1["Quantization<br/>INT8 / INT4 weights"]
+        I2["Distillation<br/>small student"]
+        I3["Pruning<br/>remove heads / weights"]
+        I4["Speculative decoding<br/>draft + verify"]
+    end
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Goal</th><th>Common choice</th></tr>
+  <tr><td>Pre-training a large model</td><td>BF16 mixed precision, FSDP/ZeRO-3, tensor + pipeline parallelism, gradient checkpointing; FP8 on the newest GPUs</td></tr>
+  <tr><td>Fine-tuning on one GPU</td><td>QLoRA (4-bit base, Section 16), gradient checkpointing, gradient accumulation</td></tr>
+  <tr><td>Serving in a data centre</td><td>FP8/INT8 weights (and often KV cache), continuous batching, speculative decoding</td></tr>
+  <tr><td>Running on a laptop or phone</td><td>4-bit (or lower) weights in formats like GGUF via llama.cpp, or a distilled small model</td></tr>
+</table></div>
+<ul>
+  <li><strong>Measure accuracy after quantizing</strong>, on your own tasks — some abilities (maths, long reasoning, rare languages) degrade before average benchmarks do.</li>
+  <li><strong>Small distilled models</strong> (and small models trained on outputs of larger ones) are now competitive for many narrow tasks at a fraction of the cost.</li>
+  <li><strong>Bits keep falling:</strong> research on 2-bit and even ~1.6-bit (ternary) models shows promise, especially when the model is trained that way from the start.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"FP16 and BF16 are interchangeable."</strong> Same size, different trade-off: FP16 has more precision but a tiny range (needs loss scaling); BF16 has FP32's range with less precision.</li>
+  <li class="mistake"><strong>"Quantization just truncates decimals."</strong> It maps values to a few levels with a shared <strong>scale</strong>; the scale's choice (and outliers) decides the error.</li>
+  <li class="mistake"><strong>"4-bit always ruins a model."</strong> With good methods (GPTQ, AWQ, group-wise scales), 4-bit weights usually cost only a small amount of quality — but always check on your tasks.</li>
+  <li class="mistake"><strong>"ZeRO-3 is free memory."</strong> It trades memory for <strong>communication</strong>: weights must be gathered from other GPUs before each layer.</li>
+  <li class="mistake"><strong>"Speculative decoding changes the model's answers."</strong> With the standard acceptance rule, the output distribution is exactly the large model's; it only changes speed.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>BF16</strong> (FP32's range, less precision) is the standard training format; FP16 needs loss scaling; master weights and Adam states stay in FP32 (<strong>mixed precision</strong>).</li>
+  <li><strong>Quantization</strong>: \(s = \max|w| / q_{\max}\), \(q = \text{round}(w/s)\), \(\hat w = sq\). INT8 is nearly lossless; INT4 needs care — <strong>outliers</strong> inflate the scale, so use <strong>group-wise scales</strong> and methods like GPTQ/AWQ.</li>
+  <li>Weight memory: 7B = 13.5 GB (16-bit) → 6.7 GB (INT8) → 3.4 GB (INT4); 70B INT4 fits on one 48 GB GPU.</li>
+  <li>Training memory: <strong>ZeRO/FSDP</strong> shards optimizer states, gradients and weights (7B on 64 GPUs: 108 GB → 1.7 GB per GPU); <strong>gradient checkpointing</strong> trades ≈ 33% more compute for much less activation memory.</li>
+  <li>Cheaper inference: quantization, <strong>distillation</strong>, <strong>pruning</strong>, and <strong>speculative decoding</strong> (\(E = (1 - \alpha^{k+1})/(1 - \alpha)\) tokens per pass).</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Quantize \(w = [1.0, -0.5, 0.25]\) to INT4 with one absmax scale. Give \(s\), the integers \(q\), and the dequantized values.</li>
+  <li>A 13B model is trained on 32 GPUs with ZeRO-2. How much memory per GPU do weights, gradients and optimizer states need?</li>
+  <li>With a draft length of \(k = 3\) and acceptance probability \(\alpha = 0.6\), how many tokens per large-model pass do you expect? Is speculative decoding worth it if a draft step costs 10% of a large step?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(s = 1.0/7 = 0.143\); \(w/s = [7, -3.5, 1.75]\); rounding gives \(q = [7, -3, 2]\) (−3.5 rounds to −3 with "round half up"; some implementations give −4) → \(\hat w = [1.0, -0.43, 0.29]\).</li>
+    <li>\((2 + 14/32) \times 13 \times 10^9 = 2.4375 \times 13 \times 10^9 \approx \mathbf{31.7}\) <strong>GB</strong> per GPU. (Enter 13 and 32 in the ZeRO demo.)</li>
+    <li>\(E = (1 - 0.6^4)/(1 - 0.6) = (1 - 0.1296)/0.4 = \mathbf{2.18}\) tokens per pass. Cost per round \(= 1 + 3 \times 0.1 = 1.3\) large steps → speed-up \(\approx 2.18/1.3 \approx \mathbf{1.7\times}\) — still worth it. (Set k = 3, α = 0.6, c = 0.1 in the speculative-decoding demo.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Micikevicius, P. et al. (2018). <strong>"Mixed Precision Training."</strong> <a href="https://arxiv.org/abs/1710.03740" target="_blank" rel="noopener">arXiv:1710.03740</a> — FP16 training and loss scaling.</li>
+  <li>Rajbhandari, S. et al. (2020). <strong>"ZeRO: Memory Optimizations Toward Training Trillion Parameter Models."</strong> <a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">arXiv:1910.02054</a>.</li>
+  <li>Chen, T. et al. (2016). <strong>"Training Deep Nets with Sublinear Memory Cost."</strong> <a href="https://arxiv.org/abs/1604.06174" target="_blank" rel="noopener">arXiv:1604.06174</a> — gradient checkpointing.</li>
+  <li>Dettmers, T. et al. (2022). <strong>"LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale."</strong> <a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">arXiv:2208.07339</a> — outliers in LLMs.</li>
+  <li>Frantar, E. et al. (2022). <strong>"GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers."</strong> <a href="https://arxiv.org/abs/2210.17323" target="_blank" rel="noopener">arXiv:2210.17323</a>. And Lin, J. et al. (2023). <strong>"AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration."</strong> <a href="https://arxiv.org/abs/2306.00978" target="_blank" rel="noopener">arXiv:2306.00978</a>.</li>
+  <li>Hinton, G., Vinyals, O., &amp; Dean, J. (2015). <strong>"Distilling the Knowledge in a Neural Network."</strong> <a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">arXiv:1503.02531</a>.</li>
+  <li>Leviathan, Y., Kalman, M., &amp; Matias, Y. (2023). <strong>"Fast Inference from Transformers via Speculative Decoding."</strong> <a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">arXiv:2211.17192</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function setW(el, frac) { var pct = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.35 }); else el.style.width = pct; }
+
+  /* ---------- 1. Number formats ---------- */
+  (function fmt() {
+    var inp = document.getElementById("fm-x");
+    if (!inp) return;
+    // Round x to a binary float format with m mantissa bits, smallest normal exponent emin and maximum value max.
+    var F = [
+      { name: "FP32", m: 23, emin: -126, max: 3.4028234663852886e38 },
+      { name: "FP16", m: 10, emin: -14, max: 65504 },
+      { name: "BF16", m: 7, emin: -126, max: 3.3895313892515355e38 },
+      { name: "FP8 (E4M3)", m: 3, emin: -6, max: 448 }
+    ];
+    function roundTo(x, f) {
+      if (x === 0) return { v: 0, flag: "ok" };
+      var a = Math.abs(x), e = Math.max(Math.floor(Math.log2(a)), f.emin), step = Math.pow(2, e - f.m);
+      var r = Math.round(a / step) * step;
+      if (r > f.max) return { v: Infinity, flag: "over" };
+      if (r === 0) return { v: 0, flag: "under" };
+      return { v: Math.sign(x) * r, flag: "ok", step: step };
+    }
+    function show(v) { if (!isFinite(v)) return "overflow"; if (v === 0) return "0"; var a = Math.abs(v); return a >= 1e5 || a < 1e-3 ? v.toExponential(6) : v.toPrecision(8).replace(/0+$/, "").replace(/\.$/, ""); }
+    function render() {
+      var x = parseFloat(inp.value); if (isNaN(x)) return;
+      var rows = F.map(function (f) { var r = roundTo(x, f); var err = isFinite(r.v) && x !== 0 ? Math.abs(r.v - x) / Math.abs(x) : null; return { f: f, r: r, err: err }; });
+      document.getElementById("fm-out").innerHTML = "<tr><th>format</th><th>stored value</th><th>relative error</th><th>status</th></tr>" + rows.map(function (o) {
+        var cls = o.r.flag === "over" ? "flag-over" : o.r.flag === "under" ? "flag-under" : "flag-ok";
+        var lbl = o.r.flag === "over" ? "overflow (too big)" : o.r.flag === "under" ? "underflow to 0 (too small)" : "ok";
+        return "<tr><td>" + o.f.name + "</td><td>" + show(o.r.v) + "</td><td>" + (o.err === null ? "—" : o.err === 0 ? "exact" : (o.err * 100).toPrecision(2) + "%") + '</td><td class="' + cls + '">' + lbl + "</td></tr>";
+      }).join("");
+      var f16 = rows[1].r, b16 = rows[2].r;
+      var msg = f16.flag === "under" && b16.flag === "ok" ? "FP16 loses this value entirely, but BF16 keeps it: BF16 has the same exponent range as FP32. This is why FP16 training needs loss scaling."
+        : f16.flag === "over" && b16.flag === "ok" ? "Too big for FP16 (max 65,504) but fine in BF16."
+        : rows[3].r.flag !== "ok" ? "FP8 E4M3 only reaches 448 and has 3 mantissa bits — values outside its small range need a scale factor."
+        : "Compare the relative errors: BF16 is coarser than FP16 (7 vs 10 mantissa bits) but covers a far larger range.";
+      document.getElementById("fm-status").textContent = msg;
+      window.__fmt = rows.map(function (o) { return [o.f.name, o.r.v, o.r.flag]; });
+    }
+    inp.addEventListener("input", render);
+    document.querySelectorAll("#fmt [data-v]").forEach(function (b) { b.addEventListener("click", function () { inp.value = b.dataset.v; render(); }); });
+    render();
+  })();
+
+  /* ---------- 2. Quantization playground ---------- */
+  (function quant() {
+    var root = document.getElementById("quant");
+    if (!root) return;
+    var w = [0.52, -1.17, 0.03, 2.40, -0.71, 0.15], GROUPS = [6, 3, 2];
+    var sB = document.getElementById("qt-b"), sG = document.getElementById("qt-g"), wsEl = document.getElementById("qt-ws");
+    function buildSliders() {
+      wsEl.innerHTML = w.map(function (v, i) { return '<label>w' + (i + 1) + ' <input type="range" min="-3" max="25" step="0.01" value="' + v + '" data-i="' + i + '"><output>' + v.toFixed(2) + "</output></label>"; }).join("");
+      wsEl.querySelectorAll("input").forEach(function (el) { el.addEventListener("input", function () { w[parseInt(el.dataset.i, 10)] = parseFloat(el.value); el.nextElementSibling.textContent = parseFloat(el.value).toFixed(2); root.querySelectorAll("[data-w]").forEach(function (b) { b.classList.remove("on"); }); render(); }); });
+    }
+    function render() {
+      var bits = parseInt(sB.value, 10), g = GROUPS[parseInt(sG.value, 10)], qmax = Math.pow(2, bits - 1) - 1;
+      document.getElementById("qt-bo").textContent = bits; document.getElementById("qt-go").textContent = g === 6 ? "6 (one scale)" : g;
+      var rows = [];
+      for (var start = 0; start < w.length; start += g) {
+        var grp = w.slice(start, start + g), s = Math.max.apply(null, grp.map(Math.abs)) / qmax || 1;
+        grp.forEach(function (x, j) { var r = x / s, q = Math.round(r); rows.push({ i: start + j, x: x, s: s, r: r, q: q, d: q * s, e: Math.abs(q * s - x), grp: start / g + 1 }); });
+      }
+      var mae = rows.reduce(function (a, r) { return a + r.e; }, 0) / rows.length, maxE = Math.max.apply(null, rows.map(function (r) { return r.e; })) || 1;
+      document.getElementById("qt-table").innerHTML = "<tr><th>w</th><th>group</th><th>scale s</th><th>w/s</th><th>q</th><th>ŵ = s·q</th><th>error</th></tr>" + rows.map(function (r) {
+        return "<tr><td>" + r.x.toFixed(2) + "</td><td>" + r.grp + "</td><td>" + r.s.toFixed(4) + "</td><td>" + r.r.toFixed(2) + '</td><td class="' + (r.q === 0 && Math.abs(r.x) > 1e-9 ? "zero" : "") + '">' + r.q + "</td><td>" + r.d.toFixed(3) + '</td><td><span class="ebar" style="width:' + (60 * r.e / maxE).toFixed(0) + 'px"></span> ' + r.e.toFixed(3) + "</td></tr>";
+      }).join("");
+      // levels picture for the first group
+      var used = {}; rows.forEach(function (r) { used[r.q] = true; });
+      var lv = ""; if (qmax <= 31) { for (var k = -qmax; k <= qmax; k++) lv += '<span class="' + (used[k] ? "used" : "") + '" title="level ' + k + '"></span>'; }
+      document.getElementById("qt-levels").innerHTML = lv;
+      var groupsN = Math.ceil(w.length / g), bitsPer = bits + 16 * groupsN / w.length;
+      document.getElementById("qt-out").textContent = "average error " + mae.toFixed(4) + " · " + (2 * qmax + 1) + " levels · ≈ " + bitsPer.toFixed(1) + " bits per weight incl. 16-bit scales";
+      var zeros = rows.filter(function (r) { return r.q === 0 && Math.abs(r.x) > 1e-9; }).length;
+      document.getElementById("qt-status").textContent = zeros >= 3 ? zeros + " weights were rounded to exactly 0. A large value has stretched the scale; try a smaller group size so it only affects its own group."
+        : bits >= 8 ? "With 8 bits there are 255 levels, so every weight lands very close to its true value." : "Fewer bits → fewer levels → bigger rounding errors. Dark bars above show which levels are actually used.";
+      if (canAnimate) M.animate(document.querySelectorAll("#qt-table .ebar"), { opacity: [0.3, 1] }, { duration: 0.3 });
+      window.__quant = { mae: mae, q: rows.map(function (r) { return r.q; }), d: rows.map(function (r) { return Math.round(r.d * 1000) / 1000; }) };
+    }
+    root.querySelectorAll("[data-w]").forEach(function (b) { b.addEventListener("click", function () { w = b.dataset.w.split(",").map(Number); root.querySelectorAll("[data-w]").forEach(function (x) { x.classList.toggle("on", x === b); }); buildSliders(); render(); }); });
+    [sB, sG].forEach(function (s) { s.addEventListener("input", render); });
+    buildSliders(); render();
+  })();
+
+  /* ---------- 3. ZeRO memory ---------- */
+  (function zero() {
+    var bars = document.getElementById("zr-bars");
+    if (!bars) return;
+    function v(id) { return parseFloat(document.getElementById(id).value); }
+    function render() {
+      var N = v("zr-n") * 1e9, G = v("zr-g"), mem = v("zr-m") * 1e9;
+      if (!(N > 0 && G >= 1 && mem > 0)) return;
+      var stages = [["plain data parallel", 16], ["ZeRO-1 (shard optimizer)", 4 + 12 / G], ["ZeRO-2 (+ gradients)", 2 + 14 / G], ["ZeRO-3 / FSDP (+ weights)", 16 / G]];
+      var maxv = Math.max(16 * N, mem * 1.1);
+      bars.innerHTML = stages.map(function (s) {
+        var b = s[1] * N, fits = b <= mem;
+        return "<span>" + s[0] + '</span><span class="zbar' + (fits ? "" : " bad") + '"><i></i><span class="line" style="left:' + (100 * mem / maxv).toFixed(1) + '%"></span></span><span class="zval">' + (b / 1e9).toFixed(1) + " GB</span>";
+      }).join("");
+      bars.querySelectorAll(".zbar > i").forEach(function (el, i) { setW(el, stages[i][1] * N / maxv); });
+      var first = stages.filter(function (s) { return s[1] * N <= mem; })[0];
+      document.getElementById("zr-status").textContent = "Dashed line: one GPU’s " + (mem / 1e9).toFixed(0) + " GB. " + (first ? "The first setup that fits (before activations) is " + first[0] + "." : "Nothing fits — add GPUs, or combine with tensor/pipeline parallelism.") + " Each higher stage needs more communication between GPUs.";
+      window.__zero = stages.map(function (s) { return Math.round(s[1] * N / 1e8) / 10; });
+    }
+    ["zr-n", "zr-g", "zr-m"].forEach(function (id) { document.getElementById(id).addEventListener("input", render); });
+    render();
+  })();
+
+  /* ---------- 4. Speculative decoding ---------- */
+  (function spec() {
+    var sk = document.getElementById("sp-k");
+    if (!sk) return;
+    var sa = document.getElementById("sp-a"), sc = document.getElementById("sp-c"), seed = 3;
+    function stats() { var k = parseInt(sk.value, 10), a = parseFloat(sa.value), c = parseFloat(sc.value); var E = (1 - Math.pow(a, k + 1)) / (1 - a); return { k: k, a: a, c: c, E: E, speed: E / (1 + k * c) }; }
+    function render() {
+      var s = stats();
+      document.getElementById("sp-ko").textContent = s.k; document.getElementById("sp-ao").textContent = s.a.toFixed(2); document.getElementById("sp-co").textContent = s.c.toFixed(2);
+      document.getElementById("sp-out").textContent = "E = (1 − " + s.a.toFixed(2) + "^" + (s.k + 1) + ") / (1 − " + s.a.toFixed(2) + ") = " + s.E.toFixed(2) + " tokens per big-model pass · speed-up ≈ " + s.speed.toFixed(2) + "×";
+      document.getElementById("sp-status").textContent = s.speed < 1 ? "Here speculation is slower than plain decoding: the draft costs too much or is accepted too rarely." : "Each round costs 1 big-model pass plus " + s.k + " draft steps (" + (s.k * s.c).toFixed(2) + " big-model equivalents). Longer drafts only pay off when acceptance is high.";
+      window.__spec = s;
+    }
+    function simulate() {
+      var s = stats(), r = rng(seed++), html = "", total = 0;
+      for (var round = 1; round <= 8; round++) {
+        var row = '<div class="round"><span class="lab">round ' + round + "</span>", accepted = 0, rejected = false;
+        for (var i = 0; i < s.k; i++) {
+          if (rejected) { row += '<span class="tk skip">d' + (i + 1) + "</span>"; continue; }
+          if (r() < s.a) { row += '<span class="tk acc">d' + (i + 1) + "</span>"; accepted++; }
+          else { row += '<span class="tk rej">d' + (i + 1) + "</span>"; rejected = true; }
+        }
+        row += '<span class="tk own">+1</span><span class="lab" style="min-width:0">→ ' + (accepted + 1) + " tokens</span></div>";
+        html += row; total += accepted + 1;
+      }
+      document.getElementById("sp-rounds").innerHTML = html;
+      if (canAnimate) M.animate(document.querySelectorAll("#sp-rounds .round"), { opacity: [0, 1] }, { duration: 0.25, delay: M.stagger(0.05) });
+      document.getElementById("sp-status").textContent = "8 big-model passes produced " + total + " tokens (" + (total / 8).toFixed(2) + " per pass; the formula expects " + s.E.toFixed(2) + "). Green = draft token accepted, red = first rejection (the big model substitutes its own token there), grey = discarded, gold = the big model’s extra token.";
+    }
+    [sk, sa, sc].forEach(function (x) { x.addEventListener("input", render); });
+    document.getElementById("sp-run").addEventListener("click", simulate);
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

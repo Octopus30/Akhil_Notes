@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 6: Multi-Head Attention</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* heads explorer */
+.heads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin-top: 8px; }
+.headcard { border: 1.5px dashed var(--ink); border-radius: 10px; padding: 10px 12px; background: #fff; min-width: 0; }
+.headcard.h1 { border-color: #1b2fa8; }
+.headcard.h2 { border-color: #b07a00; }
+.headcard .ttl { font-family: var(--hand); font-weight: 700; font-size: 17px; margin: 0 0 4px; }
+.h1 .ttl { color: #1b2fa8; } .h2 .ttl { color: #8a5a00; }
+.bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 5px 10px; align-items: center; font-size: 14.5px; margin: 6px 0; }
+.bar { height: 15px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 4px; width: 0; }
+.h1 .bar > i { background: #1b2fa8; } .h2 .bar > i { background: #c38a10; }
+.bars b { font-family: var(--mono); font-weight: 400; font-size: 12.5px; color: var(--ink); }
+.small-work { font-size: 13.5px; color: var(--text); }
+.combine { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 12px; font-size: 15px; }
+.vec { font-family: var(--mono); font-size: 14px; padding: 2px 8px; border-radius: 6px; border: 1.5px solid #c9d2ea; background: #fff; }
+.vec .a { color: #1b2fa8; font-weight: 700; } .vec .b { color: #8a5a00; font-weight: 700; }
+.wgrid { display: inline-grid; grid-template-columns: repeat(2, 58px); gap: 4px; padding: 3px 8px; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); border-radius: 7px; vertical-align: middle; }
+.wgrid input { width: 58px; font-family: var(--mono); font-size: 14px; text-align: right; border: 1.5px solid #b9c3e0; border-radius: 5px; padding: 1px 5px; color: var(--ink); background: #fff; }
+.wgrid input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cmp { margin-top: 10px; font-size: 14.5px; border-top: 1px dashed #c9d2ea; padding-top: 8px; }
+table.mat { border-collapse: separate; border-spacing: 2px; width: auto; background: none; font-family: var(--mono); font-size: 12px; margin-top: 4px; }
+table.mat td, table.mat th { border: 0; padding: 2px 6px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 44px; box-shadow: inset 0 0 0 1px #c9d2ea; }
+table.mat th { background: none; font-family: var(--hand); font-size: 13px; color: var(--ink); font-weight: 700; }
+table.mat tr.focus th { text-decoration: underline; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+/* split + GQA visualiser */
+.strip { display: flex; gap: 2px; margin: 6px 0 2px; flex-wrap: nowrap; overflow: hidden; border-radius: 6px; }
+.strip > span { height: 26px; flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; color: #fff; }
+.strip-cap { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.calc-in { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; margin: 8px 0; }
+.calc-in select, .calc-in input[type=range] { font-family: var(--mono); font-size: 14px; accent-color: #1b2fa8; }
+.calc-in select { border: 2px solid var(--ink); border-radius: 6px; color: var(--ink); background: #fff; padding: 1px 4px; }
+.calc-in select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.calc-in output { font-family: var(--mono); font-weight: 700; color: var(--ink); }
+.nums td:nth-child(2) { font-family: var(--mono); font-size: 14px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .heads { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 6</p>
+  <h1>Multi-Head Attention</h1>
+  <p class="lede"><strong>In one line:</strong> instead of one attention operation, a Transformer layer runs <strong>\(h\) smaller attentions ("heads") side by side</strong>, each with its own \(W_Q, W_K, W_V\), then glues their outputs together and mixes them with one more matrix \(W_O\). Each head can look for a different kind of relationship.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why a single attention head is limited, and what multiple heads add.</li>
+  <li><strong>Write</strong> the multi-head attention formula, including the concatenation and the output projection \(W_O\).</li>
+  <li><strong>Trace</strong> every shape through multi-head attention, including the "split into heads" reshape.</li>
+  <li><strong>Compute</strong> a small two-head example by hand.</li>
+  <li><strong>Count</strong> parameters and compare MHA with its memory-saving variants, MQA and GQA.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 5</strong>: \(\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + M\right)V\).</li>
+  <li><strong>Section 4</strong>: \(Q = XW_Q\), \(K = XW_K\), \(V = XW_V\), with \(W_Q\) of shape \(d_{model} \times d_k\).</li>
+  <li><strong>Concatenation</strong>: placing matrices side by side. Two \(3 \times 1\) matrices concatenated along columns give a \(3 \times 2\) matrix: \([\,a \mid b\,]\).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: one weighted average = one choice</span>
+  In Section 5, each token's output is <em>one</em> weighted average of the values, using <em>one</em> set of weights that sum to 1. If the weights favour token A, they must take weight away from token B. A single head can't say "100% A for one purpose and 100% B for another" at the same time.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: one head has to compromise</h2>
+<p>Take the word <strong>"it"</strong> in</p>
+<div class="callout" style="border-style:solid"><em>The phone didn't fit in the pocket because <strong>it</strong> was too small.</em></div>
+<p>To understand "it", the model needs several things <strong>at once</strong>:</p>
+<ul>
+  <li><strong>Which noun</strong> "it" refers to (the pocket), a coreference relationship.</li>
+  <li><strong>What is being said about it</strong> ("was too small"), a nearby-words relationship.</li>
+  <li><strong>Grammar</strong>: "it" is the subject of "was".</li>
+</ul>
+<p>A single head produces a single weighted average. If it puts most of its weight on "pocket", it has little left for "small" and "was". It must <strong>compromise</strong>, blending everything into one muddled mixture.</p>
+<p>The fix: run <strong>several heads in parallel</strong>. Each head has its own projections, so each can learn to look for something different, and the layer combines all their findings.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: a study group with coloured highlighters</h2>
+<p>Four friends prepare for an exam from the same textbook page. Each uses a different coloured highlighter:</p>
+<ul>
+  <li><strong>Yellow</strong> marks definitions.</li>
+  <li><strong>Green</strong> marks formulas.</li>
+  <li><strong>Pink</strong> marks examples.</li>
+  <li><strong>Blue</strong> marks dates and names.</li>
+</ul>
+<p>Every friend reads the <strong>whole page</strong>, but each pays attention to different parts. At the end they <strong>combine their highlights</strong> into one set of notes that is richer than any single friend's.</p>
+<p>That is multi-head attention:</p>
+<ul>
+  <li>Each <strong>friend</strong> = one <strong>head</strong>.</li>
+  <li>Each friend's <strong>highlighter rule</strong> = that head's own \(W_Q, W_K, W_V\).</li>
+  <li><strong>Combining the highlights</strong> = concatenating the head outputs and mixing them with \(W_O\).</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>
+  <ul>
+    <li>Nobody assigns the heads their jobs. Each head's "highlighter rule" is <strong>learned</strong>, and many heads end up with jobs humans can't easily name (or with no useful job at all).</li>
+    <li>Friends read at different speeds; heads run <strong>truly in parallel</strong>, as one batched matrix operation.</li>
+  </ul>
+</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The formula</h3>
+<p>For heads \(i = 1, \dots, h\), each with its own weight matrices:</p>
+<div class="math-block">$$\text{head}_i = \text{Attention}\!\left(X W_Q^{(i)},\; X W_K^{(i)},\; X W_V^{(i)}\right)$$</div>
+<p>Then concatenate and project:</p>
+<div class="math-block">$$\text{MultiHead}(X) = \big[\,\text{head}_1 \;\big|\; \text{head}_2 \;\big|\; \cdots \;\big|\; \text{head}_h\,\big]\; W_O$$</div>
+<p>In words: <em>run \(h\) independent attentions, stack their outputs side by side, then mix them with one learned matrix.</em></p>
+
+<h3>5.2 Shapes</h3>
+<p>The standard choice is to split the width evenly: \(d_k = d_v = d_{model} / h\).</p>
+<div class="tw"><table>
+  <tr><th>Matrix</th><th>Shape</th><th>Count</th></tr>
+  <tr><td>\(X\)</td><td>\(n \times d_{model}\)</td><td>1</td></tr>
+  <tr><td>\(W_Q^{(i)}, W_K^{(i)}, W_V^{(i)}\)</td><td>\(d_{model} \times d_k\)</td><td>\(h\) of each</td></tr>
+  <tr><td>\(\text{head}_i\)</td><td>\(n \times d_k\)</td><td>\(h\)</td></tr>
+  <tr><td>Concatenation</td><td>\(n \times (h \cdot d_k) = n \times d_{model}\)</td><td>1</td></tr>
+  <tr><td>\(W_O\)</td><td>\(d_{model} \times d_{model}\)</td><td>1</td></tr>
+  <tr><td>Output</td><td>\(n \times d_{model}\)</td><td>1</td></tr>
+</table></div>
+<p>The output has the <strong>same shape as the input</strong>, which is exactly what a Transformer block needs (Section 1).</p>
+
+<h3>5.3 Why \(W_O\)?</h3>
+<p>Without \(W_O\), the output would just be the heads' results placed side by side: dimensions \(1\) to \(d_k\) would come only from head 1, the next \(d_k\) only from head 2, and so on. \(W_O\) lets <strong>every output dimension draw on every head</strong>, so the layer can combine findings ("head 3 found the noun, head 7 found the adjective") into one representation.</p>
+
+<h3>5.4 Cost: more heads, same price</h3>
+<p>Splitting \(d_{model}\) into \(h\) heads of width \(d_{model}/h\) means:</p>
+<ul>
+  <li><strong>Parameters:</strong> \(W_Q, W_K, W_V\) for all heads together are \(3 \times d_{model} \times d_{model}\), plus \(W_O\) at \(d_{model} \times d_{model}\), so <strong>\(4\,d_{model}^2\) per layer</strong> (ignoring biases), whatever \(h\) is.</li>
+  <li><strong>Compute:</strong> about the same as one big head of width \(d_{model}\).</li>
+  <li><strong>What does grow with \(h\):</strong> the number of \(n \times n\) attention matrices, \(h \cdot n^2\) scores in total.</li>
+</ul>
+<p>So multiple heads are almost a <strong>free upgrade</strong>: same parameters, similar compute, but \(h\) different attention patterns instead of one.</p>
+
+<h3>5.5 How it is really computed: one big matrix, then reshape</h3>
+<p>In practice nobody multiplies by \(h\) separate small matrices. Implementations:</p>
+<ol class="steps">
+  <li>Multiply once by a big \(W_Q\) of shape \(d_{model} \times d_{model}\) (the \(h\) small ones side by side) → \(Q\) is \(n \times d_{model}\).</li>
+  <li><strong>Reshape</strong> \(Q\) to \(h \times n \times d_k\): split its columns into \(h\) groups of \(d_k\).</li>
+  <li>Run attention on all heads at once as a batched operation → \(h \times n \times d_k\).</li>
+  <li>Reshape back to \(n \times d_{model}\) (this <em>is</em> the concatenation) and multiply by \(W_O\).</li>
+</ol>
+
+<h3>5.6 Saving memory: MQA and GQA</h3>
+<p>During text generation, models store every past token's keys and values (the <strong>KV cache</strong>, Section 14). With standard multi-head attention (<strong>MHA</strong>), every head has its own keys and values. Two popular variants share them:</p>
+<div class="tw"><table>
+  <tr><th>Variant</th><th>Query heads</th><th>Key/value heads</th><th>KV cache vs MHA</th></tr>
+  <tr><td><strong>MHA</strong> (multi-head)</td><td>\(h\)</td><td>\(h\)</td><td>1×</td></tr>
+  <tr><td><strong>GQA</strong> (grouped-query)</td><td>\(h\)</td><td>\(g\) (e.g. 8)</td><td>\(g/h\)</td></tr>
+  <tr><td><strong>MQA</strong> (multi-query)</td><td>\(h\)</td><td>1</td><td>\(1/h\)</td></tr>
+</table></div>
+<p>In GQA, each group of \(h/g\) query heads shares one key head and one value head. Quality stays close to MHA, while the cache shrinks a lot. Most recent LLMs use GQA.</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Two heads on "the bat flew"</h3>
+<p>We reuse the toy 2-D vectors (axis 1 = <em>animal-ness</em>, axis 2 = <em>sport-ness</em>), with \(d_{model} = 2\) and \(h = 2\) heads, so \(d_k = d_v = 1\):</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>\(x\)</th></tr>
+  <tr><td>the</td><td>[0.2, 0.2]</td></tr>
+  <tr><td>bat</td><td>[1, 1]</td></tr>
+  <tr><td>flew</td><td>[2, 0]</td></tr>
+</table></div>
+<p>To keep the arithmetic short, each head simply <strong>reads one axis</strong> (in a real model these weights are learned, and \(W_Q \ne W_K\) as in Section 4):</p>
+<ul>
+  <li><strong>Head 1, the "animal" head:</strong> \(W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}\), so \(q = k = v = x_1\).</li>
+  <li><strong>Head 2, the "sport" head:</strong> \(W_Q^{(2)} = W_K^{(2)} = W_V^{(2)} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}\), so \(q = k = v = x_2\).</li>
+  <li>\(W_O = I\) (the identity), so the output is just the concatenation.</li>
+</ul>
+<p>Since \(d_k = 1\), the scaling factor is \(\sqrt{1} = 1\).</p>
+<p><strong>Head 1 for "bat".</strong> \(q = 1\); keys (animal values) \(= [0.2, 1, 2]\).</p>
+<ul>
+  <li>Scores \(= [0.2, 1, 2]\)</li>
+  <li>\(e^{0.2} = 1.22\), \(e^{1} = 2.72\), \(e^{2} = 7.39\), total \(11.33\) → weights \([0.11, 0.24, 0.65]\)</li>
+  <li>Output \(= 0.11(0.2) + 0.24(1) + 0.65(2) = \mathbf{1.57}\)</li>
+</ul>
+<p><strong>Head 2 for "bat".</strong> \(q = 1\); keys (sport values) \(= [0.2, 1, 0]\).</p>
+<ul>
+  <li>Scores \(= [0.2, 1, 0]\)</li>
+  <li>\(e^{0.2} = 1.22\), \(e^{1} = 2.72\), \(e^{0} = 1\), total \(4.94\) → weights \([0.25, 0.55, 0.20]\)</li>
+  <li>Output \(= 0.25(0.2) + 0.55(1) + 0.20(0) = \mathbf{0.60}\)</li>
+</ul>
+<p><strong>Concatenate</strong> (and \(W_O = I\)): \(y_{\text{bat}} = [1.57,\; 0.60]\).</p>
+<p>The two heads looked at the <strong>same sentence differently</strong>: head 1 sent 65% of its attention to "flew", while head 2 kept 55% on "bat" itself.</p>
+<p><strong>All three tokens:</strong></p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>Head 1 weights (the, bat, flew)</th><th>Head 2 weights (the, bat, flew)</th><th>Output \([\text{head}_1 \mid \text{head}_2]\)</th></tr>
+  <tr><td>the</td><td>0.28, 0.33, 0.40</td><td>0.32, 0.37, 0.31</td><td>[1.18, 0.44]</td></tr>
+  <tr><td>bat</td><td>0.11, 0.24, <strong>0.65</strong></td><td>0.25, <strong>0.55</strong>, 0.20</td><td>[1.57, 0.60]</td></tr>
+  <tr><td>flew</td><td>0.02, 0.12, <strong>0.86</strong></td><td><strong>0.33, 0.33, 0.33</strong></td><td>[1.84, 0.40]</td></tr>
+</table></div>
+<div class="callout"><span class="label">Something to notice</span>For "flew", head 2's query is \(0\) (flew has no sport-ness), so all its scores are \(0\) and it spreads attention <strong>evenly</strong>. That's a head with "nothing to look for". Real models have this problem too, and trained heads often handle it by attending to a harmless token such as the first token or punctuation.</div>
+
+<h3>6.2 Compared with one head</h3>
+<p>A single head with \(d_k = 2\) and identity projections (scaled by \(\sqrt{2}\)) gives "bat" <strong>one</strong> set of weights, \([0.14, 0.43, 0.43]\), and output \([1.32, 0.46]\). Both dimensions are forced to use the <em>same</em> weights. With two heads, the animal dimension and the sport dimension each get their own weights. This is the "no compromise" benefit from Section 3.</p>
+
+<div class="demo" id="mha">
+  <p class="demo-title">Try it: two heads, two different views</p>
+  <div class="demo-bar">
+    <span class="cap">Token:</span>
+    <span id="mha-tok" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+  </div>
+  <div class="heads">
+    <div class="headcard h1"><p class="ttl">Head 1, "animal" (reads axis 1)</p><div class="bars" id="h1-bars"></div><div class="small-work" id="h1-work"></div><div class="mat-scroll" id="h1-mat"></div></div>
+    <div class="headcard h2"><p class="ttl">Head 2, "sport" (reads axis 2)</p><div class="bars" id="h2-bars"></div><div class="small-work" id="h2-work"></div><div class="mat-scroll" id="h2-mat"></div></div>
+  </div>
+  <div class="combine">
+    <span>concat</span><span class="vec" id="mha-cat"></span>
+    <span>×</span>
+    <span>W<sub>O</sub></span><span class="wgrid" id="wo"></span>
+    <span>=</span><span class="vec" id="mha-out"></span>
+    <button class="btn" type="button" id="wo-id">W<sub>O</sub> = identity</button>
+    <button class="btn" type="button" id="wo-mix">W<sub>O</sub> = mix 50/50</button>
+  </div>
+  <div class="cmp" id="mha-cmp"></div>
+  <p class="demo-status" id="mha-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Shape trace for BERT-base</h3>
+<p>\(n = 128\) tokens, \(d_{model} = 768\), \(h = 12\) heads, \(d_k = 768 / 12 = 64\).</p>
+<div class="tw"><table>
+  <tr><th>Step</th><th>Shape</th></tr>
+  <tr><td>\(X\)</td><td>\(128 \times 768\)</td></tr>
+  <tr><td>\(Q = XW_Q\) (all heads at once)</td><td>\(128 \times 768\)</td></tr>
+  <tr><td>Split into heads</td><td>\(12 \times 128 \times 64\)</td></tr>
+  <tr><td>Scores \(QK^{\top}\) per head</td><td>\(12 \times 128 \times 128\)</td></tr>
+  <tr><td>Head outputs</td><td>\(12 \times 128 \times 64\)</td></tr>
+  <tr><td>Concatenate</td><td>\(128 \times 768\)</td></tr>
+  <tr><td>\(\times W_O\) (\(768 \times 768\))</td><td>\(128 \times 768\)</td></tr>
+</table></div>
+<p><strong>Parameters per layer:</strong> \(4 \times 768^2 = 2{,}359{,}296\). For LLaMA-2 7B (\(d_{model} = 4096\), 32 heads, \(d_k = 128\)): \(4 \times 4096^2 = 67{,}108{,}864\) per layer.</p>
+
+<h3>6.4 How much GQA saves</h3>
+<p>The KV cache stores, per token per layer, \(2 \times (\text{KV heads}) \times d_k\) numbers (keys + values):</p>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Query heads</th><th>KV heads</th><th>Per token per layer</th><th>Saving vs MHA</th></tr>
+  <tr><td>LLaMA-2 7B (MHA)</td><td>32</td><td>32</td><td>\(2 \times 32 \times 128 = 8{,}192\)</td><td>1×</td></tr>
+  <tr><td>Mistral 7B (GQA)</td><td>32</td><td>8</td><td>\(2 \times 8 \times 128 = 2{,}048\)</td><td>4× smaller</td></tr>
+  <tr><td>LLaMA-2 70B (GQA)</td><td>64</td><td>8</td><td>\(2 \times 8 \times 128 = 2{,}048\)</td><td>8× smaller</td></tr>
+</table></div>
+
+<div class="demo" id="split">
+  <p class="demo-title">Try it: split into heads, then share keys and values</p>
+  <div class="calc-in">
+    <label>Model
+      <select id="sp-model">
+        <option value="768,12,12,12">BERT-base</option>
+        <option value="4096,32,32,32" selected>LLaMA-2 7B</option>
+        <option value="4096,32,8,32">Mistral 7B</option>
+        <option value="8192,64,8,80">LLaMA-2 70B</option>
+      </select>
+    </label>
+    <label>key/value heads <input id="sp-kv" type="range" min="0" max="5" step="1"> <output id="sp-kv-out"></output></label>
+  </div>
+  <p class="sub-cap" style="margin:6px 0 0">Query heads (each block is one head's slice of the d<sub>model</sub> columns; colour = which key/value head it uses)</p>
+  <div class="strip" id="sp-q"></div>
+  <p class="strip-cap" id="sp-q-cap"></p>
+  <p class="sub-cap" style="margin:6px 0 0">Key/value heads</p>
+  <div class="strip" id="sp-kvstrip"></div>
+  <p class="strip-cap" id="sp-kv-cap"></p>
+  <div class="tw"><table class="nums" id="sp-out"></table></div>
+  <p class="demo-status" id="sp-status" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    X["X<br/>n × d_model"] --> H1["Head 1<br/>Attention(XW_Q¹, XW_K¹, XW_V¹)<br/>n × d_k"]
+    X --> H2["Head 2<br/>n × d_k"]
+    X --> HD["… Head h<br/>n × d_k"]
+    H1 --> C["Concatenate<br/>n × (h·d_k) = n × d_model"]
+    H2 --> C
+    HD --> C
+    C --> O["× W_O<br/>d_model × d_model"]
+    O --> Y["Output<br/>n × d_model"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<h3>Typical head counts</h3>
+<div class="tw"><table>
+  <tr><th>Model</th><th>\(d_{model}\)</th><th>Heads \(h\)</th><th>\(d_k\)</th></tr>
+  <tr><td>Original Transformer (base)</td><td>512</td><td>8</td><td>64</td></tr>
+  <tr><td>BERT-base / GPT-2 small</td><td>768</td><td>12</td><td>64</td></tr>
+  <tr><td>LLaMA-2 7B</td><td>4096</td><td>32</td><td>128</td></tr>
+  <tr><td>LLaMA-2 70B</td><td>8192</td><td>64 (8 KV heads)</td><td>128</td></tr>
+</table></div>
+<p>\(d_k\) is almost always <strong>64 or 128</strong>. Bigger models add more heads rather than making each head wider.</p>
+<h3>What heads learn</h3>
+<p>Researchers who inspect trained models find heads that track the previous token, syntactic relations, coreference, rare words, or copying patterns (induction heads, Section 3). They also find that <strong>many heads can be removed after training with little loss in accuracy</strong>: a few specialised heads do most of the work.</p>
+<h3>PyTorch</h3>
+<p><code>torch.nn.MultiheadAttention(embed_dim=768, num_heads=12)</code> implements this whole section, including \(W_O\). Internally it uses the reshape trick from 5.5.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Each head sees only part of the input."</strong> Every head sees the <strong>full</strong> \(d_{model}\)-wide input. Each head <em>projects</em> it into its own smaller \(d_k\)-dimensional space.</li>
+  <li class="mistake"><strong>"More heads means more parameters and compute."</strong> With \(d_k = d_{model}/h\), the parameter count stays \(4d_{model}^2\) and compute stays about the same. Only the number of attention maps grows.</li>
+  <li class="mistake"><strong>"Heads are assigned roles like 'syntax head'."</strong> Nothing assigns roles. Any specialisation <strong>emerges</strong> from training, and many heads don't have a clean, nameable role.</li>
+  <li class="mistake"><strong>"Concatenation is the final step."</strong> It's followed by \(W_O\), which mixes information across heads. Without it, each output dimension would only ever come from one head.</li>
+  <li class="mistake"><strong>"GQA means fewer query heads."</strong> GQA keeps all the <strong>query</strong> heads and shares <strong>key/value</strong> heads between groups of them.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>Multi-head attention</strong> runs \(h\) attention heads in parallel, each with its own \(W_Q^{(i)}, W_K^{(i)}, W_V^{(i)}\), so each can focus on a different relationship.</li>
+  <li>\(\text{MultiHead}(X) = [\text{head}_1 | \cdots | \text{head}_h]\,W_O\); with \(d_k = d_{model}/h\) the output is \(n \times d_{model}\), the same as the input.</li>
+  <li>Same parameters (\(4d_{model}^2\) per layer) and similar compute as one big head, but \(h\) attention patterns.</li>
+  <li>Implemented as one big matrix multiply plus a <strong>reshape</strong> to \(h \times n \times d_k\).</li>
+  <li><strong>MQA/GQA</strong> share key/value heads to shrink the KV cache; most recent LLMs use GQA.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A model has \(d_{model} = 1024\) and \(h = 16\) heads. What is \(d_k\)? How many attention parameters (Q, K, V and O, no biases) does one layer have?</li>
+  <li>Using 6.1, what would "bat"'s output be if \(W_O = \begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix}\) instead of the identity? What has \(W_O\) done?</li>
+  <li>A model has 32 query heads and uses GQA with 4 key/value heads. By what factor is its KV cache smaller than MHA's? How many query heads share each key/value head?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(d_k = 1024 / 16 = \mathbf{64}\). Parameters \(= 4 \times 1024^2 = \mathbf{4{,}194{,}304}\).</li>
+    <li>\([1.566, 0.600] \begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix} = [0.5(1.566) + 0.5(0.600),\; 0.5(1.566) + 0.5(0.600)] = \mathbf{[1.08, 1.08]}\). \(W_O\) has <strong>mixed the two heads' findings</strong> so that both output dimensions now depend on both heads. (Press "W<sub>O</sub> = mix 50/50" in the demo to check.)</li>
+    <li>\(32 / 4 = \mathbf{8\times}\) smaller. Each key/value head is shared by \(32 / 4 = \mathbf{8}\) query heads.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>NeurIPS 2017.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. Section 3.2.2 introduces multi-head attention.</li>
+  <li>Michel, P., Levy, O., &amp; Neubig, G. (2019). <strong>"Are Sixteen Heads Really Better than One?"</strong> <em>NeurIPS 2019.</em> <a href="https://arxiv.org/abs/1905.10650" target="_blank" rel="noopener">arXiv:1905.10650</a>. Many heads can be pruned after training.</li>
+  <li>Voita, E. et al. (2019). <strong>"Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned."</strong> <em>ACL 2019.</em> <a href="https://arxiv.org/abs/1905.09418" target="_blank" rel="noopener">arXiv:1905.09418</a>.</li>
+  <li>Shazeer, N. (2019). <strong>"Fast Transformer Decoding: One Write-Head is All You Need."</strong> <a href="https://arxiv.org/abs/1911.02150" target="_blank" rel="noopener">arXiv:1911.02150</a>. Introduces multi-query attention.</li>
+  <li>Ainslie, J. et al. (2023). <strong>"GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints."</strong> <a href="https://arxiv.org/abs/2305.13245" target="_blank" rel="noopener">arXiv:2305.13245</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function fmt(v) { var r = Math.abs(v) < 0.005 ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(2); }
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  function setBar(el, frac) { var pct = (frac * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.45 }); else el.style.width = pct; }
+
+  /* ---------- 1. Two heads on "the bat flew" ---------- */
+  (function mha() {
+    var root = document.getElementById("mha");
+    if (!root) return;
+    var TOK = ["the", "bat", "flew"], X = [[0.2, 0.2], [1, 1], [2, 0]];
+    var focus = 1, WO = [[1, 0], [0, 1]];
+    // head h reads axis h: q = k = v = x[h], d_k = 1 so the scale is sqrt(1) = 1
+    function head(axis) {
+      var q = X.map(function (x) { return x[axis]; });
+      var A = q.map(function (qi) { return softmax(q.map(function (kj) { return qi * kj / Math.sqrt(1); })); });
+      var Y = A.map(function (row) { return row.reduce(function (s, a, j) { return s + a * q[j]; }, 0); });
+      return { q: q, A: A, Y: Y };
+    }
+    var H = [head(0), head(1)];
+    // single head for comparison: W_Q = W_K = W_V = I, d_k = 2, scaled by sqrt(2)
+    var single = (function () {
+      var A = X.map(function (a) { return softmax(X.map(function (b) { return (a[0] * b[0] + a[1] * b[1]) / Math.SQRT2; })); });
+      var Y = A.map(function (row) { return [0, 1].map(function (d) { return row.reduce(function (s, w, j) { return s + w * X[j][d]; }, 0); }); });
+      return { A: A, Y: Y };
+    })();
+    var tokWrap = document.getElementById("mha-tok");
+    var tokBtns = TOK.map(function (t, i) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = t; b.addEventListener("click", function () { focus = i; render(); }); tokWrap.appendChild(b); return b; });
+    // W_O editor
+    var woWrap = document.getElementById("wo"), woIn = [];
+    for (var i = 0; i < 2; i++) for (var j = 0; j < 2; j++) {
+      var inp = document.createElement("input"); inp.type = "number"; inp.step = "0.25"; inp.id = "wo-" + i + j; inp.setAttribute("aria-label", "W_O row " + (i + 1) + " column " + (j + 1));
+      (function (a, b, el) { el.addEventListener("input", function () { var v = parseFloat(el.value); if (!isNaN(v)) { WO[a][b] = v; render(); } }); })(i, j, inp);
+      woWrap.appendChild(inp); woIn.push(inp);
+    }
+    function syncWO() { woIn.forEach(function (el, k) { el.value = WO[k >> 1][k & 1]; }); }
+    document.getElementById("wo-id").addEventListener("click", function () { WO = [[1, 0], [0, 1]]; syncWO(); render(); });
+    document.getElementById("wo-mix").addEventListener("click", function () { WO = [[0.5, 0.5], [0.5, 0.5]]; syncWO(); render(); });
+
+    function heatTable(A) {
+      var h = '<table class="mat"><tr><th></th>' + TOK.map(function (t) { return "<th>" + t + "</th>"; }).join("") + "</tr>";
+      A.forEach(function (r, i) {
+        h += '<tr class="' + (i === focus ? "focus" : "") + '"><th>' + TOK[i] + "</th>" + r.map(function (v) { var a = (v * 0.85).toFixed(3); return '<td style="background:rgba(27,47,168,' + a + ");color:" + (v > 0.53 ? "#fff" : "#1f2433") + '">' + v.toFixed(2) + "</td>"; }).join("") + "</tr>";
+      });
+      return h + "</table>";
+    }
+    function render() {
+      tokBtns.forEach(function (b, i) { b.classList.toggle("on", i === focus); });
+      [0, 1].forEach(function (h) {
+        var hd = H[h], w = hd.A[focus], q = hd.q[focus];
+        var bars = document.getElementById("h" + (h + 1) + "-bars");
+        bars.innerHTML = TOK.map(function (t, j) { return "<span>" + t + '</span><span class="bar"><i></i></span><b>' + w[j].toFixed(2) + "</b>"; }).join("");
+        bars.querySelectorAll(".bar > i").forEach(function (el, j) { setBar(el, w[j]); });
+        document.getElementById("h" + (h + 1) + "-work").innerHTML =
+          "q(" + TOK[focus] + ") = " + fmt(q) + "; keys = [" + hd.q.map(fmt).join(", ") + "]<br>scores = [" + hd.q.map(function (k) { return fmt(q * k); }).join(", ") + "] → output = " +
+          w.map(function (a, j) { return a.toFixed(2) + "·" + fmt(hd.q[j]); }).join(" + ") + " = <strong>" + fmt(hd.Y[focus]) + "</strong>";
+        document.getElementById("h" + (h + 1) + "-mat").innerHTML = heatTable(hd.A);
+      });
+      var cat = [H[0].Y[focus], H[1].Y[focus]];
+      var out = [cat[0] * WO[0][0] + cat[1] * WO[1][0], cat[0] * WO[0][1] + cat[1] * WO[1][1]];
+      document.getElementById("mha-cat").innerHTML = '[<span class="a">' + fmt(cat[0]) + '</span>, <span class="b">' + fmt(cat[1]) + "</span>]";
+      document.getElementById("mha-out").textContent = "[" + out.map(fmt).join(", ") + "]";
+      var s = single;
+      document.getElementById("mha-cmp").innerHTML = "<strong>One head instead</strong> (d<sub>k</sub> = 2, identity projections, ÷√2): “" + TOK[focus] + "” gets one set of weights [" + s.A[focus].map(function (v) { return v.toFixed(2); }).join(", ") + "] for both dimensions and output [" + s.Y[focus].map(fmt).join(", ") + "].";
+      var uniform = H[1].A[focus].every(function (v) { return Math.abs(v - 1 / 3) < 1e-9; });
+      var isId = WO[0][0] === 1 && WO[0][1] === 0 && WO[1][0] === 0 && WO[1][1] === 1;
+      var msg = "Head 1 puts the most weight on “" + TOK[H[0].A[focus].indexOf(Math.max.apply(null, H[0].A[focus]))] + "”, head 2 on “" + TOK[H[1].A[focus].indexOf(Math.max.apply(null, H[1].A[focus]))] + "”. ";
+      if (uniform) msg = "Head 2 has nothing to look for here: “" + TOK[focus] + "” has sport-ness 0, so its query is 0, every score is 0, and the weights are an even 1/3 each. ";
+      msg += isId ? "With Wₒ = identity, the output is just the two heads’ results side by side." : "Wₒ now mixes the heads, so each output number depends on both heads.";
+      document.getElementById("mha-status").textContent = msg;
+      if (canAnimate) M.animate([document.getElementById("mha-cat"), document.getElementById("mha-out")], { scale: [0.9, 1] }, { duration: 0.3 });
+      window.__mha = { focus: focus, h1: H[0].A[focus], h2: H[1].A[focus], cat: cat, out: out, single: s.Y[focus] };
+    }
+    syncWO(); render();
+  })();
+
+  /* ---------- 2. Split into heads + GQA sharing ---------- */
+  (function split() {
+    var sel = document.getElementById("sp-model");
+    if (!sel) return;
+    var kvSlider = document.getElementById("sp-kv"), kvOut = document.getElementById("sp-kv-out");
+    var PALETTE = ["#1b2fa8", "#c38a10", "#2e7d5b", "#9b3b8f", "#c0472f", "#3a87b5", "#6b5a2a", "#5d4bd0"];
+    var kvOptions = [];
+    function n(v) { return Number(v).toLocaleString("en-US"); }
+    function setupModel() {
+      var p = sel.value.split(",").map(Number), h = p[1];
+      kvOptions = []; for (var g = 1; g <= h; g *= 2) if (h % g === 0) kvOptions.push(g);
+      if (kvOptions[kvOptions.length - 1] !== h) kvOptions.push(h);
+      kvSlider.max = kvOptions.length - 1;
+      kvSlider.value = Math.max(0, kvOptions.indexOf(p[2]));
+      render();
+    }
+    function render() {
+      var p = sel.value.split(",").map(Number), D = p[0], h = p[1], layers = p[3], kv = kvOptions[parseInt(kvSlider.value, 10)], dk = D / h, group = h / kv;
+      kvOut.textContent = kv + (kv === h ? " (MHA)" : kv === 1 ? " (MQA)" : " (GQA)");
+      // strips: draw at most 64 blocks
+      var qHtml = "", kvHtml = "";
+      for (var i = 0; i < h; i++) { var g = Math.floor(i / group); qHtml += '<span style="background:' + PALETTE[g % PALETTE.length] + ';opacity:' + (0.55 + 0.45 * ((i % group) === 0 ? 1 : 0.6)) + '" title="query head ' + (i + 1) + " → KV head " + (g + 1) + '">' + (h <= 16 ? i + 1 : "") + "</span>"; }
+      for (var k = 0; k < kv; k++) kvHtml += '<span style="background:' + PALETTE[k % PALETTE.length] + '" title="KV head ' + (k + 1) + '">' + (kv <= 16 ? k + 1 : "") + "</span>";
+      document.getElementById("sp-q").innerHTML = qHtml;
+      document.getElementById("sp-kvstrip").innerHTML = kvHtml;
+      document.getElementById("sp-q-cap").textContent = h + " query heads × dₖ = " + dk + " columns each = " + n(D) + " = d_model";
+      document.getElementById("sp-kv-cap").textContent = kv + " key/value head" + (kv > 1 ? "s" : "") + ", each shared by " + group + " query head" + (group > 1 ? "s" : "");
+      if (canAnimate) M.animate(document.querySelectorAll("#sp-q > span, #sp-kvstrip > span"), { scaleY: [0.3, 1] }, { duration: 0.3, delay: M.stagger(0.008) });
+      var mhaVals = 2 * h * dk, vals = 2 * kv * dk, perTok = vals * layers * 2; // fp16 = 2 bytes
+      var rows = [
+        ["dₖ = d_model / h", n(D) + " / " + h + " = " + dk],
+        ["Attention weights per layer (W_Q, W_O: d_model × d_model; W_K, W_V: d_model × KV heads·dₖ)", "2×" + n(D) + "² + 2×" + n(D) + "×" + n(kv * dk) + " = " + n(D * D * 2 + 2 * D * kv * dk)],
+        ["KV cache per token per layer", "2 × " + kv + " × " + dk + " = " + n(vals) + " numbers"],
+        ["KV cache per token, all " + layers + " layers (FP16)", n(perTok) + " bytes ≈ " + (perTok / 1048576).toFixed(3) + " MB"],
+        ["KV cache for a 4,096-token context", (perTok * 4096 / 1073741824).toFixed(2) + " GB"],
+        ["Saving vs MHA (" + h + " KV heads)", (mhaVals / vals) + "× smaller"]
+      ];
+      document.getElementById("sp-out").innerHTML = "<tr><th>Quantity</th><th>Value</th></tr>" + rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
+      document.getElementById("sp-status").textContent = kv === h
+        ? "MHA: every query head has its own keys and values. Slide the key/value heads down to see GQA and MQA."
+        : "With " + kv + " key/value head" + (kv > 1 ? "s" : "") + ", every group of " + group + " query heads shares one set of keys and values. The query heads, and the attention patterns they can form, are unchanged; only the KV cache shrinks.";
+      window.__split = { D: D, h: h, kv: kv, dk: dk, perLayer: vals, perTokMB: perTok / 1048576, ctxGB: perTok * 4096 / 1073741824 };
+    }
+    sel.addEventListener("change", setupModel);
+    kvSlider.addEventListener("input", render);
+    setupModel();
+  })();
+})();
+</script>
+</body>
+</html>

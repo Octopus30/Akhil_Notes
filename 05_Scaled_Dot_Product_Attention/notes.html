@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 5: Scaled Dot-Product Attention</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* pipeline demo */
+.stages { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; }
+.stage-pill { font-family: var(--hand); font-weight: 700; font-size: 15px; color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; padding: 0 12px; background: #fff; cursor: pointer; }
+.stage-pill.on { background: var(--ink); color: #fff; }
+.stage-pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.arrow-sep { color: var(--ink); font-weight: 700; }
+.mat-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; }
+.mat-row > div { min-width: 0; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td, table.mat th { border: 0; padding: 4px 8px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 58px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; transition: background .3s, color .3s; }
+table.mat td.blocked { background: repeating-linear-gradient(135deg, #f3f0e8 0 6px, #e8e2d4 6px 12px); color: #8a4b00; text-align: center; }
+table.mat th { background: none; font-family: var(--hand); font-size: 15px; color: var(--ink); font-weight: 700; }
+table.mat th.r { text-align: right; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+.formula-line { font-size: 15px; margin: 4px 0 0; }
+/* saturation demo */
+.sat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 24px; align-items: start; }
+.slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; margin: 6px 0; }
+.slider input[type=range] { width: 200px; accent-color: #1b2fa8; }
+.slider output { font-family: var(--mono); color: var(--ink); min-width: 3em; font-weight: 700; }
+.bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 5px 10px; align-items: center; font-size: 14px; }
+.bar { height: 15px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--ink); border-radius: 4px; width: 0; }
+.bars b, .bars em { font-family: var(--mono); font-weight: 400; font-style: normal; font-size: 12.5px; color: var(--ink); }
+.bars em { color: var(--muted); }
+.stat { display: grid; grid-template-columns: auto auto; gap: 4px 14px; font-size: 15px; margin: 0; }
+.stat dt { color: var(--muted); }
+.stat dd { margin: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; text-align: right; }
+.meter { height: 10px; background: var(--tint); border-radius: 5px; overflow: hidden; margin-top: 2px; }
+.meter > i { display: block; height: 100%; background: var(--gold); width: 0; }
+.toggle { display: inline-flex; gap: 0; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+pre.code { background: #f6f7fc; border: 1px solid #c9d2ea; border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: 13.5px; line-height: 1.55; }
+pre.code .c { color: #6a7190; }
+pre.code .k { color: #1b2fa8; font-weight: 700; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .sat { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo, pre.code { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .slider, .stages { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 5</p>
+  <h1>Scaled Dot-Product Attention</h1>
+  <p class="lede"><strong>In one line:</strong> the attention used in every Transformer is \(\text{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + M\right) V\). This section explains the two pieces we haven't met yet: <strong>dividing by \(\sqrt{d_k}\)</strong> (to stop softmax from "freezing") and the <strong>mask</strong> \(M\) (to forbid certain connections).</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Write</strong> the full scaled dot-product attention formula and say what each symbol is.</li>
+  <li><strong>Explain</strong>, using variance, why scores must be divided by \(\sqrt{d_k}\), and what goes wrong if they aren't.</li>
+  <li><strong>Apply</strong> a causal mask and a padding mask by hand, and explain why masked scores are set to \(-\infty\).</li>
+  <li><strong>Compute</strong> scaled, masked attention for a small example, step by step.</li>
+  <li><strong>Implement</strong> attention in a few lines of NumPy, including the numerically stable softmax.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 4</strong>: \(Q = XW_Q\), \(K = XW_K\), \(V = XW_V\); \(S = QK^{\top}\), \(A = \text{softmax}_{\text{rows}}(S)\), \(Y = AV\).</li>
+  <li><strong>Variance</strong>: if a quantity has variance \(\sigma^2\), its typical size (standard deviation) is \(\sigma\). Two facts:
+    <ul>
+      <li>For independent quantities, <strong>variances add</strong>: \(\text{Var}(a + b) = \text{Var}(a) + \text{Var}(b)\).</li>
+      <li>If \(q\) and \(k\) are independent with mean 0 and variance 1, then \(\text{Var}(q \cdot k) = 1\) for their product.</li>
+    </ul>
+  </li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: what \(-\infty\) does in softmax</span>
+  Since \(e^{-\infty} = 0\), a score of \(-\infty\) gets weight exactly 0, and the other weights still sum to 1. Example: scores \([1, -\infty, 1]\) → \(e^1, 0, e^1\) → weights \([0.5, 0, 0.5]\).
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: two problems left over</h2>
+<p>Section 4's attention, \(\text{softmax}(QK^{\top})V\), works for our 2-D toy example. Real models break it in two ways.</p>
+<p><strong>Problem 1: big vectors make softmax freeze.</strong> Real heads use \(d_k = 64\) or \(128\). A dot product adds up \(d_k\) products, so with more dimensions the scores get bigger: typically around \(\pm 8\) for \(d_k = 64\), and \(\pm 23\) for \(d_k = 512\). Softmax of such large numbers puts almost all the weight on one token, and its <strong>gradient becomes nearly zero</strong>, so the model stops learning.</p>
+<p><strong>Problem 2: some connections must be forbidden.</strong></p>
+<ul>
+  <li>A text <em>generator</em> must not peek at future words during training. If it could see the word it's supposed to predict, it would just copy it.</li>
+  <li>Padding tokens (fillers added to make sequences in a batch the same length) carry no information and must be ignored.</li>
+</ul>
+<p>The fixes: <strong>divide the scores by \(\sqrt{d_k}\)</strong>, and <strong>add a mask</strong> \(M\) before the softmax.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first</h2>
+<h3>Scaling: turning down the volume</h3>
+<p>Imagine asking a room of people to vote by shouting. In a small room, the loudest voice wins by a little. In a stadium of 60,000, the combined noise is so loud that one section completely drowns out everyone else. Attention with large \(d_k\) is the stadium: sums of many products produce huge scores, and softmax hands everything to the loudest one.</p>
+<p>Dividing by \(\sqrt{d_k}\) is a <strong>volume knob</strong> that brings the typical score back to a normal size, so softmax can still express "mostly this one, but some of that one too".</p>
+<h3>Masking: blindfolds</h3>
+<p>A mask is a set of blindfolds put on before the vote. A <strong>causal mask</strong> blindfolds each token to every token <em>after</em> it, like an exam where you may only look at questions you have already answered. A <strong>padding mask</strong> blindfolds everyone to the filler tokens.</p>
+<div class="callout"><span class="label">Where the analogy breaks</span>A blindfold sounds like "less information". Masking doesn't remove any token from the computation; it only sets certain <em>weights</em> to exactly zero. The masked tokens still compute their own outputs (their own rows).</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The full formula</h3>
+<div class="math-block">$$\boxed{\;\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + M\right) V\;}$$</div>
+<div class="tw"><table>
+  <tr><th>Symbol</th><th>Shape</th><th>Meaning</th></tr>
+  <tr><td>\(Q\), \(K\)</td><td>\(n \times d_k\)</td><td>queries and keys (Section 4)</td></tr>
+  <tr><td>\(V\)</td><td>\(n \times d_v\)</td><td>values</td></tr>
+  <tr><td>\(\sqrt{d_k}\)</td><td>scalar</td><td>the scaling factor; \(d_k\) is the key/query width</td></tr>
+  <tr><td>\(M\)</td><td>\(n \times n\)</td><td>mask: \(0\) where attention is allowed, \(-\infty\) where it is forbidden</td></tr>
+  <tr><td>output</td><td>\(n \times d_v\)</td><td>one new vector per token</td></tr>
+</table></div>
+
+<h3>5.2 The five steps</h3>
+<ol class="steps">
+  <li><strong>Scores:</strong> \(S = QK^{\top}\)</li>
+  <li><strong>Scale:</strong> \(S' = S / \sqrt{d_k}\)</li>
+  <li><strong>Mask:</strong> \(S'' = S' + M\)</li>
+  <li><strong>Softmax</strong> each row: \(A = \text{softmax}_{\text{rows}}(S'')\)</li>
+  <li><strong>Mix the values:</strong> \(Y = AV\)</li>
+</ol>
+
+<h3>5.3 Why exactly \(\sqrt{d_k}\)?</h3>
+<p>Assume each entry of a query \(q\) and a key \(k\) is independent, with mean 0 and variance 1 (roughly true at initialization). Then</p>
+<div class="math-block">$$q \cdot k = \sum_{i=1}^{d_k} q_i k_i$$</div>
+<p>is a sum of \(d_k\) independent terms, each with variance 1. Variances add, so</p>
+<div class="math-block">$$\text{Var}(q \cdot k) = d_k, \qquad \text{typical size} = \sqrt{d_k}.$$</div>
+<p>Dividing by \(\sqrt{d_k}\) gives</p>
+<div class="math-block">$$\text{Var}\!\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{d_k}{d_k} = 1.$$</div>
+<p>In words: <strong>whatever \(d_k\) is, the scaled scores have a typical size of about 1.</strong> Dividing by \(d_k\) would over-shrink them as \(d_k\) grows, and not dividing lets them grow without limit; \(\sqrt{d_k}\) is the amount that exactly cancels the growth.</p>
+
+<h3>5.4 Why large scores stop learning</h3>
+<p>For a two-way softmax with weights \(p\) and \(1 - p\), the derivative of \(p\) with respect to its score is \(p(1 - p)\).</p>
+<div class="tw"><table>
+  <tr><th>Scores</th><th>Weights</th><th>Gradient \(p(1-p)\)</th></tr>
+  <tr><td>\([8, 0]\) (unscaled, \(d_k = 64\))</td><td>\([0.9997, 0.0003]\)</td><td><strong>0.0003</strong></td></tr>
+  <tr><td>\([1, 0]\) (same, ÷ 8 = \(\sqrt{64}\))</td><td>\([0.73, 0.27]\)</td><td><strong>0.197</strong></td></tr>
+</table></div>
+<p>The unscaled version has a gradient about <strong>590 times smaller</strong>, so training barely moves the weights. This is called <strong>softmax saturation</strong>.</p>
+
+<div class="demo" id="sat">
+  <p class="demo-title">Try it: why √d<sub>k</sub>? Watch softmax freeze</p>
+  <p class="cap" style="margin:2px 0 6px">One query is compared with 6 keys. Every entry is a random number with mean 0 and variance 1, as in 5.3. The statistics on the right come from 2,000 fresh random draws at the chosen d<sub>k</sub>.</p>
+  <div class="slider">
+    <label for="sat-d">d<sub>k</sub> =</label>
+    <input id="sat-d" type="range" min="0" max="10" step="1" value="6">
+    <output id="sat-d-out" for="sat-d">64</output>
+    <span class="toggle" role="group" aria-label="Scaling">
+      <button type="button" id="sat-off">no scaling</button>
+      <button type="button" id="sat-on" class="on">÷ √d<sub>k</sub></button>
+    </span>
+    <button class="btn" id="sat-new" type="button">New random query</button>
+  </div>
+  <div class="sat">
+    <div>
+      <p class="sub-cap" style="margin-top:4px">Scores and softmax weights</p>
+      <div class="bars" id="sat-bars"></div>
+    </div>
+    <div>
+      <p class="sub-cap" style="margin-top:4px">Over 2,000 random draws</p>
+      <dl class="stat" id="sat-stats"></dl>
+      <div style="margin-top:8px;font-size:14px">Learning signal (average gradient of the top weight)</div>
+      <div class="meter"><i id="sat-meter"></i></div>
+    </div>
+  </div>
+  <p class="demo-status" id="sat-status" aria-live="polite"></p>
+</div>
+
+<h3>5.5 Masks</h3>
+<p>\(M\) is added to the scores, entry by entry. Two common kinds, shown for 3 tokens:</p>
+<p><strong>Causal (look-ahead) mask</strong>: token \(i\) may attend to positions \(j \le i\) only:</p>
+<div class="math-block">$$M_{\text{causal}} = \begin{bmatrix} 0 & -\infty & -\infty \\ 0 & 0 & -\infty \\ 0 & 0 & 0 \end{bmatrix}$$</div>
+<p><strong>Padding mask</strong>: if token 3 is padding, nobody may attend to it (column 3 blocked):</p>
+<div class="math-block">$$M_{\text{pad}} = \begin{bmatrix} 0 & 0 & -\infty \\ 0 & 0 & -\infty \\ 0 & 0 & -\infty \end{bmatrix}$$</div>
+<p>Masks can be combined by adding them (any \(-\infty\) wins).</p>
+<p><strong>Why \(-\infty\) and not 0?</strong> A score of 0 still gets weight \(e^0 = 1\), which is often a <em>large</em> weight. Only \(-\infty\) guarantees weight exactly 0 <strong>and</strong> keeps every row summing to 1. (Setting weights to 0 <em>after</em> the softmax would break the "sums to 1" property.) In code, a very large negative number such as \(-10^9\) is often used instead.</p>
+
+<h3>5.6 Numerically stable softmax</h3>
+<p>\(e^{1000}\) overflows a computer's floating-point numbers. Softmax gives the same answer if you subtract any constant from every score in a row, so implementations subtract the row maximum first:</p>
+<div class="math-block">$$\text{softmax}(s)_j = \frac{e^{s_j - \max(s)}}{\sum_k e^{s_k - \max(s)}}$$</div>
+<p>Now the largest exponent is \(e^0 = 1\) and nothing overflows.</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<p>We continue with Section 4's matrices (\(d_k = 2\), so \(\sqrt{d_k} = \sqrt{2} \approx 1.414\)):</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>\(q\)</th><th>\(k\)</th><th>\(v\)</th></tr>
+  <tr><td>the</td><td>[0.2, 0.2]</td><td>[0.2, 0.2]</td><td>[0.4, 0.2]</td></tr>
+  <tr><td>bat</td><td>[1, 1]</td><td>[1, 1]</td><td>[2, 1]</td></tr>
+  <tr><td>flew</td><td>[0, 2]</td><td>[2, 0]</td><td>[2, 0]</td></tr>
+</table></div>
+
+<h3>6.1 Scaling, step by step (no mask)</h3>
+<p><strong>Step 1: scores</strong> \(S = QK^{\top}\) (from Section 4):</p>
+<div class="tw"><table>
+  <tr><th>\(S\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.08</td><td>0.40</td><td>0.40</td></tr>
+  <tr><th>bat</th><td>0.40</td><td>2.00</td><td>2.00</td></tr>
+  <tr><th>flew</th><td>0.40</td><td>2.00</td><td>0.00</td></tr>
+</table></div>
+<p><strong>Step 2: scale</strong> by \(1/\sqrt{2}\):</p>
+<div class="tw"><table>
+  <tr><th>\(S / \sqrt{2}\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.06</td><td>0.28</td><td>0.28</td></tr>
+  <tr><th>bat</th><td>0.28</td><td>1.41</td><td>1.41</td></tr>
+  <tr><th>flew</th><td>0.28</td><td>1.41</td><td>0.00</td></tr>
+</table></div>
+<p><strong>Step 3: softmax the "flew" row</strong>: \(e^{0.28} = 1.33\), \(e^{1.41} = 4.11\), \(e^{0} = 1\), total \(6.44\) → weights \([0.21, 0.64, 0.16]\) (rounded).</p>
+<p><strong>All rows:</strong></p>
+<div class="tw"><table>
+  <tr><th>\(A\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.29</td><td>0.36</td><td>0.36</td></tr>
+  <tr><th>bat</th><td>0.14</td><td>0.43</td><td>0.43</td></tr>
+  <tr><th>flew</th><td>0.21</td><td>0.64</td><td>0.16</td></tr>
+</table></div>
+<p><strong>Step 4: output</strong> \(Y = AV\):</p>
+<div class="tw"><table>
+  <tr><th>\(Y\)</th><th>dim 1</th><th>dim 2</th></tr>
+  <tr><th>the</th><td>1.54</td><td>0.41</td></tr>
+  <tr><th>bat</th><td>1.78</td><td>0.46</td></tr>
+  <tr><th>flew</th><td>1.67</td><td>0.68</td></tr>
+</table></div>
+<p><strong>Compare with Section 4 (unscaled):</strong> "flew" went from \([0.15, 0.75, 0.10]\) to \([0.21, 0.64, 0.16]\). Scaling made the distribution <strong>softer</strong>. Here \(d_k = 2\), so the effect is mild; with \(d_k = 64\) it's the difference between learning and not learning (Section 6.3).</p>
+
+<h3>6.2 Adding a causal mask</h3>
+<p>Same scaled scores, plus \(M_{\text{causal}}\):</p>
+<div class="tw"><table>
+  <tr><th>\(S/\sqrt{2} + M\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.06</td><td>\(-\infty\)</td><td>\(-\infty\)</td></tr>
+  <tr><th>bat</th><td>0.28</td><td>1.41</td><td>\(-\infty\)</td></tr>
+  <tr><th>flew</th><td>0.28</td><td>1.41</td><td>0.00</td></tr>
+</table></div>
+<ul>
+  <li><strong>the</strong> row: only one allowed entry → weights \([1, 0, 0]\). "the" can only see itself.</li>
+  <li><strong>bat</strong> row: \(e^{0.28} = 1.33\), \(e^{1.41} = 4.11\), total \(5.44\) → \([0.24, 0.76, 0]\).</li>
+  <li><strong>flew</strong> row: nothing masked → \([0.21, 0.64, 0.16]\), as before.</li>
+</ul>
+<div class="tw"><table>
+  <tr><th>\(A_{\text{causal}}\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td><strong>1.00</strong></td><td>0</td><td>0</td></tr>
+  <tr><th>bat</th><td>0.24</td><td>0.76</td><td>0</td></tr>
+  <tr><th>flew</th><td>0.21</td><td>0.64</td><td>0.16</td></tr>
+</table></div>
+<p>The matrix is now <strong>lower-triangular</strong>: everything above the diagonal is zero. The output for "the" is simply its own value, \(y_{\text{the}} = v_{\text{the}} = [0.4, 0.2]\).</p>
+<p><strong>Why this matters for training:</strong> in "the bat flew", the model can now be trained to predict "bat" from position 1 and "flew" from position 2 <strong>at the same time, in one pass</strong>. No position can see the answer it is meant to predict.</p>
+
+<div class="demo" id="pipe">
+  <p class="demo-title">Try it: the five steps, one at a time</p>
+  <div class="demo-bar">
+    <span class="cap">Mask:</span>
+    <span class="toggle" role="group" aria-label="Mask type">
+      <button type="button" data-mask="none" class="on">none</button>
+      <button type="button" data-mask="causal">causal</button>
+      <button type="button" data-mask="pad">padding ("flew" is padding)</button>
+    </span>
+  </div>
+  <div class="stages" id="pipe-stages"></div>
+  <div class="demo-bar">
+    <button class="btn" id="pipe-prev" type="button">← Back</button>
+    <button class="btn" id="pipe-next" type="button">Next step →</button>
+  </div>
+  <div class="mat-row" id="pipe-view"></div>
+  <p class="demo-status" id="pipe-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Why scaling matters at real sizes</h3>
+<p>Draw random queries and keys with independent standard-normal entries, 4,000 pairs for each \(d_k\) (simulation, seed 0):</p>
+<div class="tw"><table>
+  <tr><th>\(d_k\)</th><th>variance of \(q \cdot k\)</th><th>typical size (std)</th><th>after ÷ \(\sqrt{d_k}\)</th></tr>
+  <tr><td>4</td><td>3.9</td><td>1.99</td><td>0.99</td></tr>
+  <tr><td>64</td><td>62.2</td><td>7.89</td><td>0.99</td></tr>
+  <tr><td>512</td><td>508.1</td><td>22.54</td><td>1.00</td></tr>
+</table></div>
+<p>The variance tracks \(d_k\) closely, as the formula in 5.3 predicts, and scaling brings the typical size back to about 1 every time. The "why √d<sub>k</sub>" demo in 5.4 runs the same experiment live.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    Q["Q<br/>n × d_k"] --> MM["MatMul<br/>S = Q Kᵀ<br/>n × n"]
+    K["K<br/>n × d_k"] --> MM
+    MM --> SC["Scale<br/>÷ √d_k"]
+    SC --> MK["Mask (optional)<br/>+ M"]
+    MK --> SM["Softmax<br/>each row"]
+    SM --> MM2["MatMul<br/>A V"]
+    V["V<br/>n × d_v"] --> MM2
+    MM2 --> Y["Output<br/>n × d_v"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<h3>A complete implementation (NumPy)</h3>
+<pre class="code"><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="k">def</span> attention(Q, K, V, mask=<span class="k">None</span>):
+    <span class="c">"""Scaled dot-product attention.
+    Q, K: (n, d_k)   V: (n, d_v)   mask: (n, n) booleans, True = allowed
+    Returns the output (n, d_v) and the weights (n, n)."""</span>
+    d_k = Q.shape[-1]
+    S = Q @ K.T / np.sqrt(d_k)                 <span class="c"># steps 1-2: scores, scaled</span>
+    <span class="k">if</span> mask <span class="k">is not None</span>:
+        S = np.where(mask, S, -np.inf)         <span class="c"># step 3: blocked -> -inf</span>
+    S = S - S.max(axis=-1, keepdims=<span class="k">True</span>)      <span class="c"># stable softmax</span>
+    A = np.exp(S)
+    A = A / A.sum(axis=-1, keepdims=<span class="k">True</span>)      <span class="c"># step 4: rows sum to 1</span>
+    <span class="k">return</span> A @ V, A                            <span class="c"># step 5</span>
+
+causal = np.tril(np.ones((3, 3), dtype=bool))  <span class="c"># lower-triangular = causal mask</span></pre>
+<h3>In real libraries</h3>
+<ul>
+  <li><strong>PyTorch</strong> has a built-in <code>torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, is_causal=False)</code>. It applies exactly this formula and automatically picks a fast kernel when one is available.</li>
+  <li><strong>FlashAttention</strong> computes the <em>same</em> result without ever storing the full \(n \times n\) matrix, by working in small tiles that fit in the GPU's fast on-chip memory. It is much faster and uses memory proportional to \(n\) instead of \(n^2\) (Section 14).</li>
+</ul>
+<h3>Cost</h3>
+<p>For one head: computing \(QK^{\top}\) takes about \(n^2 d_k\) multiply-adds, and \(AV\) another \(n^2 d_v\). Storing \(A\) needs \(n^2\) numbers: for \(n = 1{,}000\) tokens at 2 bytes each, that's 2 MB per head per layer, and it grows 4× every time \(n\) doubles.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"We divide by \(d_k\)."</strong> No: by \(\sqrt{d_k}\), the standard deviation of the dot product, not its variance.</li>
+  <li class="mistake"><strong>"Scaling changes which token gets the most attention."</strong> It doesn't. Dividing every score by the same positive number keeps their order, so the top token stays on top. It only changes <strong>how sharp</strong> the distribution is.</li>
+  <li class="mistake"><strong>"Masking means setting attention weights to 0 after the softmax."</strong> If you zero weights after the softmax, the row no longer sums to 1. The mask is applied <strong>before</strong> the softmax, as \(-\infty\) on the scores.</li>
+  <li class="mistake"><strong>"Masked tokens are removed from the computation."</strong> They still have their own rows and outputs. They just can't be <em>attended to</em> by the tokens that are blocked from them.</li>
+  <li class="mistake"><strong>"Encoders like BERT use the causal mask."</strong> Encoders are bidirectional and use only padding masks. The causal mask belongs to decoders that generate text (GPT, LLaMA, Claude).</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>Scaled dot-product attention:</strong> \(\text{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + M\right)V\), in five steps: scores → scale → mask → softmax → mix values.</li>
+  <li>\(q \cdot k\) has variance \(\approx d_k\); dividing by \(\sqrt{d_k}\) brings scores back to a typical size of about 1 and prevents <strong>softmax saturation</strong> (vanishing gradients).</li>
+  <li>Scaling never changes which token ranks first; it controls how <strong>sharp</strong> the weights are.</li>
+  <li>A <strong>mask</strong> adds \(-\infty\) to forbidden scores: <strong>causal</strong> masks hide the future (decoders), <strong>padding</strong> masks hide filler tokens.</li>
+  <li>Implementations use a <strong>stable softmax</strong> (subtract the row max) and fast kernels like <strong>FlashAttention</strong>.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A head has \(d_k = 256\). A query's raw scores against three keys are \([32, 16, 0]\). Compute the scaled scores and the attention weights.</li>
+  <li>In a 4-token sentence with a causal mask, how many of the 16 entries of \(A\) are forced to be 0? Which token can attend to the most tokens?</li>
+  <li>A student masks by setting forbidden <strong>scores</strong> to 0 instead of \(-\infty\). Using the "bat" row of 6.2 (scaled scores \([0.28, 1.41, 1.41]\), with "flew" forbidden), show what goes wrong.</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(\sqrt{256} = 16\), so the scaled scores are \([2, 1, 0]\). \(e^2 = 7.39\), \(e^1 = 2.72\), \(e^0 = 1\), total \(11.11\), giving weights <strong>\([0.67, 0.24, 0.09]\)</strong>. (Without scaling, \([32, 16, 0]\) would give essentially \([1.00, 0.00, 0.00]\).)</li>
+    <li>Everything above the diagonal: \(\frac{4 \times 3}{2} = \mathbf{6}\) entries. The <strong>last</strong> token can attend to all 4 positions.</li>
+    <li>Scores become \([0.28, 1.41, 0]\), so "flew" still gets \(e^0 / (1.33 + 4.11 + 1) = 1/6.44 \approx\) <strong>0.16</strong> of the attention, and the "future" leaks through. With \(-\infty\) it gets exactly 0 and the weights are \([0.24, 0.76, 0]\).</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>NeurIPS 2017.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. Section 3.2.1 and its footnote give the variance argument for \(\sqrt{d_k}\).</li>
+  <li>Dao, T. et al. (2022). <strong>"FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness."</strong> <a href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">arXiv:2205.14135</a>. How the same formula is computed without storing the \(n \times n\) matrix.</li>
+  <li>PyTorch documentation, <strong><code>torch.nn.functional.scaled_dot_product_attention</code></strong>. The library version, including <code>attn_mask</code> and <code>is_causal</code>.</li>
+  <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <strong><em>Deep Learning</em></strong>, MIT Press. Chapter 4 (numerical computation: overflow and the stable softmax) and Chapter 6 (softmax units and saturation).</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function fmt(v) { if (v === -Infinity) return "−∞"; var r = Math.abs(v) < 0.005 ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(2); }
+  function mm(A, B) { return A.map(function (r) { return B[0].map(function (_, j) { return r.reduce(function (s, v, k) { return s + v * B[k][j]; }, 0); }); }); }
+  function T(A) { return A[0].map(function (_, j) { return A.map(function (r) { return r[j]; }); }); }
+  // numerically stable softmax that understands -Infinity
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return v === -Infinity ? 0 : Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  function heat(v, scale) { if (v === -Infinity) return null; var a = Math.min(1, Math.abs(v) / scale) * 0.85; return { bg: v >= 0 ? "rgba(27,47,168," + a.toFixed(3) + ")" : "rgba(214,120,30," + a.toFixed(3) + ")", fg: a > 0.45 ? "#fff" : "#1f2433" }; }
+  function setBar(el, frac) { var pct = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.4 }); else el.style.width = pct; }
+
+  /* ---------- 1. Why sqrt(d_k): live random experiment ---------- */
+  (function sat() {
+    var root = document.getElementById("sat");
+    if (!root) return;
+    var slider = document.getElementById("sat-d"), out = document.getElementById("sat-d-out");
+    var bOn = document.getElementById("sat-on"), bOff = document.getElementById("sat-off");
+    var scaled = true, seed = 1;
+    // small seeded PRNG (mulberry32) + Box-Muller for standard normals
+    function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function normal(r) { var u = 0, v = 0; while (u === 0) u = r(); v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+    function vec(r, d) { var x = new Array(d); for (var i = 0; i < d; i++) x[i] = normal(r); return x; }
+    function dot(a, b) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+    function render() {
+      var d = Math.pow(2, parseInt(slider.value, 10)); out.textContent = d;
+      var div = scaled ? Math.sqrt(d) : 1;
+      // one example query vs 6 keys
+      var r = rng(seed * 7919 + d), q = vec(r, d), keys = [0, 1, 2, 3, 4, 5].map(function () { return vec(r, d); });
+      var raw = keys.map(function (k) { return dot(q, k); }), used = raw.map(function (v) { return v / div; }), w = softmax(used);
+      document.getElementById("sat-bars").innerHTML = w.map(function (p, i) {
+        return "<span>key " + (i + 1) + '</span><span class="bar"><i></i></span><b>' + p.toFixed(3) + "</b><em>score " + fmt(used[i]) + "</em>";
+      }).join("");
+      document.querySelectorAll("#sat-bars .bar > i").forEach(function (el, i) { setBar(el, w[i]); });
+      // statistics over 2000 draws (fixed seed so the numbers are stable)
+      var r2 = rng(424242 + d), N = 2000, sum = 0, sum2 = 0, topSum = 0, gradSum = 0;
+      var trials = Math.max(60, Math.round(N / 6));
+      for (var t = 0; t < trials; t++) {
+        var qq = vec(r2, d), sc = [];
+        for (var k = 0; k < 6; k++) { var s = dot(qq, vec(r2, d)) / div; sc.push(s); sum += s; sum2 += s * s; }
+        var ww = softmax(sc), top = Math.max.apply(null, ww); topSum += top; gradSum += top * (1 - top);
+      }
+      var cnt = trials * 6, mean = sum / cnt, std = Math.sqrt(sum2 / cnt - mean * mean), avgTop = topSum / trials, avgGrad = gradSum / trials;
+      document.getElementById("sat-stats").innerHTML =
+        "<dt>typical score size (std)</dt><dd>" + std.toFixed(2) + "</dd>" +
+        "<dt>predicted by 5.3</dt><dd>" + (scaled ? "1.00" : Math.sqrt(d).toFixed(2)) + "</dd>" +
+        "<dt>average top weight</dt><dd>" + avgTop.toFixed(3) + "</dd>" +
+        "<dt>average gradient p(1−p)</dt><dd>" + avgGrad.toFixed(4) + "</dd>";
+      setBar(document.getElementById("sat-meter"), avgGrad / 0.25);
+      var msg = scaled
+        ? "Scaled: the typical score stays near 1 whatever dₖ is, so softmax stays soft and the gradient stays healthy. Try dₖ = 1024 and compare with “no scaling”."
+        : (avgTop > 0.9 ? "Unscaled with dₖ = " + d + ": scores are around ±" + std.toFixed(0) + ", so softmax gives nearly everything to one key (average top weight " + avgTop.toFixed(2) + ") and the gradient almost vanishes. This is softmax saturation."
+                        : "Unscaled: with small dₖ the scores are still modest, so softmax is fine. Slide dₖ up and watch it saturate.");
+      document.getElementById("sat-status").textContent = msg;
+      window.__sat = { d: d, scaled: scaled, std: std, avgTop: avgTop, avgGrad: avgGrad };
+    }
+    slider.addEventListener("input", render);
+    bOn.addEventListener("click", function () { scaled = true; bOn.classList.add("on"); bOff.classList.remove("on"); render(); });
+    bOff.addEventListener("click", function () { scaled = false; bOff.classList.add("on"); bOn.classList.remove("on"); render(); });
+    document.getElementById("sat-new").addEventListener("click", function () { seed++; render(); });
+    render();
+  })();
+
+  /* ---------- 2. Five-step pipeline on the running example ---------- */
+  (function pipe() {
+    var view = document.getElementById("pipe-view");
+    if (!view) return;
+    var TOK = ["the", "bat", "flew"];
+    var Q = [[0.2, 0.2], [1, 1], [0, 2]], K = [[0.2, 0.2], [1, 1], [2, 0]], V = [[0.4, 0.2], [2, 1], [2, 0]];
+    var dk = 2, mask = "none", step = 0, NI = -Infinity;
+    var MASKS = { none: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], causal: [[0, NI, NI], [0, 0, NI], [0, 0, 0]], pad: [[0, 0, NI], [0, 0, NI], [0, 0, NI]] };
+    var NAMES = ["1. Scores QKᵀ", "2. Scale ÷√2", "3. Add mask", "4. Softmax", "5. Multiply by V"];
+    var pills = document.getElementById("pipe-stages");
+    var pillEls = NAMES.map(function (nm, i) {
+      if (i) { var s = document.createElement("span"); s.className = "arrow-sep"; s.textContent = "→"; pills.appendChild(s); }
+      var b = document.createElement("button"); b.type = "button"; b.className = "stage-pill"; b.textContent = nm; b.addEventListener("click", function () { step = i; render(); }); pills.appendChild(b); return b;
+    });
+    function compute() {
+      var S = mm(Q, T(K)), Ss = S.map(function (r) { return r.map(function (v) { return v / Math.sqrt(dk); }); });
+      var Mx = MASKS[mask], Sm = Ss.map(function (r, i) { return r.map(function (v, j) { return v + Mx[i][j]; }); });
+      var A = Sm.map(softmax), Y = mm(A, V);
+      return { S: S, Ss: Ss, M: Mx, Sm: Sm, A: A, Y: Y };
+    }
+    function table(title, Mx, cols, scale, opts) {
+      opts = opts || {};
+      var h = '<div><p class="sub-cap">' + title + '</p><div class="mat-scroll"><table class="mat"><tr><th></th>' + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + (opts.sums ? "<th>sum</th>" : "") + "</tr>";
+      Mx.forEach(function (r, i) {
+        h += '<tr><th class="r">' + TOK[i] + "</th>" + r.map(function (v) {
+          var c = heat(v, scale); return c ? '<td style="background:' + c.bg + ";color:" + c.fg + '">' + fmt(v) + "</td>" : '<td class="blocked">' + fmt(v) + "</td>";
+        }).join("") + (opts.sums ? "<td>" + r.reduce(function (a, b) { return a + b; }, 0).toFixed(2) + "</td>" : "") + "</tr>";
+      });
+      return h + "</table></div></div>";
+    }
+    function render() {
+      var c = compute();
+      pillEls.forEach(function (p, i) { p.classList.toggle("on", i === step); });
+      document.getElementById("pipe-prev").disabled = step === 0;
+      document.getElementById("pipe-next").disabled = step === 4;
+      var html = "", note = "";
+      if (step === 0) { html = table("S = QKᵀ", c.S, TOK, 4); note = "Each entry is one query · one key. E.g. flew’s query [0, 2] · bat’s key [1, 1] = 2.00."; }
+      if (step === 1) { html = table("S (before)", c.S, TOK, 4) + table("S / √2", c.Ss, TOK, 4); note = "Every score is divided by √dₖ = √2 ≈ 1.414. The order within each row doesn’t change; the scores just get smaller."; }
+      if (step === 2) { html = table("mask M", c.M, TOK, 1) + table("S / √2 + M", c.Sm, TOK, 4); note = mask === "none" ? "No mask: M is all zeros, so nothing changes. Pick “causal” or “padding” above." : mask === "causal" ? "Causal mask: every entry above the diagonal becomes −∞, so no token can look at a later token." : "Padding mask: the whole “flew” column becomes −∞, so nobody can attend to the padding token."; }
+      if (step === 3) { html = table("A = softmax(each row)", c.A, TOK, 1, { sums: true }); note = "e^(−∞) = 0, so blocked entries get weight exactly 0 and every row still sums to 1." + (mask === "causal" ? " “the” can only see itself, so it gets weight 1.00." : ""); }
+      if (step === 4) { html = table("A", c.A, TOK, 1) + table("V", V, ["d1", "d2"], 2.5) + table("Y = AV", c.Y, ["d1", "d2"], 2.5); note = "Each output row mixes the value rows using that row’s weights. E.g. y(flew) = " + c.A[2].map(function (w, j) { return w.toFixed(2) + "·v(" + TOK[j] + ")"; }).join(" + ") + " = [" + c.Y[2].map(fmt).join(", ") + "]."; }
+      view.innerHTML = html;
+      document.getElementById("pipe-status").textContent = note;
+      if (canAnimate) M.animate(view.querySelectorAll("#pipe-view > div:last-child td"), { opacity: [0, 1], scale: [0.85, 1] }, { duration: 0.3, delay: M.stagger(0.03) });
+      window.__pipe = { mask: mask, step: step, A: c.A, Y: c.Y };
+    }
+    document.getElementById("pipe-prev").addEventListener("click", function () { if (step > 0) { step--; render(); } });
+    document.getElementById("pipe-next").addEventListener("click", function () { if (step < 4) { step++; render(); } });
+    document.querySelectorAll("#pipe [data-mask]").forEach(function (b) {
+      b.addEventListener("click", function () { mask = b.dataset.mask; document.querySelectorAll("#pipe [data-mask]").forEach(function (x) { x.classList.toggle("on", x === b); }); render(); });
+    });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 12: Training an LLM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 4.2em; text-align: right; }
+.big { font-family: var(--hand); font-size: 26px; font-weight: 700; color: var(--ink); }
+svg.chart { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.gridl { stroke: #edf0f8; stroke-width: 1; }
+.lbl { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+.curve { fill: none; stroke: #1b2fa8; stroke-width: 2.2; }
+.floor { stroke: #2e7d5b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.marker { fill: #b07a00; }
+/* loss rows */
+.lossrows { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px 12px; align-items: center; font-size: 14.5px; margin: 8px 0; }
+.lossrows input[type=range] { width: 100%; accent-color: #1b2fa8; }
+.lossrows output, .lossrows b { font-family: var(--mono); font-weight: 400; font-size: 13px; color: var(--ink); }
+.lbar { height: 12px; background: var(--tint); border-radius: 6px; overflow: hidden; }
+.lbar > i { display: block; height: 100%; background: #c0472f; width: 0; }
+/* tiny LM */
+.tlm { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px 20px; align-items: start; }
+.tlm > div { min-width: 0; }
+.corpus { font-family: var(--mono); font-size: 12.5px; background: #f6f7fc; border: 1px solid #dfe5f3; border-radius: 8px; padding: 6px 8px; line-height: 1.6; }
+.gens { font-family: var(--mono); font-size: 13px; margin: 4px 0; padding-left: 18px; }
+.stat { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14.5px; margin: 6px 0; }
+.stat dt { color: var(--muted); } .stat dd { margin: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; text-align: right; }
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ctable td:nth-child(2) { font-family: var(--mono); font-size: 13.5px; }
+.match { font-family: var(--hand); font-weight: 700; font-size: 18px; color: #2e7d5b; margin: 4px 0 0; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .tlm { grid-template-columns: minmax(0, 1fr); }
+  .lossrows { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .lossrows .hide-sm { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 12</p>
+  <h1>Training an LLM</h1>
+  <p class="lede"><strong>In one line:</strong> an LLM is made in stages — <strong>pre-training</strong> (predict the next token on trillions of tokens of text), then <strong>supervised fine-tuning</strong> (imitate good answers to instructions), then <strong>preference tuning</strong> (RLHF or DPO: prefer answers people like). Underneath all three is the same loop: forward pass → cross-entropy loss → backpropagation → AdamW update.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Describe</strong> the three training stages and what data each one uses.</li>
+  <li><strong>Compute</strong> cross-entropy loss and perplexity for a short sequence, and interpret them.</li>
+  <li><strong>Perform</strong> one AdamW update by hand and compute a warm-up + cosine learning-rate schedule.</li>
+  <li><strong>Estimate</strong> training compute (\(\approx 6ND\)), GPU-hours and memory for a real model, and explain the Chinchilla "20 tokens per parameter" rule.</li>
+  <li><strong>Explain</strong> SFT loss masking, RLHF, and the DPO loss.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 10:</strong> teacher forcing — one forward pass gives a next-token loss at every position.</li>
+  <li><strong>Section 8:</strong> parameter counts (LLaMA-2 7B = 6.74 billion).</li>
+  <li><strong>Gradient descent:</strong> \(\theta \leftarrow \theta - \eta \, \nabla_\theta \mathcal{L}\), with learning rate \(\eta\).</li>
+  <li><strong>Logarithms:</strong> \(\ln 1 = 0\), \(\ln 0.5 = -0.693\); and \(e^{\ln x} = x\).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — the sigmoid function</span>
+  \(\sigma(z) = \frac{1}{1 + e^{-z}}\) squashes any number into \((0, 1)\): \(\sigma(0) = 0.5\), large positive \(z\) → close to 1. It appears in the DPO loss.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: from random numbers to a helpful assistant</h2>
+<p>A freshly built Transformer has random weights; it outputs gibberish. Turning it into a helpful assistant takes three different kinds of learning:</p>
+<div class="tw"><table>
+  <tr><th>Stage</th><th>What the model learns</th><th>Data</th><th>Rough scale</th></tr>
+  <tr><td><strong>1. Pre-training</strong></td><td>language, facts, reasoning patterns — "how text continues"</td><td>trillions of tokens of web pages, books, code</td><td>weeks–months on thousands of GPUs</td></tr>
+  <tr><td><strong>2. Supervised fine-tuning (SFT)</strong></td><td>to follow instructions and answer in a helpful format</td><td>~10k–1M (instruction, good response) pairs</td><td>hours–days</td></tr>
+  <tr><td><strong>3. Preference tuning (RLHF / DPO)</strong></td><td>to prefer responses people rate as better — more helpful, honest, harmless</td><td>pairs of responses ranked by people (or AI)</td><td>hours–days</td></tr>
+</table></div>
+<p>A pre-trained-only model asked "What is the capital of France?" might continue with <em>"What is the capital of Germany? What is…"</em> — it's continuing text, not answering. Stages 2 and 3 teach it to <strong>respond</strong>.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: training a doctor</h2>
+<ul>
+  <li><strong>Pre-training = years of reading.</strong> A medical student reads thousands of textbooks and papers. They absorb a huge amount, but don't yet know how to talk to a patient.</li>
+  <li><strong>SFT = residency.</strong> They watch senior doctors handle real cases and imitate them: "when a patient says X, respond like this."</li>
+  <li><strong>Preference tuning = feedback from patients and supervisors.</strong> Two ways of explaining a diagnosis are compared; "this one was clearer and kinder" — and the doctor adjusts towards the preferred style.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>The "reading" stage isn't passive. Every single token of text is a little exam — predict the next word, get graded, adjust — trillions of times.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The training loop</h3>
+<p>For each step:</p>
+<ol class="steps">
+  <li>Take a <strong>batch</strong> of token sequences (e.g. 1,000 sequences × 4,096 tokens ≈ 4 million tokens).</li>
+  <li><strong>Forward pass:</strong> compute next-token probabilities at every position (teacher forcing).</li>
+  <li><strong>Loss:</strong> average cross-entropy over all positions.</li>
+  <li><strong>Backward pass:</strong> backpropagation computes the gradient of the loss for every parameter.</li>
+  <li><strong>Clip</strong> the gradient if its overall size exceeds a threshold (e.g. 1.0) — protects against rare huge updates.</li>
+  <li><strong>Update</strong> every parameter with <strong>AdamW</strong>, using the current <strong>learning rate</strong> from the schedule.</li>
+</ol>
+
+<h3>5.2 Loss and perplexity</h3>
+<p>For a sequence of \(T\) predictions:</p>
+<div class="math-block">$$\mathcal{L} = -\frac{1}{T}\sum_{t=1}^{T} \log P_\theta(x_{t+1} \mid x_{\le t}), \qquad \text{Perplexity} = e^{\mathcal{L}}$$</div>
+<p><strong>Perplexity</strong> reads as "the model is as uncertain as if it were choosing uniformly among this many tokens". A model that guesses uniformly over a 50,257-token vocabulary has loss \(\ln 50{,}257 = 10.8\) and perplexity 50,257; good LLMs reach perplexities in the single digits on typical text.</p>
+
+<h3>5.3 AdamW</h3>
+<p>Plain gradient descent uses the same step size for every parameter. <strong>Adam</strong> keeps, for each parameter, a running average of its gradient (\(m\), "momentum") and of its squared gradient (\(v\)), and scales the step by \(1/\sqrt{v}\) — so parameters with consistently large gradients take smaller steps, and rarely-updated ones take bigger steps.</p>
+<div class="math-block">$$
+\begin{aligned}
+m_t &= \beta_1 m_{t-1} + (1 - \beta_1)\, g_t, & v_t &= \beta_2 v_{t-1} + (1 - \beta_2)\, g_t^2 \\
+\hat m_t &= \frac{m_t}{1 - \beta_1^t}, & \hat v_t &= \frac{v_t}{1 - \beta_2^t} \\
+\theta_t &= \theta_{t-1} - \eta\left(\frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon} + \lambda\,\theta_{t-1}\right)
+\end{aligned}
+$$</div>
+<ul>
+  <li>\(\hat m, \hat v\) are <strong>bias-corrected</strong> (at the start \(m\) and \(v\) are 0, which would make them too small).</li>
+  <li><strong>AdamW</strong> applies <strong>weight decay</strong> \(\lambda\) directly to the weights ("decoupled"), gently pulling them towards zero.</li>
+  <li>Typical LLM values: \(\beta_1 = 0.9\), \(\beta_2 = 0.95\), \(\epsilon = 10^{-8}\) to \(10^{-5}\), \(\lambda = 0.1\).</li>
+</ul>
+
+<h3>5.4 The learning-rate schedule</h3>
+<p>Two phases:</p>
+<ol>
+  <li><strong>Warm-up:</strong> increase linearly from 0 to the peak over the first few thousand steps. Early on, Adam's statistics are unreliable and the weights are random; big steps would be unstable.</li>
+  <li><strong>Cosine decay:</strong> smoothly decrease from the peak to a small minimum (often 10% of the peak):</li>
+</ol>
+<div class="math-block">$$\eta(s) = \eta_{\min} + \tfrac{1}{2}(\eta_{\max} - \eta_{\min})\left(1 + \cos\!\left(\pi\,\frac{s - s_{\text{warm}}}{s_{\text{total}} - s_{\text{warm}}}\right)\right)$$</div>
+<p>Large steps early make fast progress; small steps late let the model settle into a good minimum.</p>
+
+<h3>5.5 How much compute? \(C \approx 6ND\)</h3>
+<p>For a model with \(N\) parameters trained on \(D\) tokens, training costs about</p>
+<div class="math-block">$$C \approx 6\,N\,D \ \text{floating-point operations (FLOPs)}$$</div>
+<p>— roughly \(2N\) per token for the forward pass and \(4N\) for the backward pass.</p>
+<p><strong>Scaling laws and Chinchilla.</strong> Loss falls smoothly and predictably as \(N\), \(D\) and \(C\) grow. For a <em>fixed</em> compute budget, research on "compute-optimal" training found that parameters and tokens should grow together, at about <strong>20 training tokens per parameter</strong>. Modern models often train far beyond this (e.g. 100+ tokens per parameter): it costs more training compute, but gives a smaller model for the same quality — cheaper to <em>run</em> for millions of users.</p>
+
+<h3>5.6 Memory for training</h3>
+<p>With AdamW and mixed precision, each parameter needs roughly:</p>
+<div class="tw"><table>
+  <tr><th>Item</th><th>Bytes per parameter</th></tr>
+  <tr><td>weights (16-bit)</td><td>2</td></tr>
+  <tr><td>gradients (16-bit)</td><td>2</td></tr>
+  <tr><td>master copy of weights (32-bit)</td><td>4</td></tr>
+  <tr><td>Adam \(m\) (32-bit)</td><td>4</td></tr>
+  <tr><td>Adam \(v\) (32-bit)</td><td>4</td></tr>
+  <tr><td><strong>Total</strong></td><td><strong>≈ 16</strong></td></tr>
+</table></div>
+<p>…plus memory for <strong>activations</strong> (intermediate values kept for the backward pass), which grows with batch size and sequence length. Large models don't fit on one GPU, so these states are sharded across many GPUs (Section 17).</p>
+
+<h3>5.7 Supervised fine-tuning (SFT)</h3>
+<p>Training examples are conversations: an <strong>instruction</strong> (prompt) and a high-quality <strong>response</strong>. The model is trained with the same next-token loss, <strong>but only on the response tokens</strong> — the prompt tokens are masked out of the loss (they're still in the input, as context). Otherwise the model would partly learn to imitate users' questions rather than the assistant's answers.</p>
+
+<h3>5.8 Preference tuning: RLHF and DPO</h3>
+<p>Both start from <strong>preference data</strong>: for a prompt \(x\), two responses — a preferred one \(y_w\) ("winner") and a rejected one \(y_l\) ("loser").</p>
+<p><strong>RLHF</strong> (reinforcement learning from human feedback):</p>
+<ol>
+  <li>Train a <strong>reward model</strong> — usually an LLM with a scalar head — to score \(y_w\) above \(y_l\).</li>
+  <li>Use reinforcement learning (typically PPO) to make the LLM produce high-reward responses, with a <strong>KL penalty</strong> that keeps it close to the SFT model (so it doesn't drift into strange text that fools the reward model).</li>
+</ol>
+<p><strong>DPO</strong> (direct preference optimization) skips the reward model and the RL loop. It directly increases the probability of \(y_w\) relative to \(y_l\), compared with a frozen reference model \(\pi_{\text{ref}}\):</p>
+<div class="math-block">$$\mathcal{L}_{\text{DPO}} = -\log \sigma\!\Big(\beta\Big[\underbrace{\log\tfrac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)}}_{\text{how much more likely the winner became}} - \underbrace{\log\tfrac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}}_{\text{how much more likely the loser became}}\Big]\Big)$$</div>
+<p>In words: <em>push the winner's probability up and the loser's down, relative to where they started.</em> \(\beta\) (e.g. 0.1) controls how far the model may move from the reference.</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Loss and perplexity</h3>
+<p>A model predicts 4 tokens, giving the correct ones probabilities 0.5, 0.25, 0.8 and 0.1:</p>
+<div class="tw"><table>
+  <tr><th>Position</th><th>\(P(\text{correct})\)</th><th>\(-\ln P\)</th></tr>
+  <tr><td>1</td><td>0.50</td><td>0.693</td></tr>
+  <tr><td>2</td><td>0.25</td><td>1.386</td></tr>
+  <tr><td>3</td><td>0.80</td><td>0.223</td></tr>
+  <tr><td>4</td><td>0.10</td><td>2.303</td></tr>
+</table></div>
+<div class="math-block">$$\mathcal{L} = \frac{0.693 + 1.386 + 0.223 + 2.303}{4} = \mathbf{1.151}, \qquad \text{Perplexity} = e^{1.151} = \mathbf{3.16}$$</div>
+<p>On average the model is "as unsure as choosing among about 3 tokens". Notice one confident mistake (position 4, \(P = 0.1\)) contributes as much loss as the other three combined.</p>
+<p><strong>At the start of training</strong> (uniform over 50,257 tokens): every \(P = 1/50{,}257\), so \(\mathcal{L} = \ln 50{,}257 = 10.83\) and perplexity 50,257.</p>
+
+<div class="demo" id="loss">
+  <p class="demo-title">Try it: how loss and perplexity react</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-pre="ex">6.1 example</button>
+    <button class="btn" type="button" data-pre="good">confident and right</button>
+    <button class="btn" type="button" data-pre="bad">one confident mistake</button>
+    <button class="btn" type="button" data-pre="uni">untrained (uniform over 50,257)</button>
+  </div>
+  <div class="lossrows" id="loss-rows"></div>
+  <p><span class="big" id="loss-out"></span></p>
+  <p class="demo-status" id="loss-status" aria-live="polite"></p>
+</div>
+
+<h3>6.2 One AdamW step by hand</h3>
+<p>Parameter \(\theta = 1.0\), gradient \(g = 0.5\), learning rate \(\eta = 0.1\), \(\beta_1 = 0.9\), \(\beta_2 = 0.999\), weight decay \(\lambda = 0.01\), first step (\(t = 1\), \(m_0 = v_0 = 0\)):</p>
+<ol class="steps">
+  <li>\(m_1 = 0.9(0) + 0.1(0.5) = 0.05\) and \(v_1 = 0.999(0) + 0.001(0.25) = 0.00025\)</li>
+  <li>Bias-correct: \(\hat m_1 = 0.05 / (1 - 0.9) = 0.5\) and \(\hat v_1 = 0.00025 / (1 - 0.999) = 0.25\)</li>
+  <li>Adam step: \(\eta \cdot \hat m_1 / \sqrt{\hat v_1} = 0.1 \times 0.5 / 0.5 = 0.1\)</li>
+  <li>Weight decay: \(\eta \lambda \theta = 0.1 \times 0.01 \times 1.0 = 0.001\)</li>
+  <li>New value: \(\theta = 1.0 - 0.1 - 0.001 = \mathbf{0.899}\)</li>
+</ol>
+<p><strong>Notice:</strong> the step size (\(0.1 = \eta\)) didn't depend on the gradient's <em>size</em> — a gradient of 50 or 0.005 would give the same first step. Adam normalizes each parameter's step, which is why one learning rate works across very different layers.</p>
+
+<h3>6.3 A learning-rate schedule</h3>
+<p>Peak \(3 \times 10^{-4}\), warm-up 2,000 steps, 100,000 steps in total, cosine decay to \(3 \times 10^{-5}\) (10% of peak):</p>
+<div class="tw"><table>
+  <tr><th>Step</th><th>Phase</th><th>Learning rate</th></tr>
+  <tr><td>1,000</td><td>warm-up, halfway</td><td>\(1.5 \times 10^{-4}\)</td></tr>
+  <tr><td>2,000</td><td>peak</td><td>\(3.0 \times 10^{-4}\)</td></tr>
+  <tr><td>51,000</td><td>halfway through decay (\(\cos(\pi/2) = 0\))</td><td>\(\frac{3 \times 10^{-4} + 3 \times 10^{-5}}{2} = 1.65 \times 10^{-4}\)</td></tr>
+  <tr><td>100,000</td><td>end</td><td>\(3.0 \times 10^{-5}\)</td></tr>
+</table></div>
+
+<div class="demo" id="tlm">
+  <p class="demo-title">Try it: train a tiny language model in your browser</p>
+  <p class="cap" style="margin:2px 0 6px">A real (but tiny) model: a bigram table of 10 × 10 learnable scores, trained with next-token cross-entropy and AdamW on the five sentences below. Everything is computed live.</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Schedule">
+      <button type="button" data-sch="cos" class="on">warm-up + cosine</button>
+      <button type="button" data-sch="const">constant</button>
+    </span>
+    <button class="btn" type="button" id="tlm-train">Train 300 steps</button>
+    <button class="btn" type="button" id="tlm-reset">Reset to random</button>
+  </div>
+  <div class="sliders">
+    <label>peak learning rate <input type="range" id="tlm-lr" min="-3" max="1" step="0.25" value="-1"><output id="tlm-lro">0.10</output></label>
+  </div>
+  <div class="tlm">
+    <div><svg class="chart" id="tlm-chart" viewBox="0 0 420 220" role="img" aria-label="Training loss curve with the lowest achievable loss as a dashed line"></svg></div>
+    <div>
+      <p class="sub-cap" style="margin-top:0">Training text</p>
+      <div class="corpus" id="tlm-corpus"></div>
+      <dl class="stat" id="tlm-stats"></dl>
+      <p class="sub-cap">Text the model writes now (greedy, then sampled)</p>
+      <ol class="gens" id="tlm-gens"></ol>
+    </div>
+  </div>
+  <p class="demo-status" id="tlm-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 How expensive was LLaMA-2 7B?</h3>
+<p>\(N = 6.74 \times 10^9\) parameters, \(D = 2 \times 10^{12}\) tokens:</p>
+<div class="math-block">$$C \approx 6 \times 6.74 \times 10^9 \times 2 \times 10^{12} = 8.1 \times 10^{22} \text{ FLOPs}$$</div>
+<p>An NVIDIA A100 GPU peaks at about \(312 \times 10^{12}\) FLOP/s in 16-bit; real training achieves perhaps 40% of that, i.e. \(1.25 \times 10^{14}\) FLOP/s:</p>
+<div class="math-block">$$\frac{8.1 \times 10^{22}}{1.25 \times 10^{14}} = 6.5 \times 10^{8} \text{ GPU-seconds} \approx \mathbf{180{,}000 \text{ GPU-hours}}$$</div>
+<p>Meta reported <strong>184,320</strong> A100 GPU-hours for this model — the simple \(6ND\) estimate lands within a few percent. On 2,048 GPUs, that's about 3.7 days of continuous running… for the smallest LLaMA-2.</p>
+<p><strong>Chinchilla check:</strong> \(20 \times 6.74 \times 10^9 \approx 135\) billion tokens would be "compute-optimal"; LLaMA-2 7B used 2 trillion — about <strong>15×</strong> more, trading extra training compute for a cheaper-to-run model.</p>
+<p><strong>Memory check:</strong> \(16 \times 6.74 \times 10^9 \approx 108\) GB of weights, gradients and optimizer states — more than one 80 GB GPU holds, before counting activations. Hence sharding.</p>
+
+<div class="demo" id="comp">
+  <p class="demo-title">Try it: schedule and compute calculator</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-cp="llama">LLaMA-2 7B</button>
+    <button class="btn" type="button" data-cp="gpt3">GPT-3 175B</button>
+    <button class="btn" type="button" data-cp="l3">LLaMA-3 8B</button>
+  </div>
+  <div class="calc-in">
+    <label>parameters (billions)<input id="cp-n" type="number" min="0.01" step="0.01"></label>
+    <label>training tokens (billions)<input id="cp-d" type="number" min="1" step="1"></label>
+    <label>GPU peak (TFLOP/s)<input id="cp-t" type="number" min="1" step="1"></label>
+    <label>utilization (%)<input id="cp-u" type="number" min="1" max="100" step="1"></label>
+    <label>number of GPUs<input id="cp-g" type="number" min="1" step="1"></label>
+  </div>
+  <div class="tw"><table class="ctable" id="cp-out"></table></div>
+  <p class="match" id="cp-match"></p>
+  <p class="sub-cap">Learning-rate schedule</p>
+  <div class="sliders">
+    <label>peak <input type="range" id="sc-peak" min="-5" max="-2" step="0.25" value="-3.5"><output id="sc-peako"></output></label>
+    <label>warm-up % <input type="range" id="sc-warm" min="0" max="20" step="1" value="2"><output id="sc-warmo"></output></label>
+    <label>final (% of peak) <input type="range" id="sc-min" min="0" max="50" step="5" value="10"><output id="sc-mino"></output></label>
+    <label>look at step % <input type="range" id="sc-at" min="0" max="100" step="1" value="51"><output id="sc-ato"></output></label>
+  </div>
+  <svg class="chart" id="sc-chart" viewBox="0 0 420 170" role="img" aria-label="Learning rate against training progress"></svg>
+  <p class="demo-status" id="sc-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 SFT loss masking</h3>
+<p>Example: prompt <em>"What is 2 + 2?"</em> (5 tokens), response <em>"2 + 2 = 4."</em> (7 tokens).</p>
+<ul>
+  <li>Positions predicting <strong>prompt</strong> tokens: in the input, <strong>excluded</strong> from the loss.</li>
+  <li>Positions predicting the 7 <strong>response</strong> tokens: <strong>included</strong>.</li>
+</ul>
+<p>The loss is the average over just those 7 positions.</p>
+
+<h3>6.6 One DPO step</h3>
+<p>\(\beta = 0.1\). After some training, the winner's log-probability has risen by 2.0 relative to the reference, and the loser's has fallen by 1.0:</p>
+<ul>
+  <li>Margin inside the brackets: \(2.0 - (-1.0) = 3.0\); times \(\beta\): \(0.3\)</li>
+  <li>\(\sigma(0.3) = 0.574\), so \(\mathcal{L}_{\text{DPO}} = -\ln 0.574 = \mathbf{0.554}\)</li>
+</ul>
+<p>At the start (policy = reference, both log-ratios 0): \(\sigma(0) = 0.5\) and \(\mathcal{L} = \ln 2 = 0.693\). The loss falls as the model separates winners from losers.</p>
+
+<div class="demo" id="dpo">
+  <p class="demo-title">Try it: the DPO loss</p>
+  <div class="sliders">
+    <label>winner's log-ratio <input type="range" id="dp-w" min="-3" max="5" step="0.5" value="2"><output id="dp-wo"></output></label>
+    <label>loser's log-ratio <input type="range" id="dp-l" min="-5" max="3" step="0.5" value="-1"><output id="dp-lo"></output></label>
+    <label>β <input type="range" id="dp-b" min="0.05" max="1" step="0.05" value="0.1"><output id="dp-bo"></output></label>
+  </div>
+  <p><span class="big" id="dp-out"></span></p>
+  <p class="demo-status" id="dp-status" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    R["Random weights"] --> PT["Pre-training<br/>next-token loss<br/>trillions of tokens"]
+    PT --> B["Base model<br/>(continues text)"]
+    B --> SFT["Supervised fine-tuning<br/>loss on response tokens only"]
+    SFT --> S["Instruction-following model"]
+    S --> PREF["Preference tuning<br/>RLHF (reward model + PPO)<br/>or DPO"]
+    PREF --> A["Assistant model"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Parameters</th><th>Training tokens</th><th>Tokens per parameter</th></tr>
+  <tr><td>GPT-3 (2020)</td><td>175 B</td><td>300 B</td><td>≈ 1.7</td></tr>
+  <tr><td>Chinchilla (2022)</td><td>70 B</td><td>1.4 T</td><td>20</td></tr>
+  <tr><td>LLaMA-2 7B (2023)</td><td>6.74 B</td><td>2 T</td><td>≈ 300</td></tr>
+  <tr><td>LLaMA-3 8B (2024)</td><td>8 B</td><td>15 T</td><td>≈ 1,900</td></tr>
+</table></div>
+<p>The trend moved from "big model, fewer tokens" to "smaller model, far more tokens" — because inference cost, paid for every user request, came to dominate.</p>
+<p><strong>Typical pre-training settings</strong> (LLaMA-2): AdamW with \(\beta_1 = 0.9\), \(\beta_2 = 0.95\); peak learning rate \(3 \times 10^{-4}\); 2,000 warm-up steps; cosine decay to 10%; weight decay 0.1; gradient clipping at 1.0; batches of about 4 million tokens; context length 4,096.</p>
+<p><strong>Data work is most of the work:</strong> removing duplicates, filtering low-quality and unsafe pages, balancing sources (web, code, books, maths, many languages), and removing benchmark test sets from the training data. Data quality often matters more than small architecture changes.</p>
+<p><strong>Training instabilities</strong> — sudden loss spikes — are handled with gradient clipping, careful learning rates, restarting from a checkpoint before the spike, and skipping problematic batches.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Pre-training teaches the model to be an assistant."</strong> Pre-training teaches it to <em>continue text</em>. Following instructions comes from SFT; helpful, safe preferences from RLHF/DPO.</li>
+  <li class="mistake"><strong>"Lower loss always means a better chatbot."</strong> Pre-training loss measures text prediction. Helpfulness, honesty and safety need separate evaluation.</li>
+  <li class="mistake"><strong>"More parameters is always the best use of compute."</strong> For a fixed budget, parameters and data should grow together (Chinchilla); for cheap deployment, a smaller model trained on more tokens is often better.</li>
+  <li class="mistake"><strong>"In SFT the model learns from the whole conversation."</strong> The loss is usually computed only on the assistant's response tokens.</li>
+  <li class="mistake"><strong>"DPO is reinforcement learning."</strong> DPO turns preference learning into a simple classification-style loss on log-probabilities — no reward model, no sampling loop.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Three stages: <strong>pre-training</strong> (next-token prediction on huge text corpora) → <strong>SFT</strong> (imitate good responses; loss on response tokens only) → <strong>preference tuning</strong> (RLHF with a reward model + PPO, or DPO).</li>
+  <li>Loss = average \(-\log P\) of the correct next tokens; <strong>perplexity</strong> \(= e^{\mathcal{L}}\).</li>
+  <li><strong>AdamW</strong> normalizes each parameter's step and applies decoupled weight decay; learning rate follows <strong>warm-up + cosine decay</strong>.</li>
+  <li>Compute \(\approx 6ND\) FLOPs (LLaMA-2 7B ≈ \(8 \times 10^{22}\) ≈ 180k GPU-hours); memory ≈ 16 bytes/parameter + activations.</li>
+  <li><strong>Chinchilla:</strong> compute-optimal ≈ 20 tokens/parameter; modern models deliberately train far longer to be cheaper at inference.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A model gives the correct next tokens probabilities 0.9, 0.9, 0.9 and 0.01. Compute the loss and perplexity. What does this show about confident mistakes?</li>
+  <li>Using \(C \approx 6ND\), how many FLOPs did GPT-3 (175 B parameters, 300 B tokens) need? About how many tokens would Chinchilla's rule suggest for a 175 B model?</li>
+  <li>In 6.2, what would the first AdamW step be if the gradient were \(g = 50\) instead of \(0.5\) (ignore weight decay)? Why?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(-\ln 0.9 = 0.105\) (three times) and \(-\ln 0.01 = 4.605\); average \(= (0.316 + 4.605)/4 = \mathbf{1.230}\), perplexity \(e^{1.230} = \mathbf{3.42}\). One confident mistake outweighs three good predictions — cross-entropy punishes confident errors heavily. (Try it in the loss demo.)</li>
+    <li>\(6 \times 175 \times 10^9 \times 300 \times 10^9 = \mathbf{3.15 \times 10^{23}}\) FLOPs. Chinchilla: \(20 \times 175\text{B} = \mathbf{3.5}\) <strong>trillion</strong> tokens — more than 10× what GPT-3 used. (Press "GPT-3 175B" in the calculator.)</li>
+    <li>Still <strong>0.1</strong>. On the first step \(\hat m_1 = g\) and \(\sqrt{\hat v_1} = |g|\), so the step is \(\eta \cdot g/|g| = \eta\): Adam's first step has size \(\eta\) whatever the gradient's magnitude.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Kaplan, J. et al. (2020). <strong>"Scaling Laws for Neural Language Models."</strong> <a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noopener">arXiv:2001.08361</a>.</li>
+  <li>Hoffmann, J. et al. (2022). <strong>"Training Compute-Optimal Large Language Models."</strong> <a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">arXiv:2203.15556</a> — the Chinchilla paper.</li>
+  <li>Loshchilov, I., &amp; Hutter, F. (2019). <strong>"Decoupled Weight Decay Regularization."</strong> <em>ICLR 2019.</em> <a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener">arXiv:1711.05101</a> — AdamW.</li>
+  <li>Touvron, H. et al. (2023). <strong>"Llama 2: Open Foundation and Fine-Tuned Chat Models."</strong> <a href="https://arxiv.org/abs/2307.09288" target="_blank" rel="noopener">arXiv:2307.09288</a> — pre-training settings, SFT and RLHF in detail.</li>
+  <li>Ouyang, L. et al. (2022). <strong>"Training language models to follow instructions with human feedback."</strong> <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">arXiv:2203.02155</a> — InstructGPT / RLHF.</li>
+  <li>Rafailov, R. et al. (2023). <strong>"Direct Preference Optimization: Your Language Model is Secretly a Reward Model."</strong> <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener">arXiv:2305.18290</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+  function sci(v) { if (v === 0) return "0"; var e = Math.floor(Math.log10(Math.abs(v))); var m = v / Math.pow(10, e); return m.toFixed(2) + " × 10^" + e; }
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- 1. Loss and perplexity ---------- */
+  (function loss() {
+    var rowsEl = document.getElementById("loss-rows");
+    if (!rowsEl) return;
+    var PRE = { ex: [0.5, 0.25, 0.8, 0.1], good: [0.9, 0.9, 0.9, 0.9], bad: [0.9, 0.9, 0.9, 0.01], uni: [1 / 50257, 1 / 50257, 1 / 50257, 1 / 50257] };
+    var p = PRE.ex.slice(), TOK = ["the", "bat", "flew", "away"];
+    function build() {
+      rowsEl.innerHTML = p.map(function (v, i) {
+        return "<span>P(“" + TOK[i] + '”)</span><input type="range" min="0.00002" max="0.999" step="0.001" value="' + v + '" data-i="' + i + '" aria-label="probability of ' + TOK[i] + '"><output>' + v.toPrecision(3) + '</output><span class="hide-sm"><span class="lbar"><i></i></span></span>';
+      }).join("");
+      rowsEl.querySelectorAll("input").forEach(function (inp) { inp.addEventListener("input", function () { p[parseInt(inp.dataset.i, 10)] = parseFloat(inp.value); render(); }); });
+      render();
+    }
+    function render() {
+      var ls = p.map(function (v) { return -Math.log(v); }), L = ls.reduce(function (a, b) { return a + b; }, 0) / ls.length, ppl = Math.exp(L);
+      rowsEl.querySelectorAll("output").forEach(function (o, i) { o.textContent = p[i] < 0.001 ? p[i].toExponential(2) : p[i].toFixed(3); });
+      rowsEl.querySelectorAll(".lbar > i").forEach(function (b, i) { b.style.width = Math.min(100, ls[i] / 11 * 100).toFixed(1) + "%"; });
+      document.getElementById("loss-out").textContent = "loss = " + L.toFixed(3) + "   perplexity = " + (ppl > 1000 ? n(Math.round(ppl)) : ppl.toFixed(2));
+      var worst = ls.indexOf(Math.max.apply(null, ls));
+      document.getElementById("loss-status").textContent = "Red bars show each position’s −log P. The worst position (“" + TOK[worst] + "”) contributes " + (100 * ls[worst] / (L * ls.length)).toFixed(0) + "% of the total loss. " +
+        (ppl > 1000 ? "Uniform guessing over 50,257 tokens: loss ≈ 10.83, perplexity ≈ 50,257 — where every LLM starts." : "Perplexity " + ppl.toFixed(2) + " means the model is about as unsure as picking among " + ppl.toFixed(1) + " equally likely tokens.");
+      window.__loss = { L: L, ppl: ppl };
+    }
+    document.querySelectorAll("#loss [data-pre]").forEach(function (b) { b.addEventListener("click", function () { p = PRE[b.dataset.pre].slice(); document.querySelectorAll("#loss [data-pre]").forEach(function (x) { x.classList.toggle("on", x === b); }); build(); }); });
+    build();
+  })();
+
+  /* ---------- 2. Train a tiny bigram language model with AdamW ---------- */
+  (function tlm() {
+    var chart = document.getElementById("tlm-chart");
+    if (!chart) return;
+    var CORPUS = [
+      "<bos> the bat flew <eos>",
+      "<bos> the bat hit the ball <eos>",
+      "<bos> a bat flew at night <eos>",
+      "<bos> the ball flew <eos>",
+      "<bos> a ball hit the bat <eos>"
+    ];
+    var V = ["<bos>", "the", "a", "bat", "ball", "flew", "hit", "at", "night", "<eos>"], K = V.length, IDX = {};
+    V.forEach(function (w, i) { IDX[w] = i; });
+    // bigram counts C[i][j]
+    var C = V.map(function () { return V.map(function () { return 0; }); }), total = 0;
+    CORPUS.forEach(function (s) { var t = s.split(" "); for (var i = 0; i < t.length - 1; i++) { C[IDX[t[i]]][IDX[t[i + 1]]]++; total++; } });
+    // lowest achievable loss = conditional entropy of the data
+    var floor = 0;
+    C.forEach(function (row) { var r = row.reduce(function (a, b) { return a + b; }, 0); row.forEach(function (c) { if (c > 0) floor -= c * Math.log(c / r); }); });
+    floor /= total;
+    var STEPS = 300, W, m, v, step, losses, schedule = "cos", lrPeak = 0.1, seed = 11, running = false;
+    function init() {
+      var r = rng(seed);
+      W = V.map(function () { return V.map(function () { return (r() - 0.5) * 0.2; }); });
+      m = V.map(function () { return V.map(function () { return 0; }); });
+      v = V.map(function () { return V.map(function () { return 0; }); });
+      step = 0; losses = [lossNow()];
+    }
+    function softmaxRow(row) { var mx = Math.max.apply(null, row), e = row.map(function (x) { return Math.exp(x - mx); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (x) { return x / s; }); }
+    function lossNow() { var L = 0; for (var i = 0; i < K; i++) { var pr = softmaxRow(W[i]); for (var j = 0; j < K; j++) if (C[i][j]) L -= C[i][j] * Math.log(pr[j]); } return L / total; }
+    function lrAt(s) {
+      if (schedule === "const") return lrPeak;
+      var warm = Math.round(0.1 * STEPS), mn = 0.1 * lrPeak;
+      if (s < warm) return lrPeak * (s + 1) / warm;
+      return mn + 0.5 * (lrPeak - mn) * (1 + Math.cos(Math.PI * (s - warm) / (STEPS - warm)));
+    }
+    function trainStep() {
+      var b1 = 0.9, b2 = 0.999, eps = 1e-8, wd = 0.01, t = step + 1, lr = lrAt(step);
+      for (var i = 0; i < K; i++) {
+        var rowCount = C[i].reduce(function (a, b) { return a + b; }, 0); if (!rowCount) continue;
+        var pr = softmaxRow(W[i]);
+        for (var k = 0; k < K; k++) {
+          var g = (rowCount * pr[k] - C[i][k]) / total;          // d loss / d W[i][k]
+          m[i][k] = b1 * m[i][k] + (1 - b1) * g;
+          v[i][k] = b2 * v[i][k] + (1 - b2) * g * g;
+          var mh = m[i][k] / (1 - Math.pow(b1, t)), vh = v[i][k] / (1 - Math.pow(b2, t));
+          W[i][k] -= lr * (mh / (Math.sqrt(vh) + eps) + wd * W[i][k]);
+        }
+      }
+      step++; losses.push(lossNow());
+    }
+    function generate(greedy, r) {
+      var cur = "<bos>", out = [];
+      for (var s = 0; s < 8; s++) {
+        var pr = softmaxRow(W[IDX[cur]]), j;
+        if (greedy) { j = pr.indexOf(Math.max.apply(null, pr)); }
+        else { var u = r(), acc = 0; for (j = 0; j < K; j++) { acc += pr[j]; if (u <= acc) break; } j = Math.min(j, K - 1); }
+        cur = V[j]; if (cur === "<eos>") break; if (cur !== "<bos>") out.push(cur);
+      }
+      return out.join(" ") || "(nothing)";
+    }
+    function draw() {
+      chart.innerHTML = "";
+      var X0 = 42, X1 = 410, Y0 = 190, Y1 = 14, maxL = Math.max(2.6, losses[0] + 0.1);
+      function px(s) { return X0 + (X1 - X0) * s / STEPS; } function py(l) { return Y0 - (Y0 - Y1) * Math.min(l, maxL) / maxL; }
+      for (var g = 0; g <= maxL; g += 0.5) { mk(chart, "line", { x1: X0, y1: py(g), x2: X1, y2: py(g), "class": "gridl" }); mk(chart, "text", { x: X0 - 6, y: py(g) + 3, "class": "lbl", "text-anchor": "end" }).textContent = g.toFixed(1); }
+      mk(chart, "line", { x1: X0, y1: Y0, x2: X1, y2: Y0, "class": "axis" }); mk(chart, "line", { x1: X0, y1: Y0, x2: X0, y2: Y1, "class": "axis" });
+      [0, 100, 200, 300].forEach(function (s) { mk(chart, "text", { x: px(s), y: Y0 + 14, "class": "lbl", "text-anchor": "middle" }).textContent = s; });
+      mk(chart, "text", { x: (X0 + X1) / 2, y: 216, "class": "lbl", "text-anchor": "middle" }).textContent = "training step";
+      mk(chart, "line", { x1: X0, y1: py(floor), x2: X1, y2: py(floor), "class": "floor" });
+      mk(chart, "text", { x: X1, y: py(floor) - 4, "class": "lbl", "text-anchor": "end", fill: "#2e7d5b" }).textContent = "lowest possible loss " + floor.toFixed(3);
+      mk(chart, "polyline", { points: losses.map(function (l, s) { return px(s).toFixed(1) + "," + py(l).toFixed(1); }).join(" "), "class": "curve" });
+      mk(chart, "circle", { cx: px(step), cy: py(losses[losses.length - 1]), r: 4, "class": "marker" });
+    }
+    function report() {
+      var L = losses[losses.length - 1];
+      document.getElementById("tlm-stats").innerHTML =
+        "<dt>step</dt><dd>" + step + " / " + STEPS + "</dd>" +
+        "<dt>learning rate now</dt><dd>" + lrAt(Math.min(step, STEPS - 1)).toPrecision(2) + "</dd>" +
+        "<dt>loss</dt><dd>" + L.toFixed(3) + "</dd>" +
+        "<dt>perplexity</dt><dd>" + Math.exp(L).toFixed(2) + "</dd>" +
+        "<dt>gap to lowest possible</dt><dd>" + (L - floor).toFixed(3) + "</dd>";
+      var r = rng(99 + step);
+      document.getElementById("tlm-gens").innerHTML = "<li>" + esc(generate(true)) + "</li>" + [0, 1, 2].map(function () { return "<li>" + esc(generate(false, r)) + "</li>"; }).join("");
+      var msg;
+      if (step === 0) msg = "Untrained: the scores are random, so every next word is roughly equally likely (loss ≈ ln 10 = 2.30) and the generated text is nonsense. Press “Train 300 steps”.";
+      else if (L - floor < 0.05) msg = "Trained: the loss has almost reached the dashed line — the lowest loss any bigram model can get on this text, because after “the” the data itself is uncertain (bat or ball?). The model now writes sentences that look like the training text.";
+      else if (lrPeak >= 3) msg = "With a very large learning rate the loss jumps around instead of settling. Try a smaller peak, or the warm-up + cosine schedule.";
+      else if (lrPeak <= 0.005) msg = "With a tiny learning rate, training is very slow: after " + step + " steps the loss has barely moved.";
+      else msg = "Still learning: loss " + L.toFixed(3) + ", " + (L - floor).toFixed(3) + " above the floor.";
+      document.getElementById("tlm-status").textContent = msg;
+      window.__tlm = { step: step, loss: L, floor: floor };
+    }
+    function render() { draw(); report(); }
+    function train() {
+      if (running) return;
+      if (step >= STEPS) init();
+      running = true; document.getElementById("tlm-train").disabled = true;
+      if (!canAnimate) { while (step < STEPS) trainStep(); running = false; document.getElementById("tlm-train").disabled = false; render(); return; }
+      (function frame() {
+        for (var k = 0; k < 6 && step < STEPS; k++) trainStep();
+        render();
+        if (step < STEPS) requestAnimationFrame(frame); else { running = false; document.getElementById("tlm-train").disabled = false; }
+      })();
+    }
+    document.getElementById("tlm-corpus").innerHTML = CORPUS.map(esc).join("<br>");
+    var lrS = document.getElementById("tlm-lr");
+    function setLr() { lrPeak = Math.pow(10, parseFloat(lrS.value)); document.getElementById("tlm-lro").textContent = lrPeak < 0.01 ? lrPeak.toExponential(1) : lrPeak.toFixed(2); }
+    lrS.addEventListener("input", function () { setLr(); if (!running) { init(); render(); } });
+    document.querySelectorAll("#tlm [data-sch]").forEach(function (b) { b.addEventListener("click", function () { schedule = b.dataset.sch; document.querySelectorAll("#tlm [data-sch]").forEach(function (x) { x.classList.toggle("on", x === b); }); if (!running) { init(); render(); } }); });
+    document.getElementById("tlm-train").addEventListener("click", train);
+    document.getElementById("tlm-reset").addEventListener("click", function () { if (running) return; seed++; init(); render(); });
+    window.__tlmTrainSync = function () { while (step < STEPS) trainStep(); render(); };
+    setLr(); init(); render();
+  })();
+
+  /* ---------- 3. Compute calculator + LR schedule ---------- */
+  (function comp() {
+    var out = document.getElementById("cp-out");
+    if (!out) return;
+    var PRE = {
+      llama: { n: 6.74, d: 2000, t: 312, u: 40, g: 2048, reported: "Meta reported 184,320 A100 GPU-hours for LLaMA-2 7B." },
+      gpt3:  { n: 175, d: 300, t: 312, u: 40, g: 1024, reported: "" },
+      l3:    { n: 8, d: 15000, t: 989, u: 40, g: 16000, reported: "" }
+    };
+    var ids = { n: "cp-n", d: "cp-d", t: "cp-t", u: "cp-u", g: "cp-g" }, cur = "llama";
+    function get(k) { return parseFloat(document.getElementById(ids[k]).value); }
+    function load(k) { cur = k; var p = PRE[k]; Object.keys(ids).forEach(function (f) { document.getElementById(ids[f]).value = p[f]; }); document.querySelectorAll("#comp [data-cp]").forEach(function (b) { b.classList.toggle("on", b.dataset.cp === k); }); calc(); }
+    function calc() {
+      var N = get("n") * 1e9, D = get("d") * 1e9, T = get("t") * 1e12, U = get("u") / 100, G = get("g");
+      if (!(N > 0 && D > 0 && T > 0 && U > 0 && G > 0)) return;
+      var F = 6 * N * D, sec = F / (T * U), hours = sec / 3600, days = hours / G / 24, chin = 20 * N, mem = 16 * N / 1e9;
+      var rows = [
+        ["Training compute C ≈ 6ND", sci(F) + " FLOPs"],
+        ["Effective speed per GPU", sci(T * U) + " FLOP/s"],
+        ["GPU-hours", n(Math.round(hours))],
+        ["Wall-clock time on " + n(G) + " GPUs", days.toFixed(1) + " days"],
+        ["Chinchilla-optimal tokens (20 N)", (chin / 1e9).toFixed(0) + " B — you are using " + (D / chin).toFixed(1) + "× that"],
+        ["Weights + grads + Adam states (16 bytes/param)", mem.toFixed(0) + " GB (plus activations)"]
+      ];
+      out.innerHTML = "<tr><th>Quantity</th><th>Value</th></tr>" + rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
+      document.getElementById("cp-match").textContent = cur && PRE[cur].reported ? PRE[cur].reported + " The estimate is within " + Math.abs(100 * (hours - 184320) / 184320).toFixed(1) + "%." : "";
+      window.__comp = { F: F, hours: hours };
+    }
+    Object.keys(ids).forEach(function (k) { document.getElementById(ids[k]).addEventListener("input", function () { cur = null; document.querySelectorAll("#comp [data-cp]").forEach(function (b) { b.classList.remove("on"); }); calc(); }); });
+    document.querySelectorAll("#comp [data-cp]").forEach(function (b) { b.addEventListener("click", function () { load(b.dataset.cp); }); });
+    load("llama");
+
+    // schedule
+    var sp = document.getElementById("sc-peak"), sw = document.getElementById("sc-warm"), sm = document.getElementById("sc-min"), sa = document.getElementById("sc-at"), chart = document.getElementById("sc-chart");
+    function sched() {
+      var peak = Math.pow(10, parseFloat(sp.value)), warm = parseFloat(sw.value) / 100, mn = peak * parseFloat(sm.value) / 100, at = parseFloat(sa.value) / 100;
+      document.getElementById("sc-peako").textContent = peak.toExponential(1); document.getElementById("sc-warmo").textContent = (warm * 100).toFixed(0) + "%";
+      document.getElementById("sc-mino").textContent = sm.value + "%"; document.getElementById("sc-ato").textContent = (at * 100).toFixed(0) + "%";
+      function lr(x) { if (x < warm) return peak * x / warm; return mn + 0.5 * (peak - mn) * (1 + Math.cos(Math.PI * (x - warm) / (1 - warm))); }
+      chart.innerHTML = "";
+      var X0 = 50, X1 = 410, Y0 = 145, Y1 = 14;
+      function px(x) { return X0 + (X1 - X0) * x; } function py(y) { return Y0 - (Y0 - Y1) * y / peak; }
+      mk(chart, "line", { x1: X0, y1: Y0, x2: X1, y2: Y0, "class": "axis" }); mk(chart, "line", { x1: X0, y1: Y0, x2: X0, y2: Y1, "class": "axis" });
+      mk(chart, "text", { x: X0 - 6, y: Y1 + 4, "class": "lbl", "text-anchor": "end" }).textContent = peak.toExponential(0);
+      mk(chart, "text", { x: X0 - 6, y: Y0, "class": "lbl", "text-anchor": "end" }).textContent = "0";
+      [0, 0.5, 1].forEach(function (x) { mk(chart, "text", { x: px(x), y: Y0 + 14, "class": "lbl", "text-anchor": "middle" }).textContent = (x * 100) + "%"; });
+      var pts = []; for (var i = 0; i <= 200; i++) { var x = i / 200; pts.push(px(x).toFixed(1) + "," + py(lr(x)).toFixed(1)); }
+      mk(chart, "polyline", { points: pts.join(" "), "class": "curve" });
+      var y = lr(at); mk(chart, "circle", { cx: px(at), cy: py(y), r: 5, "class": "marker" });
+      document.getElementById("sc-status").textContent = "At " + (at * 100).toFixed(0) + "% of training the learning rate is " + y.toExponential(2) + (at < warm ? " (still warming up)." : at >= 0.999 ? " (the final value)." : "."
+        ) + " With a 100,000-step run, peak 3e-4, 2% warm-up and 10% final, step 51% gives 1.65e-4 — compare 6.3.";
+      window.__sched = { at: at, lr: y };
+    }
+    [sp, sw, sm, sa].forEach(function (s) { s.addEventListener("input", sched); });
+    sched();
+  })();
+
+  /* ---------- 4. DPO loss ---------- */
+  (function dpo() {
+    var w = document.getElementById("dp-w");
+    if (!w) return;
+    var l = document.getElementById("dp-l"), b = document.getElementById("dp-b");
+    function render() {
+      var rw = parseFloat(w.value), rl = parseFloat(l.value), beta = parseFloat(b.value);
+      document.getElementById("dp-wo").textContent = rw.toFixed(1); document.getElementById("dp-lo").textContent = rl.toFixed(1); document.getElementById("dp-bo").textContent = beta.toFixed(2);
+      var z = beta * (rw - rl), sig = 1 / (1 + Math.exp(-z)), L = -Math.log(sig);
+      document.getElementById("dp-out").textContent = "margin = " + beta.toFixed(2) + " × (" + rw.toFixed(1) + " − (" + rl.toFixed(1) + ")) = " + z.toFixed(2) + "   σ = " + sig.toFixed(3) + "   loss = " + L.toFixed(3);
+      document.getElementById("dp-status").textContent = z > 0
+        ? "The winner has gained more probability than the loser, so the loss is below ln 2 = 0.693. Pushing them further apart lowers it more."
+        : z < 0 ? "The loser has gained more than the winner — the loss is above 0.693, and training will push the other way."
+        : "Margin 0 (e.g. at the very start, when the policy equals the reference): loss = ln 2 = 0.693.";
+      window.__dpo = { L: L };
+    }
+    [w, l, b].forEach(function (s) { s.addEventListener("input", render); });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

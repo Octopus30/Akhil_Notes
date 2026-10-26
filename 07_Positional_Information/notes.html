@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 7: Positional Information</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared demo bits */
+.toggle { display: inline-flex; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; margin: 6px 0; }
+.slider input[type=range] { width: 170px; accent-color: #1b2fa8; }
+.slider output { font-family: var(--mono); color: var(--ink); min-width: 2.5em; font-weight: 700; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td, table.mat th { border: 0; padding: 3px 8px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 56px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; }
+table.mat th { background: none; font-family: var(--hand); font-size: 14px; color: var(--ink); font-weight: 700; }
+table.mat td.hl { background: var(--gold-fill); box-shadow: inset 0 0 0 2px var(--gold); }
+/* order demo */
+.orders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+.ordcard { border: 1.5px dashed var(--ink); border-radius: 10px; padding: 10px 12px; background: #fff; min-width: 0; }
+.ordcard .ttl { font-family: var(--hand); font-weight: 700; font-size: 17px; color: var(--ink); margin: 0 0 4px; }
+.verdict { font-family: var(--hand); font-weight: 700; font-size: 20px; margin: 10px 0 0; }
+.verdict.same { color: #8a4b00; } .verdict.diff { color: #2e7d5b; }
+/* clocks demo */
+.clocks { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 8px 0; }
+.clock { text-align: center; font-size: 12px; color: var(--muted); }
+.clock svg { width: 74px; height: 74px; display: block; }
+.face { fill: #fff; stroke: var(--ink); stroke-width: 2; }
+.hand { stroke: var(--gold); stroke-width: 3; stroke-linecap: round; }
+.tick { stroke: #b9c3e0; stroke-width: 1; }
+canvas#pe-canvas { width: 100%; height: 200px; display: block; border: 1px solid #c9d2ea; border-radius: 8px; background: #fff; }
+.canvas-cap { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+/* rope demo */
+.rope { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.rope svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.qarr { stroke: var(--gold); stroke-width: 3; }
+.karr { stroke: var(--ink); stroke-width: 3; }
+.ghost { stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .45; }
+.albl { font-family: var(--hand); font-size: 15px; font-weight: 700; }
+.wedge { fill: rgba(176,122,0,.15); stroke: var(--gold); stroke-width: 1.2; }
+.big { font-family: var(--hand); font-size: 30px; color: var(--ink); font-weight: 700; display: block; }
+.history { font-family: var(--mono); font-size: 13px; margin: 6px 0 0; padding-left: 18px; }
+/* alibi */
+.bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 5px 10px; align-items: center; font-size: 14px; }
+.bar { height: 15px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--ink); border-radius: 4px; width: 0; }
+.bars b, .bars em { font-family: var(--mono); font-weight: 400; font-style: normal; font-size: 12.5px; color: var(--ink); }
+.bars em { color: var(--muted); }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .orders, .rope { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .slider { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 7</p>
+  <h1>Positional Information</h1>
+  <p class="lede"><strong>In one line:</strong> self-attention can't tell word order apart, so Transformers inject position information, either by <strong>adding a position vector</strong> to each token's embedding (learned or sinusoidal) or by building position directly into the attention scores (<strong>RoPE</strong>, <strong>ALiBi</strong>). Modern LLMs mostly use RoPE.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why self-attention needs position information, using the "shuffle" result from Section 3.</li>
+  <li><strong>Compute</strong> sinusoidal positional encodings by hand and add them to token embeddings.</li>
+  <li><strong>Describe</strong> learned absolute positions and their maximum-length limit.</li>
+  <li><strong>Show</strong> with a small example that RoPE makes attention scores depend only on <strong>relative</strong> position.</li>
+  <li><strong>Compare</strong> the main schemes (learned, sinusoidal, RoPE, ALiBi) and say which real models use each.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 3</strong>: shuffling the input tokens only shuffles the outputs; each token's output vector stays exactly the same.</li>
+  <li><strong>Section 2</strong>: \(X\) is the matrix of token embeddings, one row per token.</li>
+  <li><strong>Section 5</strong>: attention scores \(q \cdot k / \sqrt{d_k}\), and adding a bias to scores before the softmax (as the mask did).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: sine, cosine and rotation</span>
+  The point \((\cos\phi, \sin\phi)\) lies on a circle of radius 1 at angle \(\phi\). Rotating a 2-D vector \([x_1, x_2]\) by angle \(\phi\) gives
+  <div class="math-block">$$[\,x_1\cos\phi - x_2\sin\phi,\;\; x_1\sin\phi + x_2\cos\phi\,]$$</div>
+  Rotation changes direction but not length. The dot product of two vectors depends only on their lengths and the <strong>angle between them</strong>.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: "dog bites man" = "man bites dog"?</h2>
+<p>Section 3 showed that self-attention is <strong>order-blind</strong>: the score between two tokens depends only on their vectors, never on where they sit. So for a Transformer without position information:</p>
+<ul>
+  <li><em>"dog bites man"</em> and <em>"man bites dog"</em> give each word the <strong>same</strong> output vector.</li>
+  <li><em>"not good, actually bad"</em> and <em>"not bad, actually good"</em> look identical.</li>
+</ul>
+<p>Word order carries a lot of meaning, so the model needs to know <strong>where</strong> each token is. There are two broad strategies:</p>
+<ol>
+  <li><strong>Tell each token its absolute position</strong>: add a "position vector" to its embedding ("I am word number 5").</li>
+  <li><strong>Tell attention the relative distance</strong>: adjust each score according to how far apart the two tokens are ("you are 3 words before me").</li>
+</ol>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: seat numbers and clocks</h2>
+<p><strong>Absolute positions: seat numbers.</strong> At an exam, every student's answer sheet has their <strong>seat number</strong> stamped on it. The examiner now knows not just <em>what</em> each student wrote but <em>where</em> they sat. Adding a position vector to each token is that stamp.</p>
+<p><strong>Sinusoidal positions: a set of clocks.</strong> How do you stamp a position using numbers that stay small? Use a wall of clocks running at different speeds: a seconds hand, a minutes hand, an hours hand, a days hand. Read together, the hands identify any moment uniquely, and every hand stays between −1 and 1 however much time passes. Sinusoidal encodings give each position the readings of many "clocks" ticking at different speeds.</p>
+<p><strong>Relative positions: "how far apart?"</strong> When you read <em>"it"</em>, you care that the noun was "two words ago", not that it was "word 1,847 of the book". Relative schemes such as RoPE and ALiBi give attention exactly this: the <strong>distance</strong> between tokens.</p>
+<div class="callout"><span class="label">Where the analogy breaks</span>A seat number is a label someone reads. The model never "reads" a position; position just changes the numbers it computes with, and the model has to <em>learn</em> how to use those changes.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Absolute positions, added to the embeddings</h3>
+<p>For the token at position \(pos\) (counting from 0):</p>
+<div class="math-block">$$x'_{pos} = x_{pos} + p_{pos}$$</div>
+<p>where \(p_{pos}\) is a \(d_{model}\)-long <strong>position vector</strong>. Now the same word at different positions enters the model as different vectors.</p>
+<p><strong>Option A, learned positions.</strong> Keep a trainable table \(P\) of shape \(L_{max} \times d_{model}\) (one row per position) and learn it like the embedding table. Used in BERT (\(L_{max} = 512\)) and GPT-2 (\(L_{max} = 1024\)).</p>
+<ul>
+  <li><em>Pro:</em> simple and flexible.</li>
+  <li><em>Con:</em> there is <strong>no row for position \(L_{max}\) or beyond</strong>, so the model can't handle longer inputs at all.</li>
+</ul>
+<p><strong>Option B, sinusoidal positions</strong> (the original 2017 Transformer). No parameters; use fixed waves:</p>
+<div class="math-block">$$p_{pos,\,2i} = \sin\!\left(\frac{pos}{10000^{2i/d_{model}}}\right), \qquad p_{pos,\,2i+1} = \cos\!\left(\frac{pos}{10000^{2i/d_{model}}}\right)$$</div>
+<p>In words: dimensions come in <strong>(sin, cos) pairs</strong>. Pair \(i\) is a clock hand that turns at speed \(\omega_i = 1/10000^{2i/d_{model}}\) radians per position. The first pair turns fast (1 radian per step); the last pairs turn very slowly.</p>
+<ul>
+  <li>Every value stays between −1 and 1.</li>
+  <li>Each position gets a unique pattern.</li>
+  <li>Moving forward \(k\) positions <strong>rotates</strong> each (sin, cos) pair by the same angle \(k\omega_i\), whatever the starting position. This makes relative offsets easy for the model to detect, and it is the idea RoPE builds on.</li>
+</ul>
+
+<div class="demo" id="clocks">
+  <p class="demo-title">Try it: positions as a wall of clocks</p>
+  <div class="slider">
+    <label for="pe-pos">position</label>
+    <input id="pe-pos" type="range" min="0" max="100" step="1" value="3">
+    <output id="pe-pos-out" for="pe-pos">3</output>
+    <label for="pe-d">d<sub>model</sub></label>
+    <select id="pe-d" class="inp" style="width:auto"><option>4</option><option>8</option><option selected>16</option><option>64</option></select>
+  </div>
+  <p class="sub-cap" style="margin:4px 0 0">Each clock is one (sin, cos) pair. The hand's angle is position × ω<sub>i</sub>.</p>
+  <div class="clocks" id="pe-clocks"></div>
+  <canvas id="pe-canvas" width="800" height="200" aria-label="Heat map of sinusoidal encodings: position across, dimension down."></canvas>
+  <p class="canvas-cap">Heat map: position 0 to 100 across, dimension 0 to d<sub>model</sub>−1 down. Blue = +1, orange = −1. The gold line marks the chosen position. Fast pairs (top) stripe quickly; slow pairs (bottom) barely change.</p>
+  <p class="demo-status" id="pe-status" aria-live="polite"></p>
+</div>
+
+<h3>5.2 RoPE: rotate the queries and keys</h3>
+<p><strong>Rotary Position Embedding (RoPE)</strong> doesn't add anything to \(x\). Instead, inside every attention layer it <strong>rotates</strong> each query and key according to its position, just before the dot product:</p>
+<ul>
+  <li>Split \(q\) and \(k\) into pairs of dimensions.</li>
+  <li>Rotate pair \(i\) of the query at position \(m\) by angle \(m\,\theta_i\), and pair \(i\) of the key at position \(n\) by angle \(n\,\theta_i\), where \(\theta_i = 10000^{-2i/d_k}\).</li>
+</ul>
+<p><strong>The key fact:</strong> rotating \(q\) by \(m\theta\) and \(k\) by \(n\theta\) changes the angle <em>between</em> them by \((m - n)\theta\). So</p>
+<div class="math-block">$$\text{score}(q \text{ at } m,\; k \text{ at } n) \;\text{ depends only on }\; q,\; k \;\text{ and }\; (m - n).$$</div>
+<p>Attention automatically sees <strong>relative distance</strong>. Shifting a whole phrase further along the text doesn't change its internal scores.</p>
+<p>RoPE is used by LLaMA, Mistral, Qwen, Gemma and most open LLMs today.</p>
+
+<h3>5.3 ALiBi: a distance penalty on the scores</h3>
+<p><strong>ALiBi</strong> (Attention with Linear Biases) adds no vectors at all. It subtracts a penalty proportional to distance from each score:</p>
+<div class="math-block">$$s_{ij} = \frac{q_i \cdot k_j}{\sqrt{d_k}} - m \cdot (i - j) \qquad (j \le i)$$</div>
+<p>where \(m\) is a fixed slope (each head gets a different slope). Far-away tokens get a bigger penalty, so heads prefer nearby context, some strongly and some weakly. Used in BLOOM and MPT.</p>
+
+<h3>5.4 Comparison</h3>
+<div class="tw"><table>
+  <tr><th>Scheme</th><th>Where it acts</th><th>Parameters</th><th>Relative?</th><th>Beyond training length?</th><th>Used in</th></tr>
+  <tr><td>Learned absolute</td><td>added to \(x\)</td><td>\(L_{max} \times d_{model}\)</td><td>no</td><td><strong>no</strong> (no row exists)</td><td>BERT, GPT-2</td></tr>
+  <tr><td>Sinusoidal</td><td>added to \(x\)</td><td>0</td><td>indirectly</td><td>defined, but works poorly in practice</td><td>Original Transformer</td></tr>
+  <tr><td><strong>RoPE</strong></td><td>rotates \(q, k\) in every layer</td><td>0</td><td><strong>yes</strong></td><td>with tricks (5.5)</td><td>LLaMA, Mistral, Qwen</td></tr>
+  <tr><td>ALiBi</td><td>bias on scores</td><td>0</td><td><strong>yes</strong></td><td>fairly well</td><td>BLOOM, MPT</td></tr>
+</table></div>
+
+<h3>5.5 Stretching the context window (brief)</h3>
+<p>A model trained on 4,096-token texts sees RoPE angles only up to \(4096\,\theta_i\). To use longer contexts, practitioners:</p>
+<ul>
+  <li><strong>Position interpolation:</strong> squeeze the positions (e.g. divide by 4) so a 16k-token text uses the angles seen during training, then fine-tune briefly.</li>
+  <li><strong>Change the base:</strong> use a larger base than 10,000, so the clocks turn more slowly (e.g. LLaMA-3 uses 500,000).</li>
+  <li><strong>NTK-aware scaling / YaRN:</strong> smarter mixtures of the two, treating fast and slow pairs differently.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Sinusoidal encodings for \(d_{model} = 4\)</h3>
+<p>With \(d_{model} = 4\) there are two (sin, cos) pairs:</p>
+<ul>
+  <li>Pair 0: \(\omega_0 = 1/10000^{0} = 1\), so \((\sin pos, \cos pos)\).</li>
+  <li>Pair 1: \(\omega_1 = 1/10000^{2/4} = 1/100 = 0.01\), so \((\sin 0.01pos, \cos 0.01pos)\).</li>
+</ul>
+<div class="tw"><table>
+  <tr><th>pos</th><th>\(\sin(pos)\)</th><th>\(\cos(pos)\)</th><th>\(\sin(0.01\,pos)\)</th><th>\(\cos(0.01\,pos)\)</th></tr>
+  <tr><td>0</td><td>0.000</td><td>1.000</td><td>0.000</td><td>1.000</td></tr>
+  <tr><td>1</td><td>0.841</td><td>0.540</td><td>0.010</td><td>1.000</td></tr>
+  <tr><td>2</td><td>0.909</td><td>−0.416</td><td>0.020</td><td>1.000</td></tr>
+  <tr><td>3</td><td>0.141</td><td>−0.990</td><td>0.030</td><td>1.000</td></tr>
+</table></div>
+<p>The first pair changes a lot from one position to the next (the fast hand); the second barely moves (the slow hand). The slow pairs matter for telling apart positions that are far apart.</p>
+
+<h3>6.2 Order finally matters</h3>
+<p>Use our toy 2-D vectors and \(d_{model} = 2\), so \(p_{pos} = [\sin pos,\; \cos pos]\):</p>
+<ul>
+  <li>\(p_0 = [0.000, 1.000]\), \(p_1 = [0.841, 0.540]\), \(p_2 = [0.909, -0.416]\)</li>
+</ul>
+<p><strong>"the bat flew"</strong> with positions added:</p>
+<div class="tw"><table>
+  <tr><th>Token (pos)</th><th>\(x\)</th><th>\(+\,p_{pos}\)</th><th>\(x'\)</th></tr>
+  <tr><td>the (0)</td><td>[0.2, 0.2]</td><td>[0.000, 1.000]</td><td>[0.20, 1.20]</td></tr>
+  <tr><td>bat (1)</td><td>[1, 1]</td><td>[0.841, 0.540]</td><td>[1.84, 1.54]</td></tr>
+  <tr><td>flew (2)</td><td>[2, 0]</td><td>[0.909, −0.416]</td><td>[2.91, −0.42]</td></tr>
+</table></div>
+<p><strong>"flew bat the"</strong>: now "flew" is at position 0 and "the" at position 2, so they get <em>different</em> additions: flew → [2.00, 1.00], the → [1.11, −0.22].</p>
+<p>Running the naive self-attention from Section 3 on both orders, "bat"'s output is:</p>
+<div class="tw"><table>
+  <tr><th>Order</th><th>Without positions</th><th>With sinusoidal positions</th></tr>
+  <tr><td>the bat flew</td><td>[1.38, 0.47]</td><td>[2.08, 1.04]</td></tr>
+  <tr><td>flew bat the</td><td>[1.38, 0.47]</td><td>[1.89, 1.33]</td></tr>
+</table></div>
+<p><strong>Without positions</strong> the outputs are identical, as Section 3 found. <strong>With positions</strong> they differ: the model can now tell the two orders apart.</p>
+
+<div class="demo" id="order">
+  <p class="demo-title">Try it: does word order change "bat"?</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Positions">
+      <button type="button" id="pos-off" class="on">no positions</button>
+      <button type="button" id="pos-on">+ sinusoidal positions</button>
+    </span>
+  </div>
+  <div class="orders" id="ord-cards"></div>
+  <p class="verdict" id="ord-verdict" aria-live="polite"></p>
+</div>
+
+<h3>6.3 RoPE depends only on the distance</h3>
+<p>Take 2-D queries and keys and a rotation of \(\theta = 30°\) per position.</p>
+<p><strong>Simple case:</strong> \(q = k = [1, 0]\).</p>
+<ul>
+  <li>Query at \(m = 1\) → rotated by 30°; key at \(n = 3\) → rotated by 90°. Angle between them \(= 60°\), so the score is \(\cos 60° = \mathbf{0.5}\).</li>
+  <li>Query at \(m = 4\) (120°), key at \(n = 6\) (180°). Angle between them is again 60°, so the score is \(\mathbf{0.5}\).</li>
+  <li>Query at \(m = 3\), key at \(n = 3\): angle 0°, so the score is \(\mathbf{1}\).</li>
+</ul>
+<p><strong>A general case:</strong> \(q = [1, 0.5]\), \(k = [0.5, 1]\).</p>
+<ul>
+  <li>Rotating \(q\) to position \(m = 2\) (60°): \([1\cos60° - 0.5\sin60°,\; 1\sin60° + 0.5\cos60°] = [0.07, 1.12]\).</li>
+  <li>Doing the same for \(k\) at \(n = 5\) (150°) and taking the dot product gives \(\mathbf{-0.75}\).</li>
+  <li>Moving both 5 positions later (\(m = 7\), \(n = 10\)) gives <strong>exactly \(-0.75\)</strong> again.</li>
+</ul>
+<p>The score changed only when the <strong>gap</strong> \(m - n\) changed. That's the property that makes RoPE a relative scheme.</p>
+
+<div class="demo" id="rope">
+  <p class="demo-title">Try it: RoPE rotates by position; only the gap matters</p>
+  <div class="slider">
+    <label for="rp-m">query position m</label><input id="rp-m" type="range" min="0" max="12" value="2"><output id="rp-m-out">2</output>
+    <label for="rp-n">key position n</label><input id="rp-n" type="range" min="0" max="12" value="5"><output id="rp-n-out">5</output>
+  </div>
+  <div class="slider">
+    <label for="rp-t">θ per position</label><input id="rp-t" type="range" min="5" max="60" step="5" value="30"><output id="rp-t-out">30°</output>
+    <button class="btn" type="button" id="rp-shift">Shift both by +1</button>
+    <button class="btn" type="button" id="rp-reset">Back to 6.3</button>
+  </div>
+  <div class="rope">
+    <div><svg id="rp-svg" viewBox="0 0 340 340" role="img" aria-label="The unrotated q and k as dashed arrows, and the rotated q and k as solid arrows."></svg></div>
+    <div>
+      <span class="big" id="rp-score">score = –</span>
+      <div id="rp-work" style="font-size:14.5px"></div>
+      <p class="sub-cap">Scores you have produced</p>
+      <ol class="history" id="rp-hist"></ol>
+    </div>
+  </div>
+  <p class="demo-status" id="rp-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 ALiBi in one row</h3>
+<p>The token at position 3 (causal, so it sees positions 0–3), with slope \(m = 0.5\). Suppose all four content scores are equal (say 1). The biases are \(-0.5 \times (3 - j)\):</p>
+<div class="tw"><table>
+  <tr><th>\(j\)</th><th>0</th><th>1</th><th>2</th><th>3</th></tr>
+  <tr><td>Distance \(3 - j\)</td><td>3</td><td>2</td><td>1</td><td>0</td></tr>
+  <tr><td>Bias</td><td>−1.5</td><td>−1.0</td><td>−0.5</td><td>0</td></tr>
+  <tr><td>Weight after softmax</td><td>0.10</td><td>0.17</td><td>0.28</td><td><strong>0.46</strong></td></tr>
+</table></div>
+<p>With nothing else to go on, the head prefers <strong>nearby</strong> tokens. (Adding the same content score to every entry doesn't change the softmax, so the result is the same for any equal content scores.)</p>
+
+<div class="demo" id="alibi">
+  <p class="demo-title">Try it: ALiBi slopes, from short-sighted to long-sighted</p>
+  <div class="slider">
+    <label for="al-m">slope m</label><input id="al-m" type="range" min="0" max="2" step="0.0625" value="0.5"><output id="al-m-out">0.50</output>
+    <span class="cap">The last token of an 8-token sequence, all content scores equal</span>
+  </div>
+  <div class="bars" id="al-bars"></div>
+  <p class="demo-status" id="al-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 Cost of learned positions</h3>
+<ul>
+  <li>GPT-2: \(1024 \times 768 = 786{,}432\) position parameters.</li>
+  <li>BERT-base: \(512 \times 768 = 393{,}216\).</li>
+</ul>
+<p>Small next to the full models, but they <strong>hard-limit</strong> the input length.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart TB
+    subgraph A["Absolute (learned / sinusoidal)"]
+        E1["token embedding x"] --> ADD(("+"))
+        P1["position vector p_pos"] --> ADD
+        ADD --> B1["Transformer blocks"]
+    end
+    subgraph R["Relative (RoPE)"]
+        E2["token embedding x"] --> B2["each attention layer:<br/>q, k rotated by position<br/>before q · k"]
+    end
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Position scheme</th><th>Trained context</th></tr>
+  <tr><td>Original Transformer (2017)</td><td>Sinusoidal</td><td>—</td></tr>
+  <tr><td>BERT</td><td>Learned absolute</td><td>512</td></tr>
+  <tr><td>GPT-2</td><td>Learned absolute</td><td>1,024</td></tr>
+  <tr><td>T5</td><td>Learned relative biases (bucketed distances)</td><td>512</td></tr>
+  <tr><td>BLOOM</td><td>ALiBi</td><td>2,048</td></tr>
+  <tr><td>LLaMA-2</td><td>RoPE</td><td>4,096</td></tr>
+  <tr><td>LLaMA-3</td><td>RoPE (base 500,000)</td><td>8,192</td></tr>
+</table></div>
+<ul>
+  <li><strong>Causal masks give a hint of position too.</strong> In a decoder, token \(i\) sees exactly \(i\) earlier tokens, so a model can partly infer position even with no explicit scheme. Every production model still uses one.</li>
+  <li><strong>Long-context models</strong> (100k+ tokens) are usually RoPE models extended with position interpolation, a larger base, or YaRN, plus fine-tuning on long documents.</li>
+  <li><strong>Positions in other data:</strong> Vision Transformers use 2-D positions for image patches (Section 15). Audio models use positions along time.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Transformers read left to right, so they already know order."</strong> Only the causal mask is directional. Attention scores ignore order unless position information is added.</li>
+  <li class="mistake"><strong>"Positional encoding is concatenated to the embedding."</strong> In the learned and sinusoidal schemes it is <strong>added</strong>, element by element, so the width stays \(d_{model}\).</li>
+  <li class="mistake"><strong>"RoPE adds a vector to the input like sinusoidal encoding."</strong> RoPE <strong>rotates queries and keys inside each attention layer</strong>. Nothing is added to \(x\), and values are not rotated.</li>
+  <li class="mistake"><strong>"Sinusoidal encodings let models handle any length perfectly."</strong> They're defined for any position, but models trained on short texts usually perform poorly on much longer ones.</li>
+  <li class="mistake"><strong>"Position 0 is always the first word of the document."</strong> It's the first token of the <strong>input sequence</strong>, which may be a special token like <code>&lt;bos&gt;</code> or the middle of a document chunk.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Self-attention is order-blind; <strong>position information</strong> makes word order count.</li>
+  <li><strong>Absolute</strong> schemes add a position vector to each embedding: <strong>learned</strong> (BERT, GPT-2; hard length limit) or <strong>sinusoidal</strong> (fixed (sin, cos) "clocks" at different speeds).</li>
+  <li><strong>RoPE</strong> rotates queries and keys by position-dependent angles, so scores depend only on the <strong>relative distance</strong> \(m - n\). It's the standard in modern LLMs.</li>
+  <li><strong>ALiBi</strong> subtracts a distance-proportional penalty from scores, favouring nearby tokens.</li>
+  <li>Context windows can be stretched with position interpolation, a larger RoPE base, or YaRN.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Using the \(d_{model} = 4\) formula in 6.1, compute the sinusoidal encoding for position 4. (Use \(\sin 4 = -0.757\), \(\cos 4 = -0.654\).)</li>
+  <li>A learned-position model has \(L_{max} = 512\). What happens if you feed it 600 tokens? What could a RoPE model do instead?</li>
+  <li>With RoPE and \(\theta = 30°\) per position, a query at position 10 and a key at position 7 have score \(s\). Give two other (query position, key position) pairs with the same score, and explain why.</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\([\sin 4, \cos 4, \sin 0.04, \cos 0.04] = \mathbf{[-0.757, -0.654, 0.040, 0.999]}\).</li>
+    <li>There is <strong>no position vector</strong> for positions 512–599, so the model cannot process them. Usually the input is cut to 512 tokens or split into chunks. A RoPE model has no table to run out of: its angles are defined for any position. Quality may drop past the training length, but it can be improved with position interpolation or YaRN.</li>
+    <li>Any pair with the same gap \(m - n = 3\), e.g. <strong>(3, 0)</strong> and <strong>(103, 100)</strong>. RoPE rotates the query by \(m\theta\) and the key by \(n\theta\); only the difference \((m - n)\theta = 90°\) affects the angle between them, and therefore the score. (Set m and n in the RoPE demo to check.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>NeurIPS 2017.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. Section 3.5 introduces sinusoidal positional encoding.</li>
+  <li>Su, J. et al. (2021). <strong>"RoFormer: Enhanced Transformer with Rotary Position Embedding."</strong> <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener">arXiv:2104.09864</a>. The RoPE paper.</li>
+  <li>Press, O., Smith, N. A., &amp; Lewis, M. (2021). <strong>"Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation."</strong> <a href="https://arxiv.org/abs/2108.12409" target="_blank" rel="noopener">arXiv:2108.12409</a>. The ALiBi paper.</li>
+  <li>Shaw, P., Uszkoreit, J., &amp; Vaswani, A. (2018). <strong>"Self-Attention with Relative Position Representations."</strong> <a href="https://arxiv.org/abs/1803.02155" target="_blank" rel="noopener">arXiv:1803.02155</a>. An early relative-position method.</li>
+  <li>Chen, S. et al. (2023). <strong>"Extending Context Window of Large Language Models via Positional Interpolation."</strong> <a href="https://arxiv.org/abs/2306.15595" target="_blank" rel="noopener">arXiv:2306.15595</a>. And Peng, B. et al. (2023). <strong>"YaRN: Efficient Context Window Extension of Large Language Models."</strong> <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener">arXiv:2309.00071</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function fmt(v, d) { d = d === undefined ? 2 : d; var r = Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(d); }
+  function vfmt(v, d) { return "[" + v.map(function (x) { return fmt(x, d); }).join(", ") + "]"; }
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  function pe(pos, d) { var out = []; for (var j = 0; j < d; j++) { var w = 1 / Math.pow(10000, 2 * Math.floor(j / 2) / d); out.push(j % 2 === 0 ? Math.sin(pos * w) : Math.cos(pos * w)); } return out; }
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function setBar(el, frac) { var pct = (frac * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.4 }); else el.style.width = pct; }
+
+  /* ---------- 1. Sinusoidal clocks + heat map ---------- */
+  (function clocks() {
+    var slider = document.getElementById("pe-pos");
+    if (!slider) return;
+    var dSel = document.getElementById("pe-d"), out = document.getElementById("pe-pos-out"), wrap = document.getElementById("pe-clocks"), canvas = document.getElementById("pe-canvas");
+    var hands = [];
+    function buildClocks(d) {
+      wrap.innerHTML = ""; hands = [];
+      var pairs = Math.min(d / 2, 8);
+      for (var i = 0; i < pairs; i++) {
+        var pairIdx = d / 2 <= 8 ? i : Math.round(i * (d / 2 - 1) / 7);
+        var div = document.createElement("div"); div.className = "clock";
+        var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 74 74");
+        mk(svg, "circle", { cx: 37, cy: 37, r: 33, "class": "face" });
+        for (var t = 0; t < 12; t++) { var a = t * Math.PI / 6; mk(svg, "line", { x1: 37 + 28 * Math.cos(a), y1: 37 + 28 * Math.sin(a), x2: 37 + 32 * Math.cos(a), y2: 37 + 32 * Math.sin(a), "class": "tick" }); }
+        var hand = mk(svg, "line", { x1: 37, y1: 37, x2: 37, y2: 9, "class": "hand" });
+        div.appendChild(svg);
+        var cap = document.createElement("div"); div.appendChild(cap);
+        wrap.appendChild(div);
+        hands.push({ el: hand, cap: cap, i: pairIdx, w: 1 / Math.pow(10000, 2 * pairIdx / d), angle: 0 });
+      }
+    }
+    function drawCanvas(d, pos) {
+      var ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height, P = 101, cw = W / P, ch = H / d;
+      for (var p = 0; p < P; p++) {
+        var v = pe(p, d);
+        for (var j = 0; j < d; j++) {
+          var x = v[j], a = Math.abs(x) * 0.9;
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(p * cw, j * ch, cw + 1, ch + 1);
+          ctx.fillStyle = x >= 0 ? "rgba(27,47,168," + a + ")" : "rgba(214,120,30," + a + ")";
+          ctx.fillRect(p * cw, j * ch, cw + 1, ch + 1);
+        }
+      }
+      ctx.strokeStyle = "#b07a00"; ctx.lineWidth = 3; ctx.strokeRect(pos * cw, 0, cw, H);
+    }
+    function render(anim) {
+      var d = parseInt(dSel.value, 10), pos = parseInt(slider.value, 10); out.textContent = pos;
+      if (!hands.length || hands._d !== d) { buildClocks(d); hands._d = d; }
+      var v = pe(pos, d);
+      hands.forEach(function (h) {
+        var ang = pos * h.w;                                  // radians turned by this hand
+        var x2 = 37 + 28 * Math.sin(ang), y2 = 37 - 28 * Math.cos(ang);
+        if (anim && canAnimate) M.animate(h.el, { opacity: [0.4, 1] }, { duration: 0.25 });
+        h.el.setAttribute("x2", x2); h.el.setAttribute("y2", y2);
+        h.cap.innerHTML = "pair " + h.i + "<br>ω=" + (h.w >= 0.01 ? h.w.toFixed(3) : h.w.toExponential(1)) + "<br>(" + fmt(Math.sin(ang)) + ", " + fmt(Math.cos(ang)) + ")";
+      });
+      drawCanvas(d, pos);
+      document.getElementById("pe-status").textContent = "Position " + pos + " → first entries " + vfmt(v.slice(0, 4), 3) + " …. The fast clock (pair 0) has turned " + pos + " rad; the slowest shown has turned only " + (pos * hands[hands.length - 1].w).toFixed(4) + " rad. Together they give every position a unique fingerprint.";
+      window.__pe = { pos: pos, d: d, first4: v.slice(0, 4) };
+    }
+    slider.addEventListener("input", function () { render(true); });
+    dSel.addEventListener("change", function () { hands = []; render(false); });
+    render(false);
+  })();
+
+  /* ---------- 2. Order matters once positions are added ---------- */
+  (function order() {
+    var cards = document.getElementById("ord-cards");
+    if (!cards) return;
+    var VEC = { the: [0.2, 0.2], bat: [1, 1], flew: [2, 0] };
+    var ORDERS = [["the", "bat", "flew"], ["flew", "bat", "the"]], withPos = false;
+    function attend(X) {
+      var A = X.map(function (a) { return softmax(X.map(function (b) { return a[0] * b[0] + a[1] * b[1]; })); });
+      return A.map(function (row) { return [0, 1].map(function (d) { return row.reduce(function (s, w, j) { return s + w * X[j][d]; }, 0); }); });
+    }
+    function render() {
+      document.getElementById("pos-off").classList.toggle("on", !withPos);
+      document.getElementById("pos-on").classList.toggle("on", withPos);
+      var bats = [];
+      cards.innerHTML = ORDERS.map(function (ord, k) {
+        var X = ord.map(function (t, i) { var x = VEC[t]; if (!withPos) return x.slice(); var p = pe(i, 2); return [x[0] + p[0], x[1] + p[1]]; });
+        var Y = attend(X), bi = ord.indexOf("bat"); bats.push(Y[bi]);
+        var rows = ord.map(function (t, i) { return "<tr><th>" + t + " (" + i + ")</th><td>" + fmt(VEC[t][0]) + ", " + fmt(VEC[t][1]) + "</td>" + (withPos ? "<td>" + vfmt(pe(i, 2)) + "</td>" : "") + '<td class="' + (t === "bat" ? "hl" : "") + '">' + vfmt(X[i]) + "</td></tr>"; }).join("");
+        return '<div class="ordcard"><p class="ttl">“' + ord.join(" ") + '”</p><div class="mat-scroll"><table class="mat"><tr><th>token (pos)</th><th>x</th>' + (withPos ? "<th>+ p</th>" : "") + "<th>input</th></tr>" + rows + '</table></div><p style="margin:8px 0 0">bat’s output: <strong>' + vfmt(Y[bi]) + "</strong></p></div>";
+      }).join("");
+      var same = Math.abs(bats[0][0] - bats[1][0]) < 1e-9 && Math.abs(bats[0][1] - bats[1][1]) < 1e-9;
+      var v = document.getElementById("ord-verdict");
+      v.className = "verdict " + (same ? "same" : "diff");
+      v.textContent = same ? "Same output in both orders: the model can’t tell them apart." : "Different outputs: word order now changes what “bat” means to the model.";
+      if (canAnimate) M.animate(v, { scale: [0.85, 1], opacity: [0.3, 1] }, { duration: 0.35 });
+      window.__order = { withPos: withPos, bats: bats, same: same };
+    }
+    document.getElementById("pos-off").addEventListener("click", function () { withPos = false; render(); });
+    document.getElementById("pos-on").addEventListener("click", function () { withPos = true; render(); });
+    render();
+  })();
+
+  /* ---------- 3. RoPE rotation ---------- */
+  (function rope() {
+    var svg = document.getElementById("rp-svg");
+    if (!svg) return;
+    var Q0 = [1, 0.5], K0 = [0.5, 1], C = 170, SC = 110, hist = [];
+    var sm_ = document.getElementById("rp-m"), sn = document.getElementById("rp-n"), st = document.getElementById("rp-t");
+    var defs = mk(svg, "defs", {});
+    [["rq", "#b07a00"], ["rk", "#1b2fa8"]].forEach(function (m) { var mr = mk(svg, "marker", { id: m[0], viewBox: "0 0 10 10", refX: "8", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }, defs); mk(svg, "path", { d: "M0,0 L10,5 L0,10 z", fill: m[1] }, mr); });
+    mk(svg, "line", { x1: 10, y1: C, x2: 330, y2: C, "class": "axis" }); mk(svg, "line", { x1: C, y1: 10, x2: C, y2: 330, "class": "axis" });
+    mk(svg, "circle", { cx: C, cy: C, r: SC, fill: "none", "class": "axis", "stroke-dasharray": "3 4" });
+    var layer = mk(svg, "g", {});
+    function rot(v, phi) { var c = Math.cos(phi), s = Math.sin(phi); return [v[0] * c - v[1] * s, v[0] * s + v[1] * c]; }
+    function arrow(v, cls, marker) { return mk(svg, "line", { x1: C, y1: C, x2: C + v[0] * SC, y2: C - v[1] * SC, "class": cls, "marker-end": marker ? "url(#" + marker + ")" : "" }, layer); }
+    function render(record) {
+      var m = parseInt(sm_.value, 10), n = parseInt(sn.value, 10), tdeg = parseInt(st.value, 10), th = tdeg * Math.PI / 180;
+      document.getElementById("rp-m-out").textContent = m; document.getElementById("rp-n-out").textContent = n; document.getElementById("rp-t-out").textContent = tdeg + "°";
+      var q = rot(Q0, m * th), k = rot(K0, n * th), score = q[0] * k[0] + q[1] * k[1];
+      layer.innerHTML = "";
+      arrow(Q0, "qarr ghost"); arrow(K0, "karr ghost");
+      // wedge between rotated q and k
+      var aq = Math.atan2(q[1], q[0]), ak = Math.atan2(k[1], k[0]), dlt = ak - aq; while (dlt > Math.PI) dlt -= 2 * Math.PI; while (dlt < -Math.PI) dlt += 2 * Math.PI;
+      var r = 40, x1 = C + r * Math.cos(aq), y1 = C - r * Math.sin(aq), x2 = C + r * Math.cos(aq + dlt), y2 = C - r * Math.sin(aq + dlt);
+      mk(svg, "path", { d: "M" + C + "," + C + " L" + x1 + "," + y1 + " A" + r + "," + r + " 0 0 " + (dlt > 0 ? 0 : 1) + " " + x2 + "," + y2 + " Z", "class": "wedge" }, layer);
+      var qa = arrow(q, "qarr", "rq"), ka = arrow(k, "karr", "rk");
+      mk(svg, "text", { x: C + q[0] * SC + 6, y: C - q[1] * SC - 6, "class": "albl", fill: "#8a5a00" }, layer).textContent = "q @ " + m;
+      mk(svg, "text", { x: C + k[0] * SC + 6, y: C - k[1] * SC + 14, "class": "albl", fill: "#1b2fa8" }, layer).textContent = "k @ " + n;
+      if (canAnimate) M.animate([qa, ka], { opacity: [0.2, 1] }, { duration: 0.3 });
+      document.getElementById("rp-score").textContent = "score = " + fmt(score);
+      document.getElementById("rp-work").innerHTML = "q = [1, 0.5] rotated by " + m + "×" + tdeg + "° = " + (m * tdeg) + "° → " + vfmt(q) + "<br>k = [0.5, 1] rotated by " + n + "×" + tdeg + "° = " + (n * tdeg) + "° → " + vfmt(k) + "<br>gap m − n = <strong>" + (m - n) + "</strong>; q·k = " + fmt(score, 3);
+      if (record) { hist.unshift("m=" + m + ", n=" + n + "  (gap " + (m - n) + ")  →  " + fmt(score, 3)); hist = hist.slice(0, 6); }
+      document.getElementById("rp-hist").innerHTML = hist.map(function (h) { return "<li>" + h + "</li>"; }).join("");
+      document.getElementById("rp-status").textContent = "Dashed arrows: q and k before rotation. Solid: after rotating by their positions. Press “Shift both by +1”: both arrows turn by the same angle, the gap stays " + (m - n) + ", and the score doesn’t change.";
+      window.__rope = { m: m, n: n, score: score };
+    }
+    [sm_, sn, st].forEach(function (el) { el.addEventListener("input", function () { render(true); }); });
+    document.getElementById("rp-shift").addEventListener("click", function () {
+      if (parseInt(sm_.value, 10) < 12 && parseInt(sn.value, 10) < 12) { sm_.value = parseInt(sm_.value, 10) + 1; sn.value = parseInt(sn.value, 10) + 1; render(true); }
+      else document.getElementById("rp-status").textContent = "A position is already at 12. Lower m or n first.";
+    });
+    document.getElementById("rp-reset").addEventListener("click", function () { sm_.value = 2; sn.value = 5; st.value = 30; render(true); });
+    render(true);
+  })();
+
+  /* ---------- 4. ALiBi slopes ---------- */
+  (function alibi() {
+    var s = document.getElementById("al-m");
+    if (!s) return;
+    function render() {
+      var m = parseFloat(s.value), N = 8, i = N - 1;
+      document.getElementById("al-m-out").textContent = m.toFixed(2);
+      var bias = []; for (var j = 0; j < N; j++) bias.push(-m * (i - j));
+      var w = softmax(bias);
+      var el = document.getElementById("al-bars");
+      el.innerHTML = w.map(function (p, j) { return "<span>pos " + j + '</span><span class="bar"><i></i></span><b>' + p.toFixed(3) + "</b><em>bias " + fmt(bias[j]) + "</em>"; }).join("");
+      el.querySelectorAll(".bar > i").forEach(function (b, j) { setBar(b, w[j]); });
+      document.getElementById("al-status").textContent = m === 0
+        ? "Slope 0: no penalty, so every position gets 1/8 = 0.125. This head sees the whole context equally."
+        : "Slope " + m.toFixed(2) + ": the newest token gets " + (w[N - 1] * 100).toFixed(0) + "% and the oldest only " + (w[0] * 100).toFixed(1) + "%. Steep slopes make short-sighted heads; gentle slopes make long-sighted ones. ALiBi gives each head a different slope.";
+      window.__alibi = { m: m, w: w };
+    }
+    s.addEventListener("input", render);
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

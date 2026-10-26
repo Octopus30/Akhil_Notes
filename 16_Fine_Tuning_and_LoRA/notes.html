@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 16: Fine-Tuning &amp; LoRA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3em; text-align: right; }
+.big { font-family: var(--hand); font-size: 22px; font-weight: 700; color: var(--ink); }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td { border: 0; padding: 3px 8px; border-radius: 3px; text-align: right; min-width: 46px; box-shadow: inset 0 0 0 1px #c9d2ea; background: #fff; }
+.mrow { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 8px 0; }
+.mrow > div { min-width: 0; }
+.op { font-family: var(--hand); font-size: 24px; color: var(--ink); }
+.mcap { font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 15px; margin: 0 0 2px; }
+.paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-top: 8px; }
+.pathcard { border: 1.5px dashed var(--ink); border-radius: 10px; padding: 8px 10px; background: #fff; font-size: 14.5px; min-width: 0; }
+.pathcard .ttl { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); margin: 0 0 4px; }
+.eq { color: #2e7d5b; font-weight: 700; }
+/* calculator */
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input[type=number] { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14.5px; margin: 6px 0; }
+.checks label { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); }
+.mbars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; font-size: 14.5px; margin: 10px 0 4px; }
+.mbar { position: relative; height: 22px; background: var(--tint); border-radius: 6px; overflow: visible; }
+.mbar > i { display: block; height: 100%; border-radius: 6px; width: 0; }
+.mbar.full > i { background: #c0472f; } .mbar.lora > i { background: #1b2fa8; } .mbar.qlora > i { background: #2e7d5b; }
+.mbar .gpu { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #8a4b00; }
+.mbar .gpu span { position: absolute; top: -16px; left: -12px; font-size: 10.5px; color: #8a4b00; font-family: var(--mono); white-space: nowrap; }
+.mval { font-family: var(--mono); font-size: 13px; min-width: 6.5em; text-align: right; }
+/* rank heatmaps */
+.heats { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0; }
+.heat { text-align: center; }
+.heat canvas { width: 150px; height: 150px; image-rendering: pixelated; border: 1px solid #c9d2ea; border-radius: 6px; display: block; }
+.heat .mcap { margin-top: 4px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .paths { grid-template-columns: minmax(0, 1fr); }
+  .heat canvas { width: 110px; height: 110px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in, .checks { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 16</p>
+  <h1>Fine-Tuning &amp; LoRA</h1>
+  <p class="lede"><strong>In one line:</strong> fine-tuning adapts a pre-trained model to your task or domain. Updating <strong>all</strong> the weights is expensive, so most practitioners use <strong>parameter-efficient fine-tuning</strong> — above all <strong>LoRA</strong>, which freezes the original weights and learns a tiny <strong>low-rank</strong> correction \(\Delta W = BA\), often less than 1% of the parameters.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Choose</strong> between prompting, full fine-tuning and parameter-efficient methods for a given situation.</li>
+  <li><strong>Explain</strong> LoRA: why a low-rank update works, how \(B\) and \(A\) are initialised, and how the update is merged after training.</li>
+  <li><strong>Compute</strong> a LoRA forward pass by hand and count LoRA's trainable parameters.</li>
+  <li><strong>Estimate</strong> GPU memory for full fine-tuning, LoRA and QLoRA.</li>
+  <li><strong>Describe</strong> adapters and prompt tuning, and the practical risks of fine-tuning (overfitting, forgetting).</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 12:</strong> training with AdamW; ≈ 16 bytes per trainable parameter for weights, gradients and optimizer states.</li>
+  <li><strong>Section 4/8:</strong> the attention projections \(W_Q, W_K, W_V, W_O\) and FFN matrices are where most parameters live.</li>
+  <li><strong>Matrix rank:</strong> the <strong>rank</strong> of a matrix is the number of independent rows (or columns). A \(d \times k\) matrix written as \(BA\) with \(B\) of shape \(d \times r\) and \(A\) of shape \(r \times k\) has rank at most \(r\).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — the outer product</span>
+  A column vector \(b\) (\(d \times 1\)) times a row vector \(a\) (\(1 \times k\)) gives a \(d \times k\) matrix \(ba\) of <strong>rank 1</strong>: every row is a multiple of \(a\). It's described by only \(d + k\) numbers instead of \(d \cdot k\).
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: adapting a giant model cheaply</h2>
+<p>A pre-trained LLM knows a lot, but you may want it to:</p>
+<ul>
+  <li>answer in your company's format and tone,</li>
+  <li>handle a specialist domain (law, medicine, your codebase),</li>
+  <li>do a narrow task very reliably (extract fields from invoices).</li>
+</ul>
+<p><strong>Options, from cheapest to most expensive:</strong></p>
+<div class="tw"><table>
+  <tr><th>Approach</th><th>Trainable parameters</th><th>Cost</th><th>Good when</th></tr>
+  <tr><td>Prompting / few-shot examples</td><td>0</td><td>none</td><td>the model can already do it with instructions</td></tr>
+  <tr><td>Retrieval (RAG, Section 18)</td><td>0</td><td>low</td><td>the model needs <strong>facts</strong> it doesn't know</td></tr>
+  <tr><td><strong>LoRA / QLoRA</strong></td><td>~0.1–1%</td><td>low</td><td>you need new <strong>behaviour</strong>, style, format or task skill</td></tr>
+  <tr><td>Full fine-tuning</td><td>100%</td><td>very high</td><td>big domain shift, lots of data and hardware</td></tr>
+</table></div>
+<p>Full fine-tuning of a 7B model needs about \(16 \times 6.74 \times 10^9 \approx 108\) GB just for weights, gradients and Adam states — more than one large GPU — and produces a full 13.5 GB copy of the model for every task. LoRA fixes both problems.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: sticky notes on a textbook</h2>
+<p>You own an excellent textbook (the pre-trained model). You're taking a specialised course and want to adapt it.</p>
+<ul>
+  <li><strong>Full fine-tuning</strong> = rewriting the whole textbook by hand. Thorough, but slow, and you end up with one rewritten copy per course.</li>
+  <li><strong>LoRA</strong> = leaving the book untouched and adding a few <strong>sticky notes</strong> with corrections. The notes are tiny, you can keep different sets for different courses, and you can swap them in and out. When you're done, you can even copy the notes into the book permanently (merging).</li>
+  <li><strong>Prompt tuning</strong> = writing a short cheat-sheet at the front of the book that changes how you read the rest.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>LoRA's "notes" aren't sentences; they're small matrices whose product slightly changes how every input passes through a layer.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Full fine-tuning</h3>
+<p>Start from the pre-trained weights and continue training on task data, updating every parameter (usually with a smaller learning rate than pre-training). Most powerful, most expensive. Every task needs its own full copy of the model.</p>
+
+<h3>5.2 LoRA: Low-Rank Adaptation</h3>
+<p>LoRA keeps each chosen weight matrix \(W_0\) (shape \(d \times k\)) <strong>frozen</strong> and adds a trainable low-rank update (using the paper's convention \(h = Wx\) with column vectors):</p>
+<div class="math-block">$$h = W_0 x + \frac{\alpha}{r}\, B A x, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d, k)$$</div>
+<ul>
+  <li><strong>Rank \(r\):</strong> typically 4–64.</li>
+  <li><strong>Initialisation:</strong> \(A\) random (small Gaussian), \(B = 0\). So at the start \(BA = 0\) and the model behaves <strong>exactly</strong> like the original — training begins from the pre-trained model, not from a damaged one.</li>
+  <li><strong>Scaling</strong> \(\alpha / r\): a constant that keeps the update's size roughly independent of \(r\) (e.g. \(\alpha = 16\), \(r = 8\) → factor 2).</li>
+  <li><strong>Trainable parameters</strong> for one matrix: \(r(d + k)\) instead of \(dk\).</li>
+  <li><strong>Where:</strong> usually the attention projections (\(W_Q, W_V\) or all four), often the FFN matrices too.</li>
+</ul>
+<p><strong>Why low rank is enough:</strong> experiments show that the <em>change</em> needed to adapt a pre-trained model to a task tends to be much simpler than the weights themselves — it can be captured well by a few directions. A rank-\(r\) update can only change the layer's behaviour along \(r\) directions, but those turn out to be the ones that matter.</p>
+<p><strong>Merging:</strong> after training, compute \(W = W_0 + \frac{\alpha}{r}BA\) once. The merged model has exactly the original shape and <strong>no extra inference cost</strong>. Or keep the small \(A, B\) files separate and <strong>swap</strong> them per task — many LoRA "adapters" can share one base model.</p>
+
+<h3>5.3 QLoRA</h3>
+<p>QLoRA stores the frozen base model in <strong>4-bit</strong> precision (a special format called NF4) and trains LoRA matrices on top in 16-bit. The base weights take about 0.5 bytes per parameter instead of 2, so a 65B-parameter model can be fine-tuned on a single 48 GB GPU, and a 7B model on a consumer GPU.</p>
+
+<h3>5.4 Other parameter-efficient methods</h3>
+<ul>
+  <li><strong>Adapters:</strong> small bottleneck networks inserted inside each block: down-project \(d \to m\), non-linearity, up-project \(m \to d\), plus a residual. Effective, but they add a little inference latency because they can't be merged away.</li>
+  <li><strong>Prompt tuning / prefix tuning:</strong> learn a handful of "virtual token" embeddings (prompt tuning) or per-layer key/value vectors (prefix tuning) that are prepended to the input. Extremely few parameters; works best on large models.</li>
+  <li><strong>(IA)³, DoRA and others:</strong> variations that scale activations or split weights into magnitude and direction.</li>
+</ul>
+
+<h3>5.5 Practical points</h3>
+<ul>
+  <li><strong>Data quality beats quantity:</strong> a few thousand clean, consistent examples often beat a large noisy set.</li>
+  <li><strong>Use the model's chat template</strong> exactly; mismatched formatting is a common silent failure.</li>
+  <li><strong>Learning rate:</strong> LoRA typically uses about \(10^{-4}\) to \(2 \times 10^{-4}\), much higher than full fine-tuning (≈ \(10^{-5}\)), because only a few parameters move.</li>
+  <li><strong>Catastrophic forgetting:</strong> narrow fine-tuning can erase general abilities. Keep a held-out evaluation of general skills, use few epochs, or mix in general data. LoRA forgets somewhat less, since the base weights are frozen.</li>
+  <li><strong>Overfitting:</strong> watch validation loss; 1–3 epochs is usually enough.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Counting LoRA parameters</h3>
+<p>One \(4096 \times 4096\) matrix (\(d = k = 4096\)):</p>
+<div class="tw"><table>
+  <tr><th></th><th>Parameters</th><th>Share of the matrix</th></tr>
+  <tr><td>Full matrix</td><td>\(4096^2 = 16{,}777{,}216\)</td><td>100%</td></tr>
+  <tr><td>LoRA, \(r = 8\)</td><td>\(8 \times (4096 + 4096) = 65{,}536\)</td><td><strong>0.39%</strong></td></tr>
+  <tr><td>LoRA, \(r = 16\)</td><td>\(131{,}072\)</td><td>0.78%</td></tr>
+</table></div>
+<p><strong>Whole model (LLaMA-2 7B):</strong> LoRA with \(r = 16\) on \(W_Q, W_K, W_V, W_O\) in all 32 layers:</p>
+<div class="math-block">$$32 \times 4 \times 16 \times (4096 + 4096) = 16{,}777{,}216 \text{ trainable parameters} \approx 0.25\% \text{ of } 6.74\text{B}$$</div>
+<p>The whole adapter file is about 34 MB in 16-bit — versus 13.5 GB for a fully fine-tuned copy.</p>
+
+<h3>6.2 A LoRA forward pass by hand</h3>
+<p>Take a tiny layer with \(d = k = 3\), frozen weights \(W_0 = I\) (the identity), rank \(r = 1\), and \(\alpha / r = 1\). After training, suppose</p>
+<div class="math-block">$$A = \begin{bmatrix} 1 & 0 & 1 \end{bmatrix} \;(1 \times 3), \qquad B = \begin{bmatrix} 0.5 \\ 0 \\ -0.5 \end{bmatrix} \;(3 \times 1)$$</div>
+<p>Input \(x = [1, 2, 3]^{\top}\).</p>
+<ol class="steps">
+  <li>Frozen path: \(W_0 x = [1, 2, 3]^{\top}\)</li>
+  <li>LoRA path, step 1: \(A x = 1(1) + 0(2) + 1(3) = 4\) (one number, because \(r = 1\))</li>
+  <li>LoRA path, step 2: \(B (Ax) = 4 \times [0.5, 0, -0.5]^{\top} = [2, 0, -2]^{\top}\)</li>
+  <li>Add: \(h = [1, 2, 3] + [2, 0, -2] = \mathbf{[3, 2, 1]}\)</li>
+</ol>
+<p><strong>Merging:</strong> \(\Delta W = BA = \begin{bmatrix} 0.5 & 0 & 0.5 \\ 0 & 0 & 0 \\ -0.5 & 0 & -0.5 \end{bmatrix}\) (rank 1 — every row is a multiple of \([1, 0, 1]\)).</p>
+<p>\(W = W_0 + \Delta W = \begin{bmatrix} 1.5 & 0 & 0.5 \\ 0 & 1 & 0 \\ -0.5 & 0 & 0.5 \end{bmatrix}\), and \(Wx = [1.5 + 1.5,\; 2,\; -0.5 + 1.5] = [3, 2, 1]\) — <strong>the same output</strong>, with a single matrix.</p>
+<p><strong>At initialisation</strong> (\(B = 0\)): \(h = W_0 x = [1, 2, 3]\) exactly — the model starts unchanged.</p>
+
+<div class="demo" id="lora">
+  <p class="demo-title">Try it: a LoRA layer, two ways</p>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="lr-ex">Trained values from 6.2</button>
+    <button class="btn" type="button" id="lr-init">At initialisation (B = 0)</button>
+    <button class="btn" type="button" id="lr-x1">x = [1, 2, 3]</button>
+    <button class="btn" type="button" id="lr-x2">x = [2, 0, −2]</button>
+  </div>
+  <div class="sliders">
+    <label>A₁ <input type="range" id="lr-a0" min="-2" max="2" step="0.5"><output id="lr-a0o"></output></label>
+    <label>A₂ <input type="range" id="lr-a1" min="-2" max="2" step="0.5"><output id="lr-a1o"></output></label>
+    <label>A₃ <input type="range" id="lr-a2" min="-2" max="2" step="0.5"><output id="lr-a2o"></output></label>
+    <label>B₁ <input type="range" id="lr-b0" min="-2" max="2" step="0.25"><output id="lr-b0o"></output></label>
+    <label>B₂ <input type="range" id="lr-b1" min="-2" max="2" step="0.25"><output id="lr-b1o"></output></label>
+    <label>B₃ <input type="range" id="lr-b2" min="-2" max="2" step="0.25"><output id="lr-b2o"></output></label>
+    <label>α / r <input type="range" id="lr-s" min="0" max="4" step="0.5" value="1"><output id="lr-so"></output></label>
+  </div>
+  <div class="mrow" id="lr-mats"></div>
+  <div class="paths">
+    <div class="pathcard"><p class="ttl">During training: frozen W₀ + LoRA path</p><div id="lr-p1"></div></div>
+    <div class="pathcard"><p class="ttl">After merging: one matrix W = W₀ + (α/r)·BA</p><div id="lr-p2"></div></div>
+  </div>
+  <p class="demo-status" id="lr-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Memory: full fine-tuning vs LoRA vs QLoRA (7B model)</h3>
+<div class="tw"><table>
+  <tr><th>Method</th><th>Frozen base weights</th><th>Trainable parameters × 16 bytes</th><th>Total before activations</th></tr>
+  <tr><td>Full fine-tuning</td><td>—</td><td>\(6.74\text{B} \times 16 = 108\) GB</td><td><strong>≈ 108 GB</strong></td></tr>
+  <tr><td>LoRA (\(r = 16\), attention)</td><td>16-bit: \(6.74\text{B} \times 2 = 13.5\) GB</td><td>\(16.8\text{M} \times 16 = 0.27\) GB</td><td><strong>≈ 13.8 GB</strong></td></tr>
+  <tr><td>QLoRA (same LoRA)</td><td>4-bit: \(6.74\text{B} \times 0.5 = 3.4\) GB</td><td>0.27 GB</td><td><strong>≈ 3.7 GB</strong></td></tr>
+</table></div>
+<p>Activations come on top and depend on batch size and sequence length, but the difference is dramatic: full fine-tuning needs several data-centre GPUs; QLoRA fits on a single consumer GPU.</p>
+
+<div class="demo" id="calc">
+  <p class="demo-title">Try it: how many parameters, how much memory?</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-m="7b">LLaMA-2 7B</button>
+    <button class="btn" type="button" data-m="13b">LLaMA-2 13B</button>
+  </div>
+  <div class="calc-in">
+    <label>model parameters (B)<input id="lc-n" type="number" min="0.1" step="0.01"></label>
+    <label>d<sub>model</sub><input id="lc-d" type="number" min="1"></label>
+    <label>d<sub>ff</sub><input id="lc-ff" type="number" min="1"></label>
+    <label>layers<input id="lc-L" type="number" min="1"></label>
+  </div>
+  <div class="sliders" style="max-width:480px">
+    <label>LoRA rank r <input type="range" id="lc-r" min="0" max="7" step="1" value="4"><output id="lc-ro"></output></label>
+  </div>
+  <div class="checks" id="lc-mods">
+    <span class="cap">apply LoRA to:</span>
+    <label><input type="checkbox" value="q" checked> W_Q</label>
+    <label><input type="checkbox" value="k" checked> W_K</label>
+    <label><input type="checkbox" value="v" checked> W_V</label>
+    <label><input type="checkbox" value="o" checked> W_O</label>
+    <label><input type="checkbox" value="gate"> FFN gate</label>
+    <label><input type="checkbox" value="up"> FFN up</label>
+    <label><input type="checkbox" value="down"> FFN down</label>
+  </div>
+  <p class="big" id="lc-count"></p>
+  <div class="mbars" id="lc-bars"></div>
+  <p class="cap">Dashed lines: common GPU sizes (24, 48, 80 GB). Bars exclude activations.</p>
+  <p class="demo-status" id="lc-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 How much rank do you need?</h3>
+<p>Suppose the "ideal" update for some \(8 \times 8\) weight matrix is a sum of five rank-1 pieces with strengths \(8, 4, 2, 1, 0.5\) (in orthogonal directions). The best rank-\(r\) approximation keeps the \(r\) strongest pieces:</p>
+<div class="tw"><table>
+  <tr><th>Rank \(r\)</th><th>Parameters \(r(8 + 8)\)</th><th>Relative error</th></tr>
+  <tr><td>0</td><td>0</td><td>100%</td></tr>
+  <tr><td>1</td><td>16</td><td>50%</td></tr>
+  <tr><td>2</td><td>32</td><td>25%</td></tr>
+  <tr><td>3</td><td>48</td><td>12%</td></tr>
+  <tr><td>4</td><td>64</td><td>5%</td></tr>
+  <tr><td>5</td><td>80</td><td>0%</td></tr>
+</table></div>
+<p>When an update is dominated by a few strong directions — as task adaptations tend to be — a small rank captures most of it.</p>
+
+<div class="demo" id="rank">
+  <p class="demo-title">Try it: approximating an update with rank r</p>
+  <div class="sliders" style="max-width:420px">
+    <label>rank r <input type="range" id="rk-r" min="0" max="5" step="1" value="2"><output id="rk-ro"></output></label>
+  </div>
+  <div class="heats">
+    <div class="heat"><canvas id="rk-t" width="8" height="8" aria-label="Target update heat map"></canvas><p class="mcap">target ΔW (rank 5)</p></div>
+    <div class="heat"><canvas id="rk-a" width="8" height="8" aria-label="Rank-r approximation heat map"></canvas><p class="mcap" id="rk-acap">rank-r approximation</p></div>
+    <div class="heat"><canvas id="rk-e" width="8" height="8" aria-label="Error heat map"></canvas><p class="mcap">what's left (error)</p></div>
+  </div>
+  <p class="big" id="rk-out"></p>
+  <p class="demo-status" id="rk-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 Other methods, counted</h3>
+<ul>
+  <li><strong>Adapters</strong> in BERT-base (\(d = 768\), bottleneck \(m = 64\), two per layer, 12 layers): each adapter \(2 \times 768 \times 64 + 64 + 768 = 99{,}136\) parameters; total \(24 \times 99{,}136 = 2{,}379{,}264\) ≈ <strong>2.2%</strong> of BERT-base.</li>
+  <li><strong>Prompt tuning</strong> with 20 virtual tokens on a model with \(d = 4096\): \(20 \times 4096 = 81{,}920\) parameters — about 0.001% of a 7B model.</li>
+</ul>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    X["input x"] --> W0["frozen W₀<br/>d × k"]
+    X --> A["A (trainable)<br/>r × k"]
+    A --> B["B (trainable, starts at 0)<br/>d × r"]
+    B --> S["× α/r"]
+    W0 --> P(("+"))
+    S --> P
+    P --> H["h = W₀x + (α/r)·BAx"]
+</pre>
+<p>After training: \(W = W_0 + \frac{\alpha}{r}BA\) → one ordinary matrix, no extra cost.</p>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Situation</th><th>Typical choice</th></tr>
+  <tr><td>Teach a consistent format, tone or task on a 7–70B model</td><td>LoRA / QLoRA on attention (and often FFN) matrices, \(r\) = 8–64</td></tr>
+  <tr><td>One GPU with limited memory</td><td>QLoRA</td></tr>
+  <tr><td>Serve many customers, each with their own customisation</td><td>one base model + many swappable LoRA adapters</td></tr>
+  <tr><td>Big domain shift, plenty of data and compute</td><td>full fine-tuning (or continued pre-training)</td></tr>
+  <tr><td>Model just lacks up-to-date facts</td><td>RAG first (Section 18), not fine-tuning</td></tr>
+</table></div>
+<ul>
+  <li><strong>Libraries:</strong> Hugging Face <strong>PEFT</strong> provides LoRA, QLoRA (with bitsandbytes), adapters and prompt tuning with a few lines of configuration.</li>
+  <li><strong>Instruction tuning</strong> (Section 12's SFT) and <strong>preference tuning</strong> (DPO) are both commonly run with LoRA.</li>
+  <li><strong>Evaluate before and after</strong> on your task <em>and</em> on general ability, to catch forgetting.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Fine-tuning is the best way to add new knowledge."</strong> Fine-tuning is better at teaching <strong>behaviour and format</strong>; for facts that change or need citations, retrieval (RAG) is usually more reliable.</li>
+  <li class="mistake"><strong>"LoRA adds inference cost."</strong> Only if you keep the adapter separate. After merging, the model is exactly the original size and speed.</li>
+  <li class="mistake"><strong>"LoRA starts from a random model."</strong> \(B = 0\) at the start, so the adapted model initially equals the pre-trained one.</li>
+  <li class="mistake"><strong>"A higher rank is always better."</strong> Beyond a modest rank, gains are small and overfitting risk rises; small ranks often match full fine-tuning on narrow tasks.</li>
+  <li class="mistake"><strong>"QLoRA trains a 4-bit model."</strong> The <strong>base</strong> is stored in 4-bit and frozen; the LoRA weights are trained in 16-bit.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>Full fine-tuning</strong> updates every weight — powerful but ≈ 16 bytes/parameter of memory and a full model copy per task.</li>
+  <li><strong>LoRA</strong> freezes \(W_0\) and learns \(\Delta W = \frac{\alpha}{r} BA\) with \(B\) (\(d \times r\), starts at 0) and \(A\) (\(r \times k\)); parameters \(r(d + k)\) — e.g. 0.39% of a \(4096 \times 4096\) matrix at \(r = 8\).</li>
+  <li>The update can be <strong>merged</strong> into \(W_0\) (no inference cost) or kept as a small, swappable adapter.</li>
+  <li><strong>QLoRA</strong> stores the frozen base in 4-bit, bringing 7B fine-tuning to ≈ 4 GB plus activations.</li>
+  <li><strong>Adapters</strong> and <strong>prompt/prefix tuning</strong> are other parameter-efficient options; good data, the right template and checking for forgetting matter more than the method.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A weight matrix is \(4096 \times 11{,}008\) (an FFN projection in LLaMA-2 7B). How many trainable parameters does LoRA with \(r = 8\) add? What fraction of the matrix is that?</li>
+  <li>In 6.2, what is \(h\) if \(x = [2, 0, -2]^{\top}\)? Explain the result using the rank of \(\Delta W\).</li>
+  <li>Why is \(B\) initialised to zero rather than \(A\) and \(B\) both random?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(8 \times (4096 + 11{,}008) = \mathbf{120{,}832}\) parameters, out of \(4096 \times 11{,}008 = 45{,}088{,}768\) — about <strong>0.27%</strong>.</li>
+    <li>\(Ax = 1(2) + 0 + 1(-2) = 0\), so the LoRA path adds nothing and \(h = W_0 x = \mathbf{[2, 0, -2]}\). \(\Delta W\) has rank 1: it only responds to the component of \(x\) along \(A = [1, 0, 1]\), and this \(x\) has none. (Press "x = [2, 0, −2]" in the LoRA demo.)</li>
+    <li>With \(B = 0\), \(BA = 0\) at the start, so the model begins <strong>exactly</strong> as the pre-trained model and training only moves it as far as the data requires. If both were random, the first forward pass would add a random distortion to every adapted layer, damaging the pre-trained behaviour before any learning happened. (\(A\) must still be random — if both were zero, the gradients for both would be zero and nothing would ever learn.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Hu, E. J. et al. (2021). <strong>"LoRA: Low-Rank Adaptation of Large Language Models."</strong> <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">arXiv:2106.09685</a>.</li>
+  <li>Dettmers, T. et al. (2023). <strong>"QLoRA: Efficient Finetuning of Quantized LLMs."</strong> <a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">arXiv:2305.14314</a>.</li>
+  <li>Houlsby, N. et al. (2019). <strong>"Parameter-Efficient Transfer Learning for NLP."</strong> <a href="https://arxiv.org/abs/1902.00751" target="_blank" rel="noopener">arXiv:1902.00751</a> — adapters.</li>
+  <li>Lester, B., Al-Rfou, R., &amp; Constant, N. (2021). <strong>"The Power of Scale for Parameter-Efficient Prompt Tuning."</strong> <a href="https://arxiv.org/abs/2104.08691" target="_blank" rel="noopener">arXiv:2104.08691</a>.</li>
+  <li>Li, X. L., &amp; Liang, P. (2021). <strong>"Prefix-Tuning: Optimizing Continuous Prompts for Generation."</strong> <a href="https://arxiv.org/abs/2101.00190" target="_blank" rel="noopener">arXiv:2101.00190</a>.</li>
+  <li>Aghajanyan, A., Zettlemoyer, L., &amp; Gupta, S. (2020). <strong>"Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning."</strong> <a href="https://arxiv.org/abs/2012.13255" target="_blank" rel="noopener">arXiv:2012.13255</a> — why low-dimensional updates suffice.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function fmt(v) { var r = Math.abs(v) < 0.005 ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1"); }
+  function vfmt(v) { return "[" + v.map(fmt).join(", ") + "]"; }
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+  function heat(v, scale) { var a = Math.min(1, Math.abs(v) / scale) * 0.85; return { bg: v >= 0 ? "rgba(27,47,168," + a.toFixed(3) + ")" : "rgba(214,120,30," + a.toFixed(3) + ")", fg: a > 0.45 ? "#fff" : "#1f2433" }; }
+  function matHTML(cap, Mx, scale) {
+    return '<div><p class="mcap">' + cap + '</p><div class="mat-scroll"><table class="mat">' + Mx.map(function (r) { return "<tr>" + r.map(function (v) { var c = heat(v, scale); return '<td style="background:' + c.bg + ";color:" + c.fg + '">' + fmt(v) + "</td>"; }).join("") + "</tr>"; }).join("") + "</table></div></div>";
+  }
+
+  /* ---------- 1. LoRA playground ---------- */
+  (function lora() {
+    var root = document.getElementById("lora");
+    if (!root) return;
+    var A = [1, 0, 1], B = [0.5, 0, -0.5], s = 1, x = [1, 2, 3], W0 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    var ids = ["a0", "a1", "a2", "b0", "b1", "b2"];
+    function sync() {
+      ids.forEach(function (id, i) { var el = document.getElementById("lr-" + id), v = i < 3 ? A[i] : B[i - 3]; el.value = v; document.getElementById("lr-" + id + "o").textContent = fmt(v); });
+      document.getElementById("lr-s").value = s; document.getElementById("lr-so").textContent = fmt(s);
+    }
+    function render() {
+      sync();
+      var Ax = A.reduce(function (a, v, j) { return a + v * x[j]; }, 0);
+      var lp = B.map(function (b) { return s * b * Ax; });
+      var frozen = W0.map(function (r) { return r.reduce(function (a, v, j) { return a + v * x[j]; }, 0); });
+      var h1 = frozen.map(function (v, i) { return v + lp[i]; });
+      var dW = B.map(function (b) { return A.map(function (a) { return s * b * a; }); });
+      var Wm = W0.map(function (r, i) { return r.map(function (v, j) { return v + dW[i][j]; }); });
+      var h2 = Wm.map(function (r) { return r.reduce(function (a, v, j) { return a + v * x[j]; }, 0); });
+      var zeroB = B.every(function (b) { return b === 0; }), zeroA = A.every(function (a) { return a === 0; });
+      document.getElementById("lr-mats").innerHTML =
+        matHTML("A (1 × 3)", [A], 2) + '<span class="op">→</span>' + matHTML("B (3 × 1)", B.map(function (b) { return [b]; }), 2) +
+        '<span class="op">⇒</span>' + matHTML("ΔW = (α/r)·BA (3 × 3, rank " + (zeroA || zeroB || s === 0 ? 0 : 1) + ")", dW, 2) + '<span class="op">+</span>' + matHTML("W₀", W0, 2) + '<span class="op">=</span>' + matHTML("merged W", Wm, 2.5);
+      document.getElementById("lr-p1").innerHTML = "x = " + vfmt(x) + "<br>W₀x = " + vfmt(frozen) + "<br>Ax = " + A.map(function (a, j) { return fmt(a) + "·" + fmt(x[j]); }).join(" + ") + " = <strong>" + fmt(Ax) + "</strong><br>(α/r)·B·(Ax) = " + vfmt(lp) + "<br>h = <strong>" + vfmt(h1) + "</strong>";
+      var same = h1.every(function (v, i) { return Math.abs(v - h2[i]) < 1e-9; });
+      document.getElementById("lr-p2").innerHTML = "h = Wx = <strong>" + vfmt(h2) + '</strong><br><span class="eq">' + (same ? "✓ identical to the LoRA path" : "differs!") + "</span>";
+      if (canAnimate) M.animate(document.querySelectorAll("#lr-p1 strong, #lr-p2 strong"), { opacity: [0.3, 1] }, { duration: 0.3 });
+      var msg = zeroB ? "B = 0: the update is exactly zero, so h = W₀x — the layer behaves like the original model. This is how LoRA starts training."
+        : Math.abs(Ax) < 1e-9 ? "Ax = 0: this input has no component along A, so the rank-1 update can’t affect it. A rank-r update only acts along r directions."
+        : "The LoRA path adds a correction along B, scaled by how much x points along A. Merging gives one matrix with exactly the same effect.";
+      document.getElementById("lr-status").textContent = msg;
+      window.__lora = { h1: h1, h2: h2, same: same, Ax: Ax };
+    }
+    ids.forEach(function (id, i) { document.getElementById("lr-" + id).addEventListener("input", function (e) { var v = parseFloat(e.target.value); if (i < 3) A[i] = v; else B[i - 3] = v; render(); }); });
+    document.getElementById("lr-s").addEventListener("input", function (e) { s = parseFloat(e.target.value); render(); });
+    document.getElementById("lr-ex").addEventListener("click", function () { A = [1, 0, 1]; B = [0.5, 0, -0.5]; s = 1; render(); });
+    document.getElementById("lr-init").addEventListener("click", function () { A = [1, 0, 1]; B = [0, 0, 0]; render(); });
+    document.getElementById("lr-x1").addEventListener("click", function () { x = [1, 2, 3]; render(); });
+    document.getElementById("lr-x2").addEventListener("click", function () { x = [2, 0, -2]; render(); });
+    render();
+  })();
+
+  /* ---------- 2. Parameter and memory calculator ---------- */
+  (function calc() {
+    var root = document.getElementById("calc");
+    if (!root) return;
+    var PRE = { "7b": { n: 6.74, d: 4096, ff: 11008, L: 32 }, "13b": { n: 13.02, d: 5120, ff: 13824, L: 40 } };
+    var RANKS = [1, 2, 4, 8, 16, 32, 64, 128], GPUS = [24, 48, 80];
+    function v(id) { return parseFloat(document.getElementById(id).value); }
+    function load(k) { var p = PRE[k]; document.getElementById("lc-n").value = p.n; document.getElementById("lc-d").value = p.d; document.getElementById("lc-ff").value = p.ff; document.getElementById("lc-L").value = p.L; root.querySelectorAll("[data-m]").forEach(function (b) { b.classList.toggle("on", b.dataset.m === k); }); render(); }
+    function render() {
+      var N = v("lc-n") * 1e9, d = v("lc-d"), ff = v("lc-ff"), L = v("lc-L"), r = RANKS[parseInt(document.getElementById("lc-r").value, 10)];
+      document.getElementById("lc-ro").textContent = r;
+      if (!(N > 0 && d > 0 && ff > 0 && L > 0)) return;
+      var SHAPES = { q: [d, d], k: [d, d], v: [d, d], o: [d, d], gate: [d, ff], up: [d, ff], down: [ff, d] };
+      var perLayer = 0, names = [];
+      root.querySelectorAll("#lc-mods input:checked").forEach(function (c) { var s = SHAPES[c.value]; perLayer += r * (s[0] + s[1]); names.push(c.value); });
+      var lora = perLayer * L, pct = 100 * lora / N;
+      var full = 16 * N, lmem = 2 * N + 16 * lora, qmem = 0.5 * N + 16 * lora, maxv = Math.max(full, 90e9);
+      document.getElementById("lc-count").textContent = n(lora) + " trainable parameters (" + (pct < 0.01 ? pct.toExponential(1) : pct.toFixed(2)) + "% of the model) · adapter file ≈ " + (2 * lora / 1e6).toFixed(0) + " MB";
+      var bars = [["full fine-tuning", "full", full], ["LoRA (16-bit base)", "lora", lmem], ["QLoRA (4-bit base)", "qlora", qmem]];
+      var el = document.getElementById("lc-bars");
+      el.innerHTML = bars.map(function (b) {
+        var marks = GPUS.map(function (g) { return '<span class="gpu" style="left:' + (100 * g * 1e9 / maxv).toFixed(1) + '%"><span>' + g + " GB</span></span>"; }).join("");
+        return "<span>" + b[0] + '</span><span class="mbar ' + b[1] + '"><i></i>' + marks + '</span><span class="mval">' + (b[2] / 1e9).toFixed(1) + " GB</span>";
+      }).join("");
+      el.querySelectorAll(".mbar > i").forEach(function (i, k) { var pctw = Math.min(100, 100 * bars[k][2] / maxv).toFixed(1) + "%"; if (canAnimate) M.animate(i, { width: pctw }, { duration: 0.4 }); else i.style.width = pctw; });
+      var fit = function (b) { for (var g = 0; g < GPUS.length; g++) if (b <= GPUS[g] * 1e9) return GPUS[g] + " GB GPU"; return "several GPUs"; };
+      document.getElementById("lc-status").textContent = names.length ? "LoRA on " + names.join(", ") + " at rank " + r + ". Before activations: full fine-tuning needs " + fit(full) + ", LoRA a " + fit(lmem) + ", QLoRA a " + fit(qmem) + ". (Attention matrices are treated as d×d here; models with GQA have smaller K/V projections.)" : "Tick at least one matrix to apply LoRA to.";
+      window.__calc = { lora: lora, pct: pct, full: full, lmem: lmem, qmem: qmem };
+    }
+    ["lc-n", "lc-d", "lc-ff", "lc-L"].forEach(function (id) { document.getElementById(id).addEventListener("input", function () { root.querySelectorAll("[data-m]").forEach(function (b) { b.classList.remove("on"); }); render(); }); });
+    document.getElementById("lc-r").addEventListener("input", render);
+    root.querySelectorAll("#lc-mods input").forEach(function (c) { c.addEventListener("change", render); });
+    root.querySelectorAll("[data-m]").forEach(function (b) { b.addEventListener("click", function () { load(b.dataset.m); }); });
+    load("7b");
+  })();
+
+  /* ---------- 3. Rank-r approximation ---------- */
+  (function rank() {
+    var s = document.getElementById("rk-r");
+    if (!s) return;
+    // 8-dim Hadamard rows are mutually orthogonal, so the best rank-r approximation keeps the r strongest components.
+    var H = [[1]]; for (var t = 0; t < 3; t++) H = H.map(function (r) { return r.concat(r); }).concat(H.map(function (r) { return r.concat(r.map(function (v) { return -v; })); }));
+    var SIG = [8, 4, 2, 1, 0.5], U = [H[1], H[2], H[3], H[4], H[5]], V = [H[3], H[5], H[6], H[1], H[7]];
+    function build(r0, r1) { var Mx = []; for (var i = 0; i < 8; i++) { Mx.push([]); for (var j = 0; j < 8; j++) { var v = 0; for (var c = r0; c < r1; c++) v += SIG[c] * U[c][i] * V[c][j] / 8; Mx[i].push(v); } } return Mx; }
+    var target = build(0, 5);
+    function paint(id, Mx) {
+      var ctx = document.getElementById(id).getContext("2d");
+      for (var i = 0; i < 8; i++) for (var j = 0; j < 8; j++) { var c = heat(Mx[i][j], 1.9); ctx.fillStyle = "#fff"; ctx.fillRect(j, i, 1, 1); ctx.fillStyle = c.bg; ctx.fillRect(j, i, 1, 1); }
+    }
+    function fro(Mx) { return Math.sqrt(Mx.reduce(function (a, r) { return a + r.reduce(function (b, v) { return b + v * v; }, 0); }, 0)); }
+    function render() {
+      var r = parseInt(s.value, 10); document.getElementById("rk-ro").textContent = r;
+      var approx = build(0, r), err = target.map(function (row, i) { return row.map(function (v, j) { return v - approx[i][j]; }); });
+      paint("rk-t", target); paint("rk-a", approx); paint("rk-e", err);
+      document.getElementById("rk-acap").textContent = "rank-" + r + " approximation";
+      var rel = fro(err) / fro(target);
+      document.getElementById("rk-out").textContent = "parameters: " + r + " × (8 + 8) = " + (r * 16) + " of 64 · relative error: " + (rel * 100).toFixed(0) + "%";
+      if (canAnimate) M.animate(document.querySelectorAll("#rank canvas"), { opacity: [0.5, 1] }, { duration: 0.3 });
+      document.getElementById("rk-status").textContent = r === 0 ? "Rank 0 means no update at all: the whole target is error." : r === 5 ? "Rank 5 reproduces the target exactly — but it uses 80 numbers, more than the 64 in the full 8× 8 matrix. Low rank only saves parameters when r is small compared with the matrix size." : "Each extra rank adds the next-strongest direction. Because the strengths fall off (8, 4, 2, 1, 0.5), the first few ranks remove most of the error.";
+      window.__rank = { r: r, rel: rel };
+    }
+    s.addEventListener("input", render);
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

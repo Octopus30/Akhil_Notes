@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 8: Residuals, LayerNorm &amp; FFN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.2em; text-align: right; }
+.two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 22px; align-items: start; }
+.two-col > div { min-width: 0; }
+svg.chart { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.zero { stroke: #8f97b3; stroke-width: 1.2; }
+.lbl { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.vlbl { font-family: var(--mono); font-size: 11px; fill: var(--ink); }
+.ttl { font-family: var(--hand); font-size: 15px; fill: var(--ink); font-weight: 700; }
+.stats { font-family: var(--mono); font-size: 13.5px; margin: 6px 0 0; }
+/* FFN units */
+.units { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.unit { border: 2px solid #c9d2ea; border-radius: 10px; padding: 6px 8px; text-align: center; background: #fff; font-size: 13px; transition: border-color .25s, background .25s; }
+.unit.fire { border-color: var(--gold); background: var(--gold-fill); }
+.unit .nm { font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 15px; }
+.unit .v { font-family: var(--mono); }
+.flowline { font-size: 14.5px; margin: 6px 0; }
+.flowline code { font-size: 13px; }
+/* gradient */
+.gbars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; font-size: 15px; margin: 8px 0; }
+.gbar { height: 20px; background: var(--tint); border-radius: 5px; overflow: hidden; position: relative; }
+.gbar > i { display: block; height: 100%; width: 0; border-radius: 5px; }
+.gbar.no > i { background: #c0472f; } .gbar.yes > i { background: #2e7d5b; }
+.gval { font-family: var(--mono); font-size: 13px; min-width: 7em; text-align: right; }
+/* params */
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input, .calc-in select { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible, .calc-in select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ptable td:nth-child(2), .ptable td:nth-child(3) { font-family: var(--mono); font-size: 13.5px; }
+.ptable tr.total td { font-weight: 700; background: var(--tint); }
+.match { font-family: var(--hand); font-weight: 700; font-size: 19px; margin: 6px 0 0; }
+.match.ok { color: #2e7d5b; } .match.off { color: #8a4b00; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .two-col { grid-template-columns: minmax(0, 1fr); }
+  .units { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 8</p>
+  <h1>Residuals, LayerNorm &amp; the Feed-Forward Network</h1>
+  <p class="lede"><strong>In one line:</strong> a Transformer block is attention plus three supporting parts: <strong>residual connections</strong> (add the input back so information and gradients can flow through deep stacks), <strong>layer normalization</strong> (keep each token's numbers in a stable range), and a <strong>feed-forward network</strong> (a small two-layer network that processes each token on its own).</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why residual connections make deep networks trainable, using the gradient of \(x + F(x)\).</li>
+  <li><strong>Compute</strong> LayerNorm and RMSNorm by hand for a single token vector.</li>
+  <li><strong>Compute</strong> a feed-forward network's output for a small example, with ReLU and GELU.</li>
+  <li><strong>Write</strong> a full pre-norm Transformer block and compare pre-norm with post-norm.</li>
+  <li><strong>Count</strong> the parameters of a complete model (GPT-2 small, LLaMA-2 7B) from its dimensions.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 6</strong>: multi-head attention maps \(n \times d_{model}\) to \(n \times d_{model}\) and has \(4d_{model}^2\) parameters.</li>
+  <li><strong>Section 1</strong>: the block outline \(A = X + \text{Attn}(\text{LN}(X))\), \(X' = A + \text{FFN}(\text{LN}(A))\), now explained piece by piece.</li>
+  <li><strong>Mean and variance</strong> of a list of numbers: \(\mu = \frac{1}{d}\sum x_i\) and \(\sigma^2 = \frac{1}{d}\sum (x_i - \mu)^2\).</li>
+  <li><strong>Chain rule</strong>: the derivative of \(f(g(x))\) is \(f'(g(x))\,g'(x)\). Gradients through a stack of layers <strong>multiply</strong>.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: activation functions</span>
+  <strong>ReLU</strong> is \(\max(0, z)\): negatives become 0. <strong>GELU</strong> is a smooth version, \(z \cdot \Phi(z)\), where \(\Phi\) is the standard normal CDF. It lets small negatives through a little: GELU(1) ≈ 0.84, GELU(−0.5) ≈ −0.15.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: attention alone isn't enough</h2>
+<p>Stacking many attention layers by themselves runs into three problems:</p>
+<ol>
+  <li><strong>Deep stacks are hard to train.</strong> Gradients pass through every layer by multiplication (chain rule). If each layer shrinks them a little, then after 24, 48 or 96 layers they <strong>vanish</strong>.</li>
+  <li><strong>Numbers drift.</strong> Each layer adds and mixes vectors, so values can grow or shrink layer after layer, making training unstable.</li>
+  <li><strong>Attention only <em>moves</em> information.</strong> Its output is a weighted average of value vectors, which is a fairly simple, almost linear operation. The model also needs a place to <strong>transform</strong> information non-linearly and to store what it has learned ("Paris is the capital of France").</li>
+</ol>
+<p>The three fixes, one for each problem:</p>
+<div class="tw"><table>
+  <tr><th>Problem</th><th>Fix</th></tr>
+  <tr><td>Vanishing gradients in deep stacks</td><td><strong>Residual connections</strong></td></tr>
+  <tr><td>Drifting values</td><td><strong>Layer normalization</strong></td></tr>
+  <tr><td>Attention can mix but not really "think"</td><td><strong>Feed-forward network (FFN)</strong></td></tr>
+</table></div>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: editing a shared document</h2>
+<p>Think of each token's vector as a <strong>shared document</strong> that passes through many editors, one per layer.</p>
+<ul>
+  <li><strong>Residual connection:</strong> an editor doesn't rewrite the document from scratch; they <strong>add tracked changes</strong> on top. If an editor has nothing useful to add, the document passes through unchanged. Many small, safe edits instead of 48 complete rewrites. This running document is often called the <strong>residual stream</strong>.</li>
+  <li><strong>LayerNorm:</strong> before each editor reads the document, it's reformatted to a standard font size, so no editor is thrown off by text that has become huge or tiny.</li>
+  <li><strong>Attention vs FFN:</strong> the attention editor <strong>gathers quotes from other documents</strong> (other tokens). The FFN editor then <strong>thinks privately</strong> about their own document, using their background knowledge.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>The "reformatting" (LayerNorm) is applied to the copy the editor reads, not to the document itself. In pre-norm Transformers the residual stream itself is never normalized until the very end.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Residual connections</h3>
+<p>Instead of \(y = F(x)\), a residual (skip) connection computes</p>
+<div class="math-block">$$y = x + F(x)$$</div>
+<p>where \(F\) is a sub-layer (attention or FFN). Its derivative is</p>
+<div class="math-block">$$\frac{\partial y}{\partial x} = 1 + F'(x)$$</div>
+<p>In words: the <strong>"1" is a gradient highway</strong>. Even if \(F'(x)\) is tiny, the gradient through this layer is at least about 1, so it doesn't vanish as layers are stacked. This idea came from ResNets for images (2015), and it is what made 100+-layer networks trainable.</p>
+<p>Residuals also require \(F(x)\) to have <strong>the same shape as \(x\)</strong>. This is why attention and the FFN both map \(d_{model}\) back to \(d_{model}\).</p>
+
+<h3>5.2 Layer normalization</h3>
+<p>For <strong>one token's</strong> vector \(x \in \mathbb{R}^{d_{model}}\):</p>
+<div class="math-block">$$\mu = \frac{1}{d}\sum_{i} x_i, \qquad \sigma^2 = \frac{1}{d}\sum_{i}(x_i - \mu)^2, \qquad \text{LN}(x)_i = \gamma_i \,\frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta_i$$</div>
+<ul>
+  <li>Subtract the mean and divide by the standard deviation, so the token's features have mean 0 and variance 1.</li>
+  <li>\(\epsilon\) (e.g. \(10^{-5}\)) avoids dividing by zero.</li>
+  <li>\(\gamma\) (scale) and \(\beta\) (shift) are <strong>learned</strong>, one value per feature, so the model can undo the normalization where useful.</li>
+</ul>
+<p><strong>LayerNorm vs BatchNorm.</strong> LayerNorm normalizes <strong>across the features of one token</strong>. BatchNorm (common in CNNs) normalizes each feature <strong>across the examples in a batch</strong>. LayerNorm doesn't depend on batch size or on other sequences, which suits variable-length text.</p>
+<p><strong>RMSNorm</strong> (used in LLaMA, Mistral) skips the mean subtraction and \(\beta\):</p>
+<div class="math-block">$$\text{RMSNorm}(x)_i = \gamma_i \,\frac{x_i}{\sqrt{\frac{1}{d}\sum_j x_j^2 + \epsilon}}$$</div>
+<p>It's slightly cheaper and works just as well in practice.</p>
+
+<h3>5.3 The feed-forward network (FFN)</h3>
+<p>Applied to <strong>each token separately</strong>, with the <strong>same weights</strong> for every position:</p>
+<div class="math-block">$$\text{FFN}(x) = \phi(x W_1 + b_1)\, W_2 + b_2$$</div>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Shape</th><th>Role</th></tr>
+  <tr><td>\(W_1\)</td><td>\(d_{model} \times d_{ff}\)</td><td>expand into a wider hidden layer</td></tr>
+  <tr><td>\(\phi\)</td><td>—</td><td>non-linear activation (ReLU, GELU, …)</td></tr>
+  <tr><td>\(W_2\)</td><td>\(d_{ff} \times d_{model}\)</td><td>project back to the model width</td></tr>
+</table></div>
+<p>Usually \(d_{ff} = 4\,d_{model}\), giving \(2 \times 4d_{model}^2 = 8\,d_{model}^2\) parameters, <strong>twice the attention's \(4d_{model}^2\)</strong>. So roughly two-thirds of each block's parameters are in the FFN.</p>
+<p><strong>A useful way to picture it:</strong> each of the \(d_{ff}\) hidden units is a <strong>detector</strong>. A column of \(W_1\) is a pattern; if the token matches it, that unit fires, and the matching row of \(W_2\) is written into the token's vector. Research suggests these "detector → write" pairs store much of a model's factual knowledge.</p>
+<p><strong>SwiGLU</strong> (LLaMA, PaLM) uses three matrices and a gate:</p>
+<div class="math-block">$$\text{FFN}_{\text{SwiGLU}}(x) = \big(\text{SiLU}(xW_1) \odot xW_3\big)\, W_2$$</div>
+<p>where \(\odot\) is element-wise multiplication. To keep the parameter count similar, \(d_{ff}\) is set to about \(\frac{8}{3}d_{model}\) (LLaMA-2 7B: \(d_{ff} = 11{,}008\) for \(d_{model} = 4{,}096\)).</p>
+
+<h3>5.4 The complete block (pre-norm)</h3>
+<div class="math-block">$$
+\begin{aligned}
+A &= X + \text{MultiHead}(\text{LN}_1(X)) \\
+X' &= A + \text{FFN}(\text{LN}_2(A))
+\end{aligned}
+$$</div>
+<p>Pre-norm models also apply one <strong>final LayerNorm</strong> after the last block, before the output head.</p>
+
+<h3>5.5 Pre-norm vs post-norm</h3>
+<div class="tw"><table>
+  <tr><th></th><th>Post-norm (2017 original, BERT)</th><th>Pre-norm (GPT-2 onwards, most LLMs)</th></tr>
+  <tr><td>Formula</td><td>\(\text{LN}(x + F(x))\)</td><td>\(x + F(\text{LN}(x))\)</td></tr>
+  <tr><td>Residual path</td><td>passes through LN every layer</td><td><strong>clean</strong>: \(x\) is never normalized on the highway</td></tr>
+  <tr><td>Training</td><td>needs careful learning-rate warm-up; unstable when very deep</td><td>stable even for very deep models</td></tr>
+</table></div>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 LayerNorm by hand</h3>
+<p>One token with \(d_{model} = 4\): \(x = [2, 4, 6, 8]\) (take \(\gamma = 1\), \(\beta = 0\), \(\epsilon \approx 0\)).</p>
+<ol class="steps">
+  <li>Mean: \(\mu = (2 + 4 + 6 + 8) / 4 = 5\)</li>
+  <li>Variance: \(\sigma^2 = \big((-3)^2 + (-1)^2 + 1^2 + 3^2\big) / 4 = 20 / 4 = 5\), so \(\sigma = \sqrt{5} = 2.236\)</li>
+  <li>Normalize: \(\big[\tfrac{-3}{2.236}, \tfrac{-1}{2.236}, \tfrac{1}{2.236}, \tfrac{3}{2.236}\big] = \mathbf{[-1.34, -0.45, 0.45, 1.34]}\)</li>
+</ol>
+<p>The result has mean 0 and variance 1. The pattern (increasing, evenly spaced) is kept; only the scale and offset changed.</p>
+<p><strong>With learned \(\gamma = [1, 1, 2, 2]\) and \(\beta = [0, 0, 0, 1]\):</strong> \([-1.34, -0.45, 2(0.45), 2(1.34) + 1] = [-1.34, -0.45, 0.89, 3.68]\).</p>
+<p><strong>RMSNorm of the same \(x\):</strong> \(\text{rms} = \sqrt{(4 + 16 + 36 + 64)/4} = \sqrt{30} = 5.477\), so the result is \(x / 5.477 = [0.37, 0.73, 1.10, 1.46]\). There is no centring, so all the values stay positive.</p>
+
+<div class="demo" id="norm">
+  <p class="demo-title">Try it: normalize one token</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Normalization">
+      <button type="button" id="nm-ln" class="on">LayerNorm</button>
+      <button type="button" id="nm-rms">RMSNorm</button>
+    </span>
+    <button class="btn" type="button" id="nm-reset">Back to [2, 4, 6, 8]</button>
+    <button class="btn" type="button" id="nm-scale">Multiply x by 10</button>
+  </div>
+  <div class="sliders" id="nm-sliders"></div>
+  <div class="two-col">
+    <div><svg class="chart" id="nm-in" viewBox="0 0 300 190" role="img" aria-label="Bar chart of the input features"></svg></div>
+    <div><svg class="chart" id="nm-out" viewBox="0 0 300 190" role="img" aria-label="Bar chart of the normalized features"></svg></div>
+  </div>
+  <p class="stats" id="nm-stats"></p>
+  <p class="demo-status" id="nm-status" aria-live="polite"></p>
+</div>
+
+<h3>6.2 A feed-forward network by hand</h3>
+<p>A tiny FFN with \(d_{model} = 2\), \(d_{ff} = 4\), no biases:</p>
+<div class="math-block">$$W_1 = \begin{bmatrix} 1 & -1 & 0.5 & 0 \\ 0 & 1 & 1 & -1 \end{bmatrix}, \qquad W_2 = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \\ 0 & 0.5 \\ 1 & 1 \end{bmatrix}$$</div>
+<p>Input token \(x = [1, 0.5]\).</p>
+<p><strong>Step 1, expand:</strong> \(h = xW_1 = [1(1) + 0.5(0),\; 1(-1) + 0.5(1),\; 1(0.5) + 0.5(1),\; 1(0) + 0.5(-1)] = [1, -0.5, 1, -0.5]\)</p>
+<p><strong>Step 2, activate (ReLU):</strong> \(\phi(h) = [1, 0, 1, 0]\). Hidden units 1 and 3 "fire"; units 2 and 4 stay silent.</p>
+<p><strong>Step 3, project back:</strong> only the rows of \(W_2\) for the firing units contribute:</p>
+<div class="math-block">$$1 \cdot [0.5, 0] + 0 \cdot [0, 1] + 1 \cdot [0, 0.5] + 0 \cdot [1, 1] = [0.5, 0.5]$$</div>
+<p><strong>Step 4, residual:</strong> \(x + \text{FFN}(x) = [1, 0.5] + [0.5, 0.5] = \mathbf{[1.5, 1.0]}\)</p>
+<p><strong>With GELU instead of ReLU:</strong> \(\phi(h) = [0.84, -0.15, 0.84, -0.15]\) (silent units now leak a little). The FFN output becomes \([0.27, 0.11]\) and the residual sum \([1.27, 0.61]\). The activation function changes the result noticeably.</p>
+
+<div class="demo" id="ffn">
+  <p class="demo-title">Try it: hidden units as detectors</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Activation">
+      <button type="button" id="ff-relu" class="on">ReLU</button>
+      <button type="button" id="ff-gelu">GELU</button>
+    </span>
+    <button class="btn" type="button" id="ff-reset">x = [1, 0.5] (6.2)</button>
+  </div>
+  <div class="sliders">
+    <label>x₁ <input type="range" id="ff-x1" min="-2" max="2" step="0.1" value="1"><output id="ff-x1o">1.00</output></label>
+    <label>x₂ <input type="range" id="ff-x2" min="-2" max="2" step="0.1" value="0.5"><output id="ff-x2o">0.50</output></label>
+  </div>
+  <div class="units" id="ff-units"></div>
+  <div class="two-col">
+    <div id="ff-work"></div>
+    <div><svg class="chart" id="ff-plot" viewBox="0 0 260 260" role="img" aria-label="2-D plot of the token before and after the FFN plus residual"></svg></div>
+  </div>
+  <p class="demo-status" id="ff-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Why residuals rescue gradients</h3>
+<p>Suppose every sub-layer has derivative \(F'(x) = 0.1\) (a layer that changes its input only a little).</p>
+<div class="tw"><table>
+  <tr><th>Depth</th><th>Without residuals (\(0.1^L\))</th><th>With residuals (\(1.1^L\))</th></tr>
+  <tr><td>3 layers</td><td>0.001</td><td>1.331</td></tr>
+  <tr><td>24 layers</td><td>\(10^{-24}\)</td><td>\(1.1^{24} \approx 9.8\)</td></tr>
+</table></div>
+<p>Without residuals, the gradient reaching the first layer is effectively <strong>zero</strong>, so early layers never learn. With residuals, it stays a usable size. (It can also grow, which is one reason normalization and careful initialization are still needed.)</p>
+
+<div class="demo" id="grad">
+  <p class="demo-title">Try it: the gradient highway</p>
+  <div class="sliders">
+    <label>layers L <input type="range" id="gr-L" min="1" max="96" step="1" value="24"><output id="gr-Lo">24</output></label>
+    <label>each layer's F′ <input type="range" id="gr-f" min="0" max="0.5" step="0.01" value="0.1"><output id="gr-fo">0.10</output></label>
+  </div>
+  <div class="gbars" id="gr-bars"></div>
+  <p class="demo-status" id="gr-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 Counting a whole model</h3>
+<p>Per block (ignoring biases and norms): attention \(4d^2\) + FFN \(8d^2\) = \(\mathbf{12\,d_{model}^2}\).</p>
+<p><strong>GPT-2 small</strong> (\(d = 768\), 12 blocks, vocabulary 50,257, 1,024 positions, tied output head):</p>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Formula</th><th>Parameters</th></tr>
+  <tr><td>12 blocks</td><td>\(12 \times 12 \times 768^2\)</td><td>84,934,656</td></tr>
+  <tr><td>Token embeddings (Section 2)</td><td>\(50{,}257 \times 768\)</td><td>38,597,376</td></tr>
+  <tr><td>Position embeddings (Section 7)</td><td>\(1{,}024 \times 768\)</td><td>786,432</td></tr>
+  <tr><td>Biases</td><td>\(12 \times (3d + d + 4d + d)\)</td><td>82,944</td></tr>
+  <tr><td>LayerNorm \(\gamma, \beta\)</td><td>\(12 \times 2 \times 2 \times 768 + 2 \times 768\)</td><td>38,400</td></tr>
+  <tr><td><strong>Total</strong></td><td></td><td><strong>124,439,808</strong></td></tr>
+</table></div>
+<p>That's exactly GPT-2 small's reported size of <strong>124M</strong>.</p>
+<p><strong>LLaMA-2 7B</strong> (\(d = 4096\), 32 blocks, SwiGLU with \(d_{ff} = 11{,}008\), vocabulary 32,000, separate output head, RMSNorm, no biases):</p>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Formula</th><th>Parameters</th></tr>
+  <tr><td>Attention per block</td><td>\(4 \times 4096^2\)</td><td>67,108,864</td></tr>
+  <tr><td>SwiGLU FFN per block</td><td>\(3 \times 4096 \times 11{,}008\)</td><td>135,266,304</td></tr>
+  <tr><td>32 blocks</td><td>\(32 \times 202{,}375{,}168\)</td><td>6,476,005,376</td></tr>
+  <tr><td>Embeddings + output head</td><td>\(2 \times 32{,}000 \times 4096\)</td><td>262,144,000</td></tr>
+  <tr><td>RMSNorm \(\gamma\)</td><td>\(32 \times 2 \times 4096 + 4096\)</td><td>266,240</td></tr>
+  <tr><td><strong>Total</strong></td><td></td><td><strong>6,738,415,616</strong></td></tr>
+</table></div>
+<p>That's the reported <strong>6.74B</strong>. Every parameter in these models is accounted for by Sections 2–8.</p>
+
+<div class="demo" id="params">
+  <p class="demo-title">Try it: count any model's parameters</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-p="gpt2s">GPT-2 small</button>
+    <button class="btn" type="button" data-p="gpt2m">GPT-2 medium</button>
+    <button class="btn" type="button" data-p="llama7">LLaMA-2 7B</button>
+  </div>
+  <div class="calc-in">
+    <label>d<sub>model</sub><input id="pc-d" type="number" min="1"></label>
+    <label>blocks<input id="pc-L" type="number" min="1"></label>
+    <label>vocabulary<input id="pc-V" type="number" min="1"></label>
+    <label>d<sub>ff</sub><input id="pc-ff" type="number" min="1"></label>
+    <label>FFN type<select id="pc-ft"><option value="std">standard (2 matrices)</option><option value="swiglu">SwiGLU (3 matrices)</option></select></label>
+    <label>learned positions<input id="pc-P" type="number" min="0"></label>
+    <label>norm<select id="pc-norm"><option value="ln">LayerNorm (γ, β)</option><option value="rms">RMSNorm (γ)</option></select></label>
+    <label>output head<select id="pc-tie"><option value="tied">tied to embeddings</option><option value="sep">separate</option></select></label>
+    <label>biases<select id="pc-bias"><option value="yes">yes</option><option value="no">no</option></select></label>
+  </div>
+  <div class="tw"><table class="ptable" id="pc-out"></table></div>
+  <p class="match" id="pc-match" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart TB
+    X["X (residual stream)<br/>n × d_model"] --> LN1["LayerNorm"]
+    LN1 --> ATT["Multi-head attention<br/>(tokens exchange info)"]
+    ATT --> P1(("+"))
+    X --> P1
+    P1 --> LN2["LayerNorm"]
+    LN2 --> FFN["FFN: expand → activate → project<br/>(each token on its own)"]
+    FFN --> P2(("+"))
+    P1 --> P2
+    P2 --> OUT["X′<br/>n × d_model"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Norm</th><th>Placement</th><th>FFN activation</th><th>\(d_{ff}\)</th></tr>
+  <tr><td>Original Transformer</td><td>LayerNorm</td><td>post-norm</td><td>ReLU</td><td>\(4d\) (2,048)</td></tr>
+  <tr><td>BERT</td><td>LayerNorm</td><td>post-norm</td><td>GELU</td><td>\(4d\) (3,072)</td></tr>
+  <tr><td>GPT-2</td><td>LayerNorm</td><td>pre-norm (+ final LN)</td><td>GELU</td><td>\(4d\) (3,072)</td></tr>
+  <tr><td>LLaMA-2 / Mistral</td><td>RMSNorm</td><td>pre-norm (+ final norm)</td><td>SwiGLU</td><td>≈ \(\frac{8}{3}d\) (11,008 / 14,336)</td></tr>
+</table></div>
+<ul>
+  <li><strong>Dropout</strong> is often applied to each sub-layer's output before it's added to the residual stream (0.1 in the original Transformer and BERT). Large LLMs trained on huge data often use none.</li>
+  <li>The <strong>FFN is where most compute goes</strong> for short inputs: for each token, about \(2 \times 8d^2\) operations for the FFN against \(2 \times 4d^2\) for the attention projections.</li>
+  <li><strong>Mixture-of-Experts (MoE)</strong> models (e.g. Mixtral) replace the single FFN with several "expert" FFNs and send each token to only a few of them: more parameters, similar compute per token.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"LayerNorm normalizes across the batch."</strong> That's BatchNorm. LayerNorm normalizes <strong>each token's own features</strong>, independently of other tokens and other examples.</li>
+  <li class="mistake"><strong>"The FFN mixes information between tokens."</strong> It doesn't; it's applied to every token <strong>separately</strong> (with shared weights). Only attention moves information between positions.</li>
+  <li class="mistake"><strong>"Residual connections are an optional extra."</strong> Without them, deep Transformers essentially fail to train. They also require every sub-layer to keep the \(d_{model}\) shape.</li>
+  <li class="mistake"><strong>"Normalization removes information."</strong> It removes the token's overall <strong>offset and scale</strong>. The pattern across features is kept, and the learned \(\gamma, \beta\) can restore scale where it's useful.</li>
+  <li class="mistake"><strong>"Attention holds most of the parameters."</strong> In standard blocks the FFN holds about <strong>two-thirds</strong> (\(8d^2\) of \(12d^2\)).</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>Residual connections</strong> \(y = x + F(x)\) give gradients a highway (\(\partial y/\partial x = 1 + F'\)) and turn each layer into a small edit of the <strong>residual stream</strong>.</li>
+  <li><strong>LayerNorm</strong> rescales each token's features to mean 0, variance 1, then applies learned \(\gamma, \beta\); <strong>RMSNorm</strong> skips the centring.</li>
+  <li>The <strong>FFN</strong> expands each token to \(d_{ff}\) (often \(4d\)), applies a non-linearity, and projects back. It holds about 2/3 of the block's parameters and acts like a bank of detectors.</li>
+  <li><strong>Pre-norm</strong> blocks, \(x + F(\text{LN}(x))\), train more stably than <strong>post-norm</strong>, \(\text{LN}(x + F(x))\).</li>
+  <li>A block has about \(12d_{model}^2\) parameters; adding embeddings reproduces GPT-2's 124M and LLaMA-2 7B's 6.74B exactly.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Compute LayerNorm (with \(\gamma = 1\), \(\beta = 0\)) of \(x = [1, 1, 1, 5]\).</li>
+  <li>In 6.2, which hidden units fire for the input \(x = [0, 1]\) with ReLU, and what is \(x + \text{FFN}(x)\)?</li>
+  <li>A model has \(d_{model} = 1024\), 24 blocks, standard FFN (\(d_{ff} = 4d\)) and a tied vocabulary of 50,000. Estimate its parameter count, ignoring biases, norms and positions.</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(\mu = 8/4 = 2\); deviations \([-1, -1, -1, 3]\); \(\sigma^2 = (1 + 1 + 1 + 9)/4 = 3\), so \(\sigma = 1.732\). Result: <strong>\([-0.58, -0.58, -0.58, 1.73]\)</strong>. (Set the sliders in the normalization demo to check.)</li>
+    <li>\(h = [0, 1]W_1 = [0, 1, 1, -1]\), and ReLU gives \([0, 1, 1, 0]\), so <strong>units 2 and 3</strong> fire. FFN output \(= [0, 1] + [0, 0.5] = [0, 1.5]\), so \(x + \text{FFN}(x) = \mathbf{[0, 2.5]}\). (Set x₁ = 0, x₂ = 1 in the FFN demo.)</li>
+    <li>Blocks: \(24 \times 12 \times 1024^2 = 301{,}989{,}888\). Embeddings: \(50{,}000 \times 1024 = 51{,}200{,}000\). Total ≈ <strong>353 million</strong>. (This is close to GPT-2 medium, which has the same shape and about 355M parameters. Press "GPT-2 medium" in the parameter calculator.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>He, K., Zhang, X., Ren, S., &amp; Sun, J. (2015). <strong>"Deep Residual Learning for Image Recognition."</strong> <a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener">arXiv:1512.03385</a>. The origin of residual connections.</li>
+  <li>Ba, J. L., Kiros, J. R., &amp; Hinton, G. E. (2016). <strong>"Layer Normalization."</strong> <a href="https://arxiv.org/abs/1607.06450" target="_blank" rel="noopener">arXiv:1607.06450</a>.</li>
+  <li>Zhang, B., &amp; Sennrich, R. (2019). <strong>"Root Mean Square Layer Normalization."</strong> <a href="https://arxiv.org/abs/1910.07467" target="_blank" rel="noopener">arXiv:1910.07467</a>. RMSNorm.</li>
+  <li>Xiong, R. et al. (2020). <strong>"On Layer Normalization in the Transformer Architecture."</strong> <a href="https://arxiv.org/abs/2002.04745" target="_blank" rel="noopener">arXiv:2002.04745</a>. Why pre-norm trains more stably.</li>
+  <li>Shazeer, N. (2020). <strong>"GLU Variants Improve Transformer."</strong> <a href="https://arxiv.org/abs/2002.05202" target="_blank" rel="noopener">arXiv:2002.05202</a>. SwiGLU and related FFNs.</li>
+  <li>Geva, M. et al. (2021). <strong>"Transformer Feed-Forward Layers Are Key-Value Memories."</strong> <a href="https://arxiv.org/abs/2012.14913" target="_blank" rel="noopener">arXiv:2012.14913</a>. The "detectors that write" view of the FFN.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function fmt(v, d) { d = d === undefined ? 2 : d; var r = Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(d); }
+  function vfmt(v, d) { return "[" + v.map(function (x) { return fmt(x, d); }).join(", ") + "]"; }
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function erf(x) { var s = x < 0 ? -1 : 1; x = Math.abs(x); var t = 1 / (1 + 0.3275911 * x); var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+  function gelu(z) { return z * 0.5 * (1 + erf(z / Math.SQRT2)); }
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+
+  /* bar chart helper: values on a symmetric axis */
+  function bars(svg, vals, title, lim) {
+    svg.innerHTML = "";
+    var W = 300, H = 190, top = 26, bottom = 170, mid = (top + bottom) / 2, half = (bottom - top) / 2, bw = 44, gap = (W - 40 - vals.length * bw) / (vals.length + 1);
+    mk(svg, "text", { x: 10, y: 17, "class": "ttl" }).textContent = title;
+    mk(svg, "line", { x1: 30, y1: mid, x2: W - 6, y2: mid, "class": "zero" });
+    mk(svg, "text", { x: 26, y: top + 4, "class": "lbl", "text-anchor": "end" }).textContent = fmt(lim, 1);
+    mk(svg, "text", { x: 26, y: bottom + 4, "class": "lbl", "text-anchor": "end" }).textContent = fmt(-lim, 1);
+    vals.forEach(function (v, i) {
+      var h = Math.min(1, Math.abs(v) / lim) * half, x = 34 + gap + i * (bw + gap);
+      var r = mk(svg, "rect", { x: x, y: v >= 0 ? mid - h : mid, width: bw, height: Math.max(h, 0.5), rx: 3, fill: v >= 0 ? "#1b2fa8" : "#d6781e" });
+      mk(svg, "text", { x: x + bw / 2, y: v >= 0 ? mid - h - 4 : mid + h + 12, "class": "vlbl", "text-anchor": "middle" }).textContent = fmt(v);
+      if (canAnimate) M.animate(r, { opacity: [0.3, 1] }, { duration: 0.3 });
+    });
+  }
+
+  /* ---------- 1. LayerNorm / RMSNorm ---------- */
+  (function norm() {
+    var wrap = document.getElementById("nm-sliders");
+    if (!wrap) return;
+    var x = [2, 4, 6, 8], mode = "ln", inputs = [];
+    for (var i = 0; i < 4; i++) {
+      var lab = document.createElement("label");
+      lab.innerHTML = "x" + (i + 1) + ' <input type="range" min="-20" max="80" step="1" id="nm-x' + i + '"><output id="nm-o' + i + '"></output>';
+      wrap.appendChild(lab);
+      (function (k) { var el = lab.querySelector("input"); el.addEventListener("input", function () { x[k] = parseFloat(el.value); render(); }); inputs.push(el); })(i);
+    }
+    function sync() { inputs.forEach(function (el, k) { el.value = x[k]; document.getElementById("nm-o" + k).textContent = x[k]; }); }
+    function render() {
+      sync();
+      var d = 4, mu = x.reduce(function (a, b) { return a + b; }, 0) / d, varr = x.reduce(function (a, b) { return a + (b - mu) * (b - mu); }, 0) / d, eps = 1e-5;
+      var rms = Math.sqrt(x.reduce(function (a, b) { return a + b * b; }, 0) / d + eps), y;
+      if (mode === "ln") y = x.map(function (v) { return (v - mu) / Math.sqrt(varr + eps); });
+      else y = x.map(function (v) { return v / rms; });
+      var lim = Math.max(1, Math.max.apply(null, x.map(Math.abs)));
+      bars(document.getElementById("nm-in"), x, "input x", lim);
+      bars(document.getElementById("nm-out"), y, mode === "ln" ? "LayerNorm(x)" : "RMSNorm(x)", 2);
+      var ym = y.reduce(function (a, b) { return a + b; }, 0) / d, yv = y.reduce(function (a, b) { return a + (b - ym) * (b - ym); }, 0) / d;
+      document.getElementById("nm-stats").textContent = mode === "ln"
+        ? "μ = " + fmt(mu) + ", σ² = " + fmt(varr) + ", σ = " + fmt(Math.sqrt(varr), 3) + "  →  output " + vfmt(y) + "  (mean " + fmt(ym) + ", variance " + fmt(yv) + ")"
+        : "rms = √(mean of x²) = " + fmt(rms, 3) + "  →  output " + vfmt(y) + "  (mean " + fmt(ym) + "; RMSNorm doesn’t centre)";
+      var flat = varr < 1e-9;
+      document.getElementById("nm-status").textContent = flat && mode === "ln"
+        ? "All features are equal, so σ = 0 and LayerNorm outputs all zeros (ε stops the division by zero)."
+        : "Try “Multiply x by 10”: the input bars grow, but the normalized output doesn’t change at all. Normalization removes the overall scale" + (mode === "ln" ? " and offset" : "") + " and keeps the pattern.";
+      window.__norm = { mode: mode, y: y };
+    }
+    document.getElementById("nm-ln").addEventListener("click", function () { mode = "ln"; this.classList.add("on"); document.getElementById("nm-rms").classList.remove("on"); render(); });
+    document.getElementById("nm-rms").addEventListener("click", function () { mode = "rms"; this.classList.add("on"); document.getElementById("nm-ln").classList.remove("on"); render(); });
+    document.getElementById("nm-reset").addEventListener("click", function () { x = [2, 4, 6, 8]; render(); });
+    document.getElementById("nm-scale").addEventListener("click", function () {
+      var big = x.map(function (v) { return v * 10; });
+      if (big.some(function (v) { return v > 80 || v < -20; })) { document.getElementById("nm-status").textContent = "That would go past the slider range. Press “Back to [2, 4, 6, 8]” first."; return; }
+      x = big; render();
+    });
+    render();
+  })();
+
+  /* ---------- 2. FFN detectors ---------- */
+  (function ffn() {
+    var unitsEl = document.getElementById("ff-units");
+    if (!unitsEl) return;
+    var W1 = [[1, -1, 0.5, 0], [0, 1, 1, -1]], W2 = [[0.5, 0], [0, 1], [0, 0.5], [1, 1]], act = "relu";
+    var s1 = document.getElementById("ff-x1"), s2 = document.getElementById("ff-x2");
+    var plot = document.getElementById("ff-plot"), C = 130, SC = 34;
+    function render() {
+      var x = [parseFloat(s1.value), parseFloat(s2.value)];
+      document.getElementById("ff-x1o").textContent = fmt(x[0]); document.getElementById("ff-x2o").textContent = fmt(x[1]);
+      var h = [0, 1, 2, 3].map(function (j) { return x[0] * W1[0][j] + x[1] * W1[1][j]; });
+      var a = h.map(function (z) { return act === "relu" ? Math.max(0, z) : gelu(z); });
+      var out = [0, 1].map(function (k) { return a.reduce(function (s, aj, j) { return s + aj * W2[j][k]; }, 0); });
+      var res = [x[0] + out[0], x[1] + out[1]];
+      unitsEl.innerHTML = h.map(function (z, j) {
+        var fire = a[j] > 0.05;
+        return '<div class="unit' + (fire ? " fire" : "") + '"><div class="nm">unit ' + (j + 1) + '</div><div>pattern ' + vfmt([W1[0][j], W1[1][j]], 1) + '</div><div class="v">h = ' + fmt(z) + '</div><div class="v">φ(h) = ' + fmt(a[j]) + '</div><div>writes ' + vfmt(W2[j], 1) + "</div></div>";
+      }).join("");
+      if (canAnimate) M.animate(unitsEl.querySelectorAll(".unit.fire"), { scale: [0.94, 1] }, { duration: 0.25 });
+      document.getElementById("ff-work").innerHTML =
+        '<p class="flowline">1. expand: h = xW₁ = <code>' + vfmt(h) + "</code></p>" +
+        '<p class="flowline">2. ' + (act === "relu" ? "ReLU" : "GELU") + ": φ(h) = <code>" + vfmt(a) + "</code></p>" +
+        '<p class="flowline">3. project: φ(h)W₂ = ' + a.map(function (v, j) { return fmt(v) + "·" + vfmt(W2[j], 1); }).filter(function (_, j) { return Math.abs(a[j]) > 0.005; }).join(" + ") + " = <code>" + vfmt(out) + "</code></p>" +
+        '<p class="flowline">4. residual: x + FFN(x) = <strong><code>' + vfmt(res) + "</code></strong></p>";
+      // plot
+      plot.innerHTML = "";
+      var defs = mk(plot, "defs", {});
+      var mr = mk(plot, "marker", { id: "ffa", viewBox: "0 0 10 10", refX: "8", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }, defs); mk(plot, "path", { d: "M0,0 L10,5 L0,10 z", fill: "#b07a00" }, mr);
+      mk(plot, "line", { x1: 8, y1: C, x2: 252, y2: C, "class": "axis" }); mk(plot, "line", { x1: C, y1: 8, x2: C, y2: 252, "class": "axis" });
+      function P(v) { return [C + Math.max(-3.6, Math.min(3.6, v[0])) * SC, C - Math.max(-3.6, Math.min(3.6, v[1])) * SC]; }
+      var p0 = P(x), p1 = P(res);
+      mk(plot, "line", { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: "#b07a00", "stroke-width": 2.5, "marker-end": "url(#ffa)" });
+      mk(plot, "circle", { cx: p0[0], cy: p0[1], r: 6, fill: "#1b2fa8" });
+      mk(plot, "text", { x: p0[0] + 8, y: p0[1] + 14, "class": "vlbl" }).textContent = "x";
+      mk(plot, "circle", { cx: p1[0], cy: p1[1], r: 6, fill: "#b07a00" });
+      mk(plot, "text", { x: p1[0] + 8, y: p1[1] - 6, "class": "vlbl" }).textContent = "x + FFN(x)";
+      var firing = a.map(function (v, j) { return v > 0.05 ? j + 1 : 0; }).filter(Boolean);
+      document.getElementById("ff-status").textContent = firing.length
+        ? "Units " + firing.join(" and ") + " recognise this input and write their rows of W₂ into the token. The arrow is the FFN’s edit to the residual stream." + (act === "gelu" ? " With GELU, silent units still leak small negative values." : "")
+        : "No unit fires for this input, so the FFN adds nothing and the token passes through unchanged. That’s the residual connection at work.";
+      window.__ffn = { x: x, h: h, a: a, out: out, res: res };
+    }
+    [s1, s2].forEach(function (s) { s.addEventListener("input", render); });
+    document.getElementById("ff-relu").addEventListener("click", function () { act = "relu"; this.classList.add("on"); document.getElementById("ff-gelu").classList.remove("on"); render(); });
+    document.getElementById("ff-gelu").addEventListener("click", function () { act = "gelu"; this.classList.add("on"); document.getElementById("ff-relu").classList.remove("on"); render(); });
+    document.getElementById("ff-reset").addEventListener("click", function () { s1.value = 1; s2.value = 0.5; render(); });
+    render();
+  })();
+
+  /* ---------- 3. Gradient highway ---------- */
+  (function grad() {
+    var sL = document.getElementById("gr-L");
+    if (!sL) return;
+    var sf = document.getElementById("gr-f");
+    function render() {
+      var L = parseInt(sL.value, 10), f = parseFloat(sf.value);
+      document.getElementById("gr-Lo").textContent = L; document.getElementById("gr-fo").textContent = f.toFixed(2);
+      var without = Math.pow(f, L), withRes = Math.pow(1 + f, L);
+      // map log10 value from -30..+10 onto bar width
+      function w(v) { if (v <= 0) return 0; var lg = Math.log10(v); return Math.max(0, Math.min(1, (lg + 30) / 40)); }
+      function show(v) { if (v === 0) return "0"; if (v < 1e-3 || v > 1e4) return v.toExponential(1).replace("e", " × 10^"); return v.toFixed(3); }
+      var el = document.getElementById("gr-bars");
+      el.innerHTML = '<span>without residuals (F′)<sup>L</sup></span><span class="gbar no"><i></i></span><span class="gval">' + show(without) + "</span>" +
+                     '<span>with residuals (1 + F′)<sup>L</sup></span><span class="gbar yes"><i></i></span><span class="gval">' + show(withRes) + "</span>";
+      var bs = el.querySelectorAll(".gbar > i");
+      [without, withRes].forEach(function (v, i) { var pct = (w(v) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(bs[i], { width: pct }, { duration: 0.4 }); else bs[i].style.width = pct; });
+      document.getElementById("gr-status").textContent = "Bars use a log scale from 10^−30 to 10^10. After " + L + " layers the gradient reaching layer 1 is " + show(without) + " without residuals" +
+        (without < 1e-6 ? ", which is effectively zero, so the early layers can’t learn." : ".") + " With residuals it is " + show(withRes) + (withRes > 1e3 ? ". That’s very large; normalization and careful initialization keep this in check in real models." : ", a usable size.");
+      window.__grad = { L: L, f: f, without: without, withRes: withRes };
+    }
+    [sL, sf].forEach(function (s) { s.addEventListener("input", render); });
+    render();
+  })();
+
+  /* ---------- 4. Whole-model parameter count ---------- */
+  (function params() {
+    var out = document.getElementById("pc-out");
+    if (!out) return;
+    var PRESETS = {
+      gpt2s:  { d: 768,  L: 12, V: 50257, ff: 3072,  ft: "std",    P: 1024, norm: "ln",  tie: "tied", bias: "yes", reported: 124439808, name: "GPT-2 small" },
+      gpt2m:  { d: 1024, L: 24, V: 50257, ff: 4096,  ft: "std",    P: 1024, norm: "ln",  tie: "tied", bias: "yes", reported: 354823168, name: "GPT-2 medium" },
+      llama7: { d: 4096, L: 32, V: 32000, ff: 11008, ft: "swiglu", P: 0,    norm: "rms", tie: "sep",  bias: "no",  reported: 6738415616, name: "LLaMA-2 7B" }
+    };
+    var ids = { d: "pc-d", L: "pc-L", V: "pc-V", ff: "pc-ff", ft: "pc-ft", P: "pc-P", norm: "pc-norm", tie: "pc-tie", bias: "pc-bias" }, current = null;
+    function get(k) { var el = document.getElementById(ids[k]); return el.tagName === "SELECT" ? el.value : parseInt(el.value, 10); }
+    function load(key) {
+      var p = PRESETS[key]; current = key;
+      Object.keys(ids).forEach(function (k) { document.getElementById(ids[k]).value = p[k]; });
+      document.querySelectorAll("#params [data-p]").forEach(function (b) { b.classList.toggle("on", b.dataset.p === key); });
+      render();
+    }
+    function render() {
+      var d = get("d"), L = get("L"), V = get("V"), ff = get("ff"), ft = get("ft"), P = get("P"), nm = get("norm"), tie = get("tie"), bias = get("bias") === "yes";
+      if (![d, L, V, ff].every(function (v) { return v > 0; }) || !(P >= 0)) { document.getElementById("pc-match").textContent = "Enter positive whole numbers."; return; }
+      var attn = 4 * d * d, ffn = (ft === "swiglu" ? 3 : 2) * d * ff;
+      var attnB = bias ? 4 * d : 0, ffnB = bias ? (ft === "swiglu" ? 2 * ff + d : ff + d) : 0;
+      var normPer = (nm === "ln" ? 2 : 1) * d * 2, finalNorm = (nm === "ln" ? 2 : 1) * d;
+      var blocks = L * (attn + ffn + attnB + ffnB + normPer);
+      var emb = V * d, head = tie === "tied" ? 0 : V * d, pos = P * d;
+      var total = blocks + emb + head + pos + finalNorm;
+      var rows = [
+        ["Attention weights per block", "4 × " + n(d) + "²", n(attn)],
+        ["FFN weights per block", (ft === "swiglu" ? "3" : "2") + " × " + n(d) + " × " + n(ff), n(ffn)],
+        ["Biases per block", bias ? "attention 4d + FFN" : "none", n(attnB + ffnB)],
+        ["Norms per block", "2 × " + (nm === "ln" ? "(γ, β)" : "γ") + " × d", n(normPer)],
+        ["All " + L + " blocks", L + " × per-block total", n(blocks)],
+        ["Token embeddings", n(V) + " × " + n(d), n(emb)],
+        ["Output head", tie === "tied" ? "tied: reuses embeddings" : n(V) + " × " + n(d), n(head)],
+        ["Learned positions", n(P) + " × " + n(d), n(pos)],
+        ["Final norm", (nm === "ln" ? "2" : "1") + " × d", n(finalNorm)]
+      ];
+      out.innerHTML = "<tr><th>Part</th><th>Formula</th><th>Parameters</th></tr>" + rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>"; }).join("") +
+        '<tr class="total"><td>Total</td><td></td><td>' + n(total) + " (" + (total >= 1e9 ? (total / 1e9).toFixed(2) + " B" : (total / 1e6).toFixed(1) + " M") + ")</td></tr>";
+      var p = current && PRESETS[current], el = document.getElementById("pc-match");
+      if (p) { var ok = total === p.reported; el.className = "match " + (ok ? "ok" : "off"); el.textContent = ok ? "✓ Exactly matches " + p.name + "’s reported " + n(p.reported) + " parameters." : "Reported for " + p.name + ": " + n(p.reported) + " (difference " + n(total - p.reported) + ")."; }
+      else { el.className = "match"; el.textContent = "Attention is " + Math.round(100 * L * attn / blocks) + "% and FFN " + Math.round(100 * L * ffn / blocks) + "% of the block parameters."; }
+      if (canAnimate) M.animate(out.querySelectorAll("tr.total td"), { opacity: [0.3, 1] }, { duration: 0.3 });
+      window.__params = { total: total, preset: current };
+    }
+    Object.keys(ids).forEach(function (k) { document.getElementById(ids[k]).addEventListener(document.getElementById(ids[k]).tagName === "SELECT" ? "change" : "input", function () { current = null; document.querySelectorAll("#params [data-p]").forEach(function (b) { b.classList.remove("on"); }); render(); }); });
+    document.querySelectorAll("#params [data-p]").forEach(function (b) { b.addEventListener("click", function () { load(b.dataset.p); }); });
+    load("gpt2s");
+  })();
+})();
+</script>
+</body>
+</html>

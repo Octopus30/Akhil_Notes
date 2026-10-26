@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 3: Self-Attention Intuition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* context demo */
+.ctx { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.ctx svg, .mat-wrap svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.gridl { stroke: #edf0f8; stroke-width: 1; }
+.axlbl { font-family: var(--body); font-size: 12px; fill: var(--muted); }
+.wpt { fill: var(--ink); }
+.wlbl { font-family: var(--hand); font-size: 16px; fill: var(--ink); font-weight: 700; }
+.old { fill: #fff; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
+.newpt { fill: var(--gold); stroke: #7a5500; stroke-width: 1.5; }
+.mix { stroke: var(--gold); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+.move { stroke: var(--gold); stroke-width: 2.5; fill: none; }
+.bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 15px; margin: 8px 0; }
+.bar { height: 16px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--ink); border-radius: 4px; width: 0; }
+.bars b { font-family: var(--mono); font-weight: 400; font-size: 13px; color: var(--ink); }
+.work { font-size: 14.5px; }
+.work code { font-size: 13px; }
+/* matrix demo */
+.mat-row { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-start; }
+.mat-row > div { min-width: 0; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td, table.mat th { border: 0; padding: 4px 8px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 56px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; transition: background .3s, color .3s; }
+table.mat th { background: none; font-family: var(--hand); font-size: 15px; color: var(--ink); font-weight: 700; }
+table.mat th.r { text-align: right; }
+table.mat td.diag { box-shadow: inset 0 0 0 2px var(--gold); }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+.slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; }
+.slider input { width: 180px; accent-color: #1b2fa8; }
+.slider output { font-family: var(--mono); color: var(--ink); min-width: 3.5em; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .ctx { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .slider { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 3</p>
+  <h1>Self-Attention: the Intuition</h1>
+  <p class="lede"><strong>In one line:</strong> self-attention gives every token a new vector that is a <strong>weighted average of all the tokens' vectors</strong>, where the weights say how relevant each token is. This is how "bat" comes to mean <em>animal</em> in one sentence and <em>cricket bat</em> in another.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked example</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why a token's embedding alone isn't enough, and why its meaning must depend on context.</li>
+  <li><strong>Describe</strong> self-attention as three steps: <em>score → normalize (softmax) → weighted average</em>.</li>
+  <li><strong>Compute</strong> a simple self-attention output by hand for a 3-token sentence.</li>
+  <li><strong>Identify</strong> the key properties of self-attention: global, input-dependent, parallel, order-blind and \(O(n^2)\).</li>
+  <li><strong>Explain</strong> the weakness of the naive version (each token mostly attends to itself), which motivates queries, keys and values in Section 4.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 2</strong>: each token becomes an embedding vector, and the sentence becomes a matrix \(X\) (\(n \times d_{model}\)). The dot product measures how aligned two vectors are.</li>
+  <li><strong>Weighted average</strong>: \(\sum_j w_j v_j\) with weights \(w_j \ge 0\) that add up to 1. Example: with weights 0.75 and 0.25, the average of 10 and 20 is \(0.75(10) + 0.25(20) = 12.5\).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: the softmax function</span>
+  Softmax turns any list of numbers ("scores") into positive weights that sum to 1:
+  <div class="math-block">$$\text{softmax}(s)_j = \frac{e^{s_j}}{\sum_k e^{s_k}}$$</div>
+  Example: scores \([2, 0, 0]\) → \(e^2 = 7.39\), \(e^0 = 1\), \(e^0 = 1\), total \(9.39\) → weights \([0.79, 0.11, 0.11]\). The largest score gets the largest weight, but every item keeps a little.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: the same word, different meanings</h2>
+<p>Compare:</p>
+<div class="callout" style="border-style:solid">
+  <em>The <strong>bat</strong> flew out of the cave.</em><br>
+  <em>The <strong>bat</strong> hit the ball for six.</em>
+</div>
+<p>The tokenizer gives "bat" the <strong>same ID</strong>, and the embedding table gives it the <strong>same vector</strong>, in both sentences. But the meaning is completely different: an animal versus a piece of cricket equipment.</p>
+<p>So after the embedding step, every token's vector is <strong>context-free</strong>. The model needs a way to update each vector using the other words around it:</p>
+<ul>
+  <li>"bat" next to "flew" and "cave" → shift toward <em>animal</em>.</li>
+  <li>"bat" next to "hit" and "ball" → shift toward <em>sports equipment</em>.</li>
+</ul>
+<p>This happens everywhere in language: pronouns ("it", "she"), words with several meanings ("bank", "light", "match"), and words whose role depends on grammar ("run" as a noun or a verb). <strong>Self-attention is the mechanism that mixes context into each token's vector.</strong></p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: asking the room for help</h2>
+<p>Each token is a student in a group discussion (as in Section 1). The student holding "bat" is unsure what their word means, so they:</p>
+<ol class="steps">
+  <li><strong>Score</strong>: check how relevant each other student's word is to them. ("flew" feels very relevant; "the" barely matters.)</li>
+  <li><strong>Normalize</strong>: decide how to split their attention, 100% in total, across everyone, giving more to relevant words.</li>
+  <li><strong>Blend</strong>: form a new understanding by mixing everyone's information in those proportions.</li>
+</ol>
+<p>After this, "bat" is no longer the bare dictionary word. It's "bat, <em>as used in this sentence</em>". Every student does the same thing at the same time.</p>
+<div class="callout"><span class="label">Where the analogy breaks</span>
+  <ul>
+    <li>Real students decide relevance using knowledge and reasoning. Self-attention uses a simple, learned <strong>similarity score</strong> (a dot product), and nothing more.</li>
+    <li>A student wouldn't usually listen mostly to themselves. In the naive version below, tokens often do (Section 6.3). Fixing that is exactly why Section 4 introduces queries, keys and values.</li>
+  </ul>
+</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The three steps</h3>
+<p>For token \(i\) in a sentence with vectors \(x_1, \dots, x_n\):</p>
+<p><strong>Step 1, score</strong> every token \(j\) by similarity (dot product):</p>
+<div class="math-block">$$s_{ij} = x_i \cdot x_j$$</div>
+<p><strong>Step 2, normalize</strong> the scores into weights with softmax:</p>
+<div class="math-block">$$a_{ij} = \frac{e^{s_{ij}}}{\sum_{k=1}^{n} e^{s_{ik}}} \qquad \text{so } a_{ij} \ge 0 \text{ and } \sum_j a_{ij} = 1$$</div>
+<p><strong>Step 3, blend</strong>: the new vector is the weighted average:</p>
+<div class="math-block">$$y_i = \sum_{j=1}^{n} a_{ij}\, x_j$$</div>
+<p>In words: <em>token \(i\)'s new vector is made of all the token vectors, mixed in proportion to how similar each one is to token \(i\).</em> The weights \(a_{ij}\) are called <strong>attention weights</strong>. "Token \(i\) attends to token \(j\) with weight \(a_{ij}\)."</p>
+
+<h3>5.2 Matrix form: all tokens at once</h3>
+<p>Stacking every token as a row of \(X\) (\(n \times d_{model}\)):</p>
+<div class="math-block">$$S = X X^{\top} \quad (n \times n), \qquad A = \text{softmax}_{\text{rows}}(S) \quad (n \times n), \qquad Y = A X \quad (n \times d_{model})$$</div>
+<ul>
+  <li>Row \(i\) of \(S\) holds token \(i\)'s scores against every token.</li>
+  <li>Row \(i\) of \(A\) holds token \(i\)'s attention weights, and <strong>each row sums to 1</strong>.</li>
+  <li>Row \(i\) of \(Y\) is token \(i\)'s new, context-aware vector. <strong>\(Y\) has the same shape as \(X\).</strong></li>
+</ul>
+<p>This is <strong>three matrix multiplications and a softmax</strong>, with no loops over time steps, so the whole sentence is processed in parallel.</p>
+
+<h3>5.3 This is a simplified version</h3>
+<p>Real Transformers make two changes, covered next:</p>
+<ul>
+  <li><strong>Section 4:</strong> instead of comparing \(x_i\) with \(x_j\) directly, the model first projects each token into a <strong>query</strong>, a <strong>key</strong> and a <strong>value</strong> using learned matrices.</li>
+  <li><strong>Section 5:</strong> the scores are divided by \(\sqrt{d_k}\) before the softmax to keep them in a sensible range.</li>
+</ul>
+<p>The three-step skeleton (<em>score → softmax → weighted average</em>) stays the same.</p>
+
+<h3>5.4 Key properties</h3>
+<div class="tw"><table>
+  <tr><th>Property</th><th>What it means</th></tr>
+  <tr><td><strong>Global</strong></td><td>Every token can draw from every other token in a single step, however far apart.</td></tr>
+  <tr><td><strong>Input-dependent</strong></td><td>The weights are <em>computed</em> from the current sentence, not stored. A different sentence gives different weights.</td></tr>
+  <tr><td><strong>Parallel</strong></td><td>All \(n\) outputs come from a few matrix multiplications at once.</td></tr>
+  <tr><td><strong>Order-blind</strong></td><td>Shuffling the tokens just shuffles the outputs; each token's own output is unchanged. (Section 7 adds positions.)</td></tr>
+  <tr><td><strong>Quadratic cost</strong></td><td>\(S\) has \(n \times n\) entries, so time and memory grow with \(n^2\).</td></tr>
+</table></div>
+
+<h3>5.5 Two variants you will meet</h3>
+<ul>
+  <li><strong>Bidirectional self-attention</strong>: every token may attend to every token, before and after it. Used in encoders such as BERT.</li>
+  <li><strong>Causal (masked) self-attention</strong>: token \(i\) may attend only to tokens \(1, \dots, i\), never the future. Used in GPT-style decoders that generate text left to right (Section 10).</li>
+  <li><strong>Cross-attention</strong> (different, but related): tokens of one sequence attend to tokens of <em>another</em> sequence, e.g. a translation decoder attending to the source sentence.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked example: "bat" in two sentences</h2>
+<p>To make the result easy to see, we use <strong>toy 2-D embeddings whose two axes we chose to mean</strong> <em>animal-ness</em> and <em>sport-ness</em>. (Real embedding axes have no such labels; this is only for teaching.)</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>Vector</th></tr>
+  <tr><td>the</td><td>[0.2, 0.2] (weak, generic)</td></tr>
+  <tr><td>bat</td><td>[1, 1] (ambiguous: equally animal and sport)</td></tr>
+  <tr><td>flew</td><td>[2, 0] (strongly animal)</td></tr>
+  <tr><td>hit</td><td>[0, 2] (strongly sport)</td></tr>
+</table></div>
+
+<h3>6.1 Sentence A: "the bat flew"</h3>
+<p><strong>Step 1, scores for "bat"</strong> (dot product with every token):</p>
+<ul>
+  <li>bat · the = \(1(0.2) + 1(0.2) = 0.4\)</li>
+  <li>bat · bat = \(1(1) + 1(1) = 2\)</li>
+  <li>bat · flew = \(1(2) + 1(0) = 2\)</li>
+</ul>
+<p><strong>Step 2, softmax</strong>: \(e^{0.4} = 1.49\), \(e^{2} = 7.39\), \(e^{2} = 7.39\), total \(= 16.27\).</p>
+<div class="tw"><table>
+  <tr><th>attends to</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><td>weight</td><td>1.49 / 16.27 = <strong>0.09</strong></td><td>7.39 / 16.27 = <strong>0.45</strong></td><td>7.39 / 16.27 = <strong>0.45</strong></td></tr>
+</table></div>
+<p>"the" gets almost no attention; "bat" and "flew" share the rest.</p>
+<p><strong>Step 3, weighted average:</strong></p>
+<div class="math-block">$$y_{\text{bat}} = 0.09\,[0.2, 0.2] + 0.45\,[1, 1] + 0.45\,[2, 0] = [1.38,\; 0.47]$$</div>
+<p>"bat" started at \([1, 1]\) and is now \([1.38, 0.47]\): it has <strong>moved toward the animal axis</strong>.</p>
+
+<h3>6.2 Sentence B: "the bat hit"</h3>
+<p>The scores are identical (bat · hit \(= 1(0) + 1(2) = 2\)), so the weights are the same: \(0.09, 0.45, 0.45\). But the vectors being averaged are different:</p>
+<div class="math-block">$$y_{\text{bat}} = 0.09\,[0.2, 0.2] + 0.45\,[1, 1] + 0.45\,[0, 2] = [0.47,\; 1.38]$$</div>
+<p>Now "bat" has <strong>moved toward the sport axis</strong>. The same word, with the same starting vector, ends up with a different meaning purely because of its neighbours.</p>
+
+<div class="demo" id="ctx">
+  <p class="demo-title">Try it: watch context move "bat"</p>
+  <div class="demo-bar">
+    <span class="cap">Third word:</span>
+    <span id="ctx-words" style="display:flex;flex-wrap:wrap;gap:6px"></span>
+  </div>
+  <div class="demo-bar">
+    <label class="cap"><input type="checkbox" id="ctx-the" checked> include "the"</label>
+  </div>
+  <div class="ctx">
+    <div><svg id="ctx-svg" viewBox="0 0 400 400" role="img" aria-label="2-D plot: animal-ness across, sport-ness up. Shows where bat starts and where self-attention moves it."></svg></div>
+    <div>
+      <p class="sub-cap" style="margin-top:0">How much "bat" attends to each word</p>
+      <div class="bars" id="ctx-bars"></div>
+      <div class="work" id="ctx-work"></div>
+    </div>
+  </div>
+  <p class="demo-status" id="ctx-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 The whole sentence at once, and a problem</h3>
+<p>For sentence A, the full score matrix \(S = XX^{\top}\) and attention matrix \(A\) (rows = the token doing the attending):</p>
+<div class="tw"><table>
+  <tr><th>\(S\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.08</td><td>0.40</td><td>0.40</td></tr>
+  <tr><th>bat</th><td>0.40</td><td>2.00</td><td>2.00</td></tr>
+  <tr><th>flew</th><td>0.40</td><td>2.00</td><td>4.00</td></tr>
+</table></div>
+<div class="tw"><table>
+  <tr><th>\(A\) (row softmax)</th><th>the</th><th>bat</th><th>flew</th><th>row sum</th></tr>
+  <tr><th>the</th><td>0.27</td><td>0.37</td><td>0.37</td><td>1</td></tr>
+  <tr><th>bat</th><td>0.09</td><td>0.45</td><td>0.45</td><td>1</td></tr>
+  <tr><th>flew</th><td>0.02</td><td>0.12</td><td><strong>0.86</strong></td><td>1</td></tr>
+</table></div>
+<p>Look at the "flew" row: it puts <strong>86% of its attention on itself</strong>. That's because a vector's dot product with itself is its squared length, \(\lVert x \rVert^2\), which is usually the largest score. In this naive version, long vectors mostly "listen to themselves" and learn little from context.</p>
+<div class="callout"><span class="label">The fix (Section 4)</span>Compare a token's <em>question</em> (query) with other tokens' <em>labels</em> (keys), computed by separate learned matrices. Then "what I'm looking for" no longer has to equal "what I am", and a token can attend strongly to others.</div>
+
+<div class="demo" id="matrix">
+  <p class="demo-title">Try it: the full attention matrix</p>
+  <div class="demo-bar">
+    <button class="btn on" id="mx-a" type="button">"the bat flew"</button>
+    <button class="btn" id="mx-b" type="button">"the bat hit"</button>
+    <button class="btn" id="mx-shuffle" type="button">Shuffle word order</button>
+  </div>
+  <div class="slider">
+    <label for="mx-temp">Sharpness: divide scores by</label>
+    <input id="mx-temp" type="range" min="0.25" max="4" step="0.05" value="1">
+    <output id="mx-temp-out" for="mx-temp">1.00</output>
+    <span class="cap">(1 = plain softmax. Section 5's \(\sqrt{d_k}\) is exactly this kind of divisor.)</span>
+  </div>
+  <div class="mat-row" id="mx-view"></div>
+  <p class="demo-status" id="mx-status" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    X["X<br/>n × d_model"] --> S["Scores S = X Xᵀ<br/>n × n"]
+    S --> A["Softmax each row<br/>A: n × n, rows sum to 1"]
+    A --> Y["Y = A X<br/>n × d_model"]
+    X --> Y
+</pre>
+<p>One token's view:</p>
+<pre class="mermaid">
+flowchart LR
+    T1["the"] -- "0.09" --> B["new 'bat'"]
+    T2["bat"] -- "0.45" --> B
+    T3["flew"] -- "0.45" --> B
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<h3>What real attention heads learn</h3>
+<p>Studies of trained models find heads with recognisable jobs:</p>
+<ul>
+  <li><strong>Previous-token heads</strong>: mostly attend to the token just before.</li>
+  <li><strong>Syntax heads</strong>: e.g. a verb attending to its subject, or a noun to its article.</li>
+  <li><strong>Coreference heads</strong>: pronouns attending to the noun they refer to ("it" → "glass").</li>
+  <li><strong>Delimiter heads</strong>: attend to punctuation or special tokens like <code>[SEP]</code> when they have "nothing better to do".</li>
+  <li><strong>Induction heads</strong>: if "A B … A" appears, attend to what followed the earlier "A" and predict "B". Researchers believe these drive much of <strong>in-context learning</strong>.</li>
+</ul>
+<h3>Scale</h3>
+<ul>
+  <li>Each layer of a model has many attention heads (e.g. 12 in BERT-base, 32 in LLaMA-2 7B; Section 6) and many layers, so a token's vector is updated by attention dozens of times.</li>
+  <li>For a 2,000-token input, one head in one layer computes \(2{,}000^2 = 4{,}000{,}000\) scores. This \(n^2\) cost is why long contexts are expensive (Section 14).</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Attention weights are learned parameters stored in the model."</strong> No. The weights \(a_{ij}\) are <strong>computed fresh for every input</strong>. What is learned are the projection matrices (Section 4) that produce the scores.</li>
+  <li class="mistake"><strong>"Attention only looks at nearby words."</strong> It looks at <strong>all</strong> tokens. Any preference for nearby words has to be learned or come from position information.</li>
+  <li class="mistake"><strong>"Attention weights can be negative, so a token can subtract another's meaning."</strong> Softmax outputs are always <strong>between 0 and 1</strong> and sum to 1. The new vector is always a weighted <em>average</em> (a mixture).</li>
+  <li class="mistake"><strong>"High attention weight means the model's decision was caused by that word."</strong> Not necessarily. Attention weights are one internal signal among many, and research shows they are not a reliable explanation of model decisions on their own.</li>
+  <li class="mistake"><strong>"Self-attention understands word order."</strong> On its own it doesn't. "dog bites man" and "man bites dog" give each word the same output vector. Order comes from positional information (Section 7). Try "Shuffle word order" in the matrix demo above.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Embeddings are <strong>context-free</strong>; self-attention makes them <strong>context-aware</strong>.</li>
+  <li>Self-attention = <strong>score</strong> (dot products) → <strong>softmax</strong> (weights that sum to 1) → <strong>weighted average</strong> of vectors.</li>
+  <li>Matrix form: \(S = XX^{\top}\), \(A = \text{softmax}_{\text{rows}}(S)\), \(Y = AX\). The output has the same shape as the input.</li>
+  <li>It is <strong>global</strong>, <strong>input-dependent</strong>, <strong>parallel</strong>, <strong>order-blind</strong>, and costs \(O(n^2)\).</li>
+  <li>The naive version tends to make tokens attend to <strong>themselves</strong>; queries, keys and values (Section 4) fix this.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A token's scores against three tokens are \([2, 0, 0]\). Compute its attention weights. If all three scores were equal, what would the output vector be?</li>
+  <li>Using the vectors in Section 6, compute the new vector for "bat" if "the" were removed, i.e. the sentence is just "bat flew".</li>
+  <li>Why does the "flew" row in 6.3 give itself 0.86 of its attention? Suggest in one sentence what a model would need in order to make "flew" attend more to "bat".</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(e^2 = 7.39\), \(e^0 = 1\), \(e^0 = 1\), total \(9.39\), so the weights are <strong>\([0.79, 0.11, 0.11]\)</strong>. If all scores are equal, every weight is \(1/3\) and the output is the <strong>plain average</strong> of the three vectors.</li>
+    <li>Scores for bat: bat·bat \(= 2\), bat·flew \(= 2\), so the weights are \([0.5, 0.5]\). Output \(= 0.5[1, 1] + 0.5[2, 0] = \mathbf{[1.5, 0.5]}\). It moves even further toward <em>animal</em>, because the weak "the" no longer takes a share. (Untick "include the" in the demo to check.)</li>
+    <li>Its score with itself is \(\lVert\text{flew}\rVert^2 = 4\), the largest in its row, because a vector is always well aligned with itself. The model needs <strong>separate learned "question" and "label" vectors</strong> (queries and keys), so that what "flew" looks for can differ from what "flew" is.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>NeurIPS 2017.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. Section 3.2 introduces the attention used in Transformers.</li>
+  <li>Bahdanau, D., Cho, K., &amp; Bengio, Y. (2014). <strong>"Neural Machine Translation by Jointly Learning to Align and Translate."</strong> <a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">arXiv:1409.0473</a>. The original "soft alignment" idea behind attention.</li>
+  <li>Clark, K., Khandelwal, U., Levy, O., &amp; Manning, C. D. (2019). <strong>"What Does BERT Look At? An Analysis of BERT's Attention."</strong> <a href="https://arxiv.org/abs/1906.04341" target="_blank" rel="noopener">arXiv:1906.04341</a>. Finds heads for syntax, coreference and delimiters.</li>
+  <li>Jain, S., &amp; Wallace, B. C. (2019). <strong>"Attention is not Explanation."</strong> <em>NAACL 2019.</em> <a href="https://arxiv.org/abs/1902.10186" target="_blank" rel="noopener">arXiv:1902.10186</a>. Why attention weights should be read with care.</li>
+  <li>Olsson, C. et al. (2022). <strong>"In-context Learning and Induction Heads."</strong> Anthropic, Transformer Circuits Thread. On the heads behind in-context learning.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function fmt(v) { return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }
+  function vfmt(v) { return "[" + v.map(fmt).join(", ") + "]"; }
+  function dot(a, b) { return a.reduce(function (s, x, i) { return s + x * b[i]; }, 0); }
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  // Self-attention without projections: S = X X^T / temp, A = softmax rows, Y = A X
+  function attend(X, temp) {
+    var S = X.map(function (a) { return X.map(function (b) { return dot(a, b); }); });
+    var A = S.map(function (r) { return softmax(r.map(function (v) { return v / (temp || 1); })); });
+    var Y = A.map(function (w) { return X[0].map(function (_, k) { return w.reduce(function (s, wj, j) { return s + wj * X[j][k]; }, 0); }); });
+    return { S: S, A: A, Y: Y };
+  }
+  function tween(dur, fn) {
+    if (canAnimate) { try { M.animate(0, 1, { duration: dur, ease: "easeInOut", onUpdate: fn }); return; } catch (e) {} }
+    fn(1);
+  }
+  var VEC = { the: [0.2, 0.2], bat: [1, 1], flew: [2, 0], hit: [0, 2], slept: [1.7, 0.3], bowled: [0.3, 1.7] };
+
+  /* ---------- 1. Context moves "bat" ---------- */
+  (function ctx() {
+    var svg = document.getElementById("ctx-svg");
+    if (!svg) return;
+    var third = "flew", withThe = true, cur = VEC.bat.slice();
+    var X0 = 50, Y0 = 350, SC = 140;                      // plot: 0..2.2 on both axes
+    function px(v) { return X0 + v * SC; } function py(v) { return Y0 - v * SC; }
+    function mk(n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+    for (var g = 0.5; g <= 2.01; g += 0.5) { mk("line", { x1: px(g), y1: py(0), x2: px(g), y2: py(2.2), "class": "gridl" }); mk("line", { x1: px(0), y1: py(g), x2: px(2.2), y2: py(g), "class": "gridl" }); }
+    mk("line", { x1: px(0), y1: py(0), x2: px(2.25), y2: py(0), "class": "axis" });
+    mk("line", { x1: px(0), y1: py(0), x2: px(0), y2: py(2.25), "class": "axis" });
+    mk("text", { x: px(2.2), y: py(0) + 28, "class": "axlbl", "text-anchor": "end" }).textContent = "animal-ness →";
+    var yl = mk("text", { x: px(0) - 30, y: py(2.2), "class": "axlbl", "text-anchor": "end", transform: "rotate(-90 " + (px(0) - 30) + " " + py(2.2) + ")" }); yl.textContent = "sport-ness →";
+    [0, 1, 2].forEach(function (t) { mk("text", { x: px(t), y: py(0) + 14, "class": "axlbl", "text-anchor": "middle" }).textContent = t; if (t) mk("text", { x: px(0) - 8, y: py(t) + 4, "class": "axlbl", "text-anchor": "end" }).textContent = t; });
+    var layer = mk("g", {});
+    var mixLines = mk("g", {});
+    var moveLine = mk("line", { "class": "move", "marker-end": "" });
+    var oldPt = mk("circle", { cx: px(1), cy: py(1), r: 7, "class": "old" });
+    mk("text", { x: px(1) + 10, y: py(1) + 18, "class": "wlbl", style: "font-size:13px;font-weight:400" }).textContent = "bat (start)";
+    var newPt = mk("circle", { cx: px(1), cy: py(1), r: 8, "class": "newpt" });
+    var newLbl = mk("text", { "class": "wlbl", style: "fill:#7a5500" }); newLbl.textContent = "new bat";
+
+    var words = document.getElementById("ctx-words");
+    var btns = ["flew", "hit", "slept", "bowled"].map(function (w) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = w + " " + vfmt(VEC[w]).replace(/\.00/g, "");
+      b.addEventListener("click", function () { third = w; update(); }); words.appendChild(b); return { w: w, b: b };
+    });
+    document.getElementById("ctx-the").addEventListener("change", function (e) { withThe = e.target.checked; update(); });
+
+    function update() {
+      btns.forEach(function (o) { o.b.classList.toggle("on", o.w === third); });
+      var toks = (withThe ? ["the"] : []).concat(["bat", third]);
+      var X = toks.map(function (t) { return VEC[t]; });
+      var r = attend(X, 1), bi = toks.indexOf("bat"), w = r.A[bi], target = r.Y[bi];
+      // context words on the plot
+      layer.innerHTML = ""; mixLines.innerHTML = "";
+      toks.forEach(function (t, j) {
+        if (t === "bat") return;
+        mk("circle", { cx: px(VEC[t][0]), cy: py(VEC[t][1]), r: 6, "class": "wpt" }, layer);
+        mk("text", { x: px(VEC[t][0]) + (VEC[t][0] > 1.6 ? -10 : 10), y: py(VEC[t][1]) - 10, "class": "wlbl", "text-anchor": VEC[t][0] > 1.6 ? "end" : "start" }, layer).textContent = t + "  (" + w[j].toFixed(2) + ")";
+        mk("line", { x1: px(VEC[t][0]), y1: py(VEC[t][1]), x2: px(target[0]), y2: py(target[1]), "class": "mix", "stroke-width": 1 + w[j] * 4 }, mixLines);
+      });
+      // bars
+      document.getElementById("ctx-bars").innerHTML = toks.map(function (t, j) {
+        return "<span>" + t + '</span><span class="bar"><i data-w="' + w[j] + '"></i></span><b>' + w[j].toFixed(2) + "</b>";
+      }).join("");
+      var bars = document.querySelectorAll("#ctx-bars .bar > i");
+      bars.forEach(function (i) { var pct = (parseFloat(i.dataset.w) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(i, { width: pct }, { duration: 0.5 }); else i.style.width = pct; });
+      // working
+      var sc = r.S[bi];
+      document.getElementById("ctx-work").innerHTML =
+        "<strong>1. Scores</strong> (bat · each): " + toks.map(function (t, j) { return t + " " + fmt(sc[j]); }).join(", ") + "<br>" +
+        "<strong>2. Softmax</strong>: " + toks.map(function (t, j) { return "e<sup>" + fmt(sc[j]) + "</sup>=" + Math.exp(sc[j]).toFixed(2); }).join(", ") + " → weights " + w.map(function (v) { return v.toFixed(2); }).join(", ") + "<br>" +
+        "<strong>3. Blend</strong>: " + toks.map(function (t, j) { return w[j].toFixed(2) + "·" + vfmt(VEC[t]); }).join(" + ") + " = <strong>" + vfmt(target) + "</strong>";
+      // move the new point from where it was to the new target
+      var from = cur.slice();
+      tween(0.8, function (t) {
+        var x = from[0] + (target[0] - from[0]) * t, y = from[1] + (target[1] - from[1]) * t;
+        newPt.setAttribute("cx", px(x)); newPt.setAttribute("cy", py(y));
+        newLbl.setAttribute("x", px(x) + 12); newLbl.setAttribute("y", py(y) + 5);
+        moveLine.setAttribute("x1", px(1)); moveLine.setAttribute("y1", py(1)); moveLine.setAttribute("x2", px(x)); moveLine.setAttribute("y2", py(y));
+        cur = [x, y];
+      });
+      cur = target.slice();
+      var dir = target[0] > target[1] + 0.05 ? "toward animal" : target[1] > target[0] + 0.05 ? "toward sport" : "nowhere in particular";
+      document.getElementById("ctx-status").textContent = "In “" + toks.join(" ") + "”, “bat” moves from [1.00, 1.00] to " + vfmt(target) + ": " + dir + ". The new vector is a weighted average, so it always lands inside the region spanned by the sentence's vectors.";
+      window.__ctx = { toks: toks, w: w, y: target };
+    }
+    update();
+  })();
+
+  /* ---------- 2. Full attention matrix, sharpness, shuffle ---------- */
+  (function matrix() {
+    var view = document.getElementById("mx-view");
+    if (!view) return;
+    var order = ["the", "bat", "flew"], temp = 1, prevA = null;
+    var bA = document.getElementById("mx-a"), bB = document.getElementById("mx-b"), slider = document.getElementById("mx-temp"), out = document.getElementById("mx-temp-out");
+    function heat(v, scale) { var a = Math.min(1, Math.abs(v) / scale) * 0.85; return { bg: "rgba(27,47,168," + a.toFixed(3) + ")", fg: a > 0.45 ? "#fff" : "#1f2433" }; }
+    function table(title, dims, Mx, rows, cols, scale, diag, sums) {
+      var h = '<div><p class="sub-cap">' + title + ' <span class="cap">' + dims + '</span></p><div class="mat-scroll"><table class="mat"><tr><th></th>' + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + (sums ? "<th>sum</th>" : "") + "</tr>";
+      Mx.forEach(function (r, i) {
+        h += '<tr><th class="r">' + rows[i] + "</th>" + r.map(function (v, j) { var c = heat(v, scale); return '<td class="' + (diag && i === j ? "diag" : "") + '" style="background:' + c.bg + ";color:" + c.fg + '">' + fmt(v) + "</td>"; }).join("") +
+          (sums ? "<td>" + r.reduce(function (a, b) { return a + b; }, 0).toFixed(2) + "</td>" : "") + "</tr>";
+      });
+      return h + "</table></div></div>";
+    }
+    function render(changed) {
+      var X = order.map(function (t) { return VEC[t]; }), r = attend(X, temp);
+      view.innerHTML = table("Scores S = XXᵀ", "n × n", r.S, order, order, 4, true, false) +
+                       table("Attention A = softmax(S / " + temp.toFixed(2) + ")", "rows sum to 1", r.A, order, order, 1, true, true) +
+                       table("Output Y = AX", "n × 2", r.Y, order, ["dim 1", "dim 2"], 2, false, false);
+      if (changed && canAnimate) M.animate(view.querySelectorAll("td"), { opacity: [0.3, 1] }, { duration: 0.35 });
+      var maxSelf = Math.max.apply(null, r.A.map(function (row, i) { return row[i]; }));
+      var who = order[r.A.map(function (row, i) { return row[i]; }).indexOf(maxSelf)];
+      var msg = "Gold outlines mark the diagonal (each token attending to itself). Here “" + who + "” gives " + (maxSelf * 100).toFixed(0) + "% of its attention to itself. ";
+      msg += temp < 0.8 ? "Dividing by a small number makes the scores bigger, so softmax gets sharper: each row piles onto its top score." :
+             temp > 1.5 ? "Dividing by a bigger number shrinks the scores, so softmax gets flatter: every row moves toward an even 1/3 split." :
+             "Move the slider to see softmax get sharper or flatter.";
+      document.getElementById("mx-status").textContent = msg;
+      window.__mx = { order: order.slice(), A: r.A, Y: r.Y };
+    }
+    function setSentence(w) { order = ["the", "bat", w]; bA.classList.toggle("on", w === "flew"); bB.classList.toggle("on", w === "hit"); render(true); }
+    bA.addEventListener("click", function () { setSentence("flew"); });
+    bB.addEventListener("click", function () { setSentence("hit"); });
+    slider.addEventListener("input", function () { temp = parseFloat(slider.value); out.textContent = temp.toFixed(2); render(false); });
+    document.getElementById("mx-shuffle").addEventListener("click", function () {
+      var before = {}; var X = order.map(function (t) { return VEC[t]; }), r0 = attend(X, temp); order.forEach(function (t, i) { before[t] = r0.Y[i]; });
+      var o = order.slice(); do { for (var i = o.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = o[i]; o[i] = o[j]; o[j] = tmp; } } while (o.join() === order.join());
+      order = o; render(true);
+      var r1 = attend(order.map(function (t) { return VEC[t]; }), temp), same = order.every(function (t, i) { return Math.abs(r1.Y[i][0] - before[t][0]) < 1e-9 && Math.abs(r1.Y[i][1] - before[t][1]) < 1e-9; });
+      document.getElementById("mx-status").textContent = "New order: “" + order.join(" ") + "”. The rows and columns are rearranged, but each word's output vector is " + (same ? "exactly the same as before" : "different") + ". Self-attention alone can't tell word order apart; that's why Section 7 adds positions.";
+    });
+    render(false);
+  })();
+})();
+</script>
+</body>
+</html>

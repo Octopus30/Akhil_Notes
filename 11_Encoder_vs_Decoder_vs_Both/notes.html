@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 11: Encoder vs Decoder vs Both</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; margin: 6px 0; }
+.slider input[type=range] { width: 160px; accent-color: #1b2fa8; }
+.slider output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 2.6em; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+/* mask grids */
+.grids { display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: flex-start; margin-top: 6px; }
+table.grid { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-size: 12px; }
+table.grid td, table.grid th { border: 0; padding: 2px 6px; border-radius: 3px; text-align: center; min-width: 26px; height: 24px; }
+table.grid th { background: none; font-family: var(--hand); font-size: 13.5px; color: var(--ink); font-weight: 700; }
+table.grid th.rowh { text-align: right; cursor: pointer; }
+table.grid th.rowh.on { color: var(--gold); text-decoration: underline; }
+table.grid th.pre { background: var(--tint); border-radius: 4px; }
+table.grid td.ok { background: rgba(27,47,168,.2); }
+table.grid td.ok.focus { background: var(--ink); color: #fff; }
+table.grid td.no { background: repeating-linear-gradient(135deg, #f3f0e8 0 5px, #e8e2d4 5px 10px); }
+.gcap { font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 16px; margin: 0 0 2px; }
+.count { font-family: var(--hand); font-size: 22px; font-weight: 700; color: var(--ink); }
+/* objectives */
+.seq { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 4px 0; }
+.tk { font-family: var(--mono); font-size: 13.5px; border: 2px solid #c9d2ea; border-radius: 6px; padding: 1px 7px; background: #fff; }
+.tk.sup { border-color: #2e7d5b; background: #e3f4ea; font-weight: 700; }
+.tk.mask { border-color: var(--ink); background: var(--ink); color: #fff; }
+.tk.sent { border-color: var(--gold); background: var(--gold-fill); font-weight: 700; }
+.tk.rand { border-color: #c0472f; background: #fde7e2; }
+.rowlbl { font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 15px; min-width: 4.5em; }
+.meter { height: 12px; background: var(--tint); border-radius: 6px; overflow: hidden; max-width: 360px; }
+.meter > i { display: block; height: 100%; background: #2e7d5b; width: 0; }
+/* framings */
+.frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin-top: 8px; }
+.frame { border: 1.5px dashed var(--ink); border-radius: 10px; padding: 8px 10px; background: #fff; min-width: 0; font-size: 14px; }
+.frame .ttl { font-family: var(--hand); font-weight: 700; font-size: 17px; color: var(--ink); margin: 0 0 4px; }
+.frame .io { font-family: var(--mono); font-size: 12.5px; background: #f6f7fc; border: 1px solid #dfe5f3; border-radius: 6px; padding: 4px 6px; margin: 3px 0 6px; word-break: break-word; }
+.frame .lab { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.frame .need { font-size: 13px; color: var(--text); }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .frames { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .slider { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 11</p>
+  <h1>Encoder vs Decoder vs Both</h1>
+  <p class="lede"><strong>In one line:</strong> all Transformers are built from the same block; what makes a model an <strong>encoder</strong>, a <strong>decoder</strong>, or an <strong>encoder–decoder</strong> is (1) its <strong>attention mask</strong> and (2) its <strong>training objective</strong>. Each combination is good at different jobs — and decoder-only models became the default for LLMs because one simple objective turns out to cover almost every task.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Draw</strong> the attention pattern of an encoder, a decoder, a prefix-LM and an encoder–decoder, and count the allowed connections.</li>
+  <li><strong>Compare</strong> the pre-training objectives — masked LM, causal LM, span corruption — and how many training signals each gives per sentence.</li>
+  <li><strong>Frame</strong> the same task (e.g. sentiment classification) for all three architectures.</li>
+  <li><strong>Explain</strong> why decoder-only models dominate modern LLMs, and where the other two still win.</li>
+  <li><strong>Choose</strong> an architecture for a given application and justify it.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 9 (encoder):</strong> bidirectional attention, MLM, <code>[CLS]</code>/mean pooling.</li>
+  <li><strong>Section 10 (decoder):</strong> causal attention, teacher forcing, generation, cross-attention.</li>
+  <li><strong>Section 5:</strong> masks are added to the scores (\(0\) = allowed, \(-\infty\) = blocked).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — the same block everywhere</span>
+  Every model in this section uses the Section 8 block: attention + FFN with residuals and norms. Nothing about the block itself changes between architectures; only <em>who can attend to whom</em> and <em>what the model is trained to predict</em>.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: why not just one design?</h2>
+<p>Different jobs need different information flows:</p>
+<div class="tw"><table>
+  <tr><th>Job</th><th>What the model needs</th></tr>
+  <tr><td>"Is this email spam?"</td><td>read the <strong>whole</strong> input, output <strong>one label</strong></td></tr>
+  <tr><td>"Write a reply to this email"</td><td>produce <strong>new text</strong>, one token at a time, never seeing the future</td></tr>
+  <tr><td>"Translate this email into Hindi"</td><td>read the whole input <strong>and</strong> produce new text</td></tr>
+</table></div>
+<p>An encoder is ideal for the first, a decoder for the second, and an encoder–decoder was designed for the third. Yet today a single decoder-only LLM does all three reasonably well. Understanding <em>why</em> is the goal of this section.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: three kinds of students</h2>
+<ul>
+  <li><strong>The reviewer (encoder):</strong> reads a whole essay, can flip back and forth freely, then writes <strong>one verdict</strong>: "Grade A". Great at understanding; never writes essays.</li>
+  <li><strong>The storyteller (decoder):</strong> writes a story one sentence at a time, only ever looking back at what's already written. Asked a question, they simply <em>continue the text</em> with an answer — so given the right opening, they can do almost anything.</li>
+  <li><strong>The translator (encoder–decoder):</strong> first reads the whole source document carefully (encoder), then writes the translation line by line (decoder), glancing back at the source whenever needed (cross-attention).</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>Real people combine these skills. In models the difference is hard-wired by the mask — a decoder physically <em>cannot</em> look at later tokens, however useful they would be.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Four attention patterns</h3>
+<p>For a sequence of \(n\) tokens (row = query, column = key; ✓ = allowed):</p>
+<div class="tw"><table>
+  <tr><th>Architecture</th><th>Pattern</th><th>Allowed pairs</th></tr>
+  <tr><td><strong>Encoder</strong> (bidirectional)</td><td>full \(n \times n\)</td><td>\(n^2\)</td></tr>
+  <tr><td><strong>Decoder</strong> (causal)</td><td>lower triangle</td><td>\(n(n+1)/2\)</td></tr>
+  <tr><td><strong>Prefix-LM</strong></td><td>full on the first \(p\) tokens ("prefix"), causal after</td><td>\(p^2 + \sum_{i=p+1}^{n} i\)</td></tr>
+  <tr><td><strong>Encoder–decoder</strong></td><td>encoder: full \(n_{src}^2\); decoder self: causal; cross: full \(n_{tgt} \times n_{src}\)</td><td>\(n_{src}^2 + \frac{n_{tgt}(n_{tgt}+1)}{2} + n_{tgt}\,n_{src}\)</td></tr>
+</table></div>
+<p>A <strong>prefix-LM</strong> is a decoder that treats the prompt like an encoder (every prompt token sees the whole prompt) and the answer like a decoder (each answer token sees the prompt plus earlier answer tokens).</p>
+
+<div class="demo" id="masks">
+  <p class="demo-title">Try it: who can attend to whom?</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Architecture">
+      <button type="button" data-m="enc" class="on">encoder</button>
+      <button type="button" data-m="dec">decoder</button>
+      <button type="button" data-m="pre">prefix-LM</button>
+      <button type="button" data-m="ed">encoder–decoder</button>
+    </span>
+  </div>
+  <div class="slider" id="mk-pslider">
+    <label for="mk-p">prefix length p</label><input id="mk-p" type="range" min="1" max="4" step="1" value="3"><output id="mk-po">3</output>
+  </div>
+  <div class="grids" id="mk-grids"></div>
+  <p><span class="count" id="mk-count"></span></p>
+  <p class="demo-status" id="mk-status" aria-live="polite"></p>
+</div>
+
+<h3>5.2 Three pre-training objectives</h3>
+<div class="tw"><table>
+  <tr><th>Objective</th><th>Used by</th><th>Input → target</th><th>Supervised positions</th></tr>
+  <tr><td><strong>Masked LM (MLM)</strong></td><td>encoders (BERT)</td><td>text with ~15% hidden → the hidden tokens</td><td>~15%</td></tr>
+  <tr><td><strong>Causal LM (next-token)</strong></td><td>decoders (GPT, LLaMA)</td><td>text → the same text shifted by one</td><td><strong>100%</strong></td></tr>
+  <tr><td><strong>Span corruption / denoising</strong></td><td>encoder–decoders (T5, BART)</td><td>text with spans replaced by placeholders → the missing spans</td><td>the corrupted spans (~15% in T5)</td></tr>
+</table></div>
+<p><strong>Span corruption (T5):</strong> pick short spans of the input, replace each with a unique <strong>sentinel</strong> token (<code>&lt;X&gt;</code>, <code>&lt;Y&gt;</code>, …), and train the decoder to output the missing spans, each introduced by its sentinel.</p>
+
+<h3>5.3 Why decoder-only won for LLMs</h3>
+<ol>
+  <li><strong>One objective, any text.</strong> Next-token prediction needs no labels and no special corruption — every web page, book and code file is training data, and <strong>every</strong> token is a training signal.</li>
+  <li><strong>Every task is "continue this text".</strong> Questions, translation, classification, code: put the task in the prompt and let the model write the answer. This is <strong>prompting</strong>, and with scale it gives <strong>in-context learning</strong> — learning a task from a few examples in the prompt.</li>
+  <li><strong>Simplicity and scaling.</strong> One stack, one mask, one loss. Easy to scale to hundreds of layers and thousands of GPUs; scaling-law research mostly studied this setup.</li>
+  <li><strong>Efficient generation.</strong> Causal attention means earlier tokens never change, so their keys and values can be cached (the KV cache, Section 14). That makes long chats affordable.</li>
+  <li><strong>Chat is a single growing sequence.</strong> A conversation is just text appended turn after turn — exactly what a decoder handles natively.</li>
+</ol>
+
+<h3>5.4 Where the others still win</h3>
+<ul>
+  <li><strong>Encoders:</strong> when you need a <strong>vector or a label</strong>, not text — search embeddings, classification, tagging — encoders are smaller, faster and often more accurate per parameter. RAG retrieval runs on encoders (Section 18).</li>
+  <li><strong>Encoder–decoders:</strong> <strong>input → output transformations</strong> with a long input and a shorter output (translation, summarization, speech-to-text). The input is read once, bidirectionally, and the decoder can stay small. Whisper (speech recognition) is encoder–decoder.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Counting allowed connections</h3>
+<p>Sequence of \(n = 5\) tokens: a 3-token prompt "the bat flew" followed by a 2-token continuation "away fast".</p>
+<div class="tw"><table>
+  <tr><th>Pattern</th><th>Calculation</th><th>Allowed pairs (of 25)</th></tr>
+  <tr><td>Encoder</td><td>\(5^2\)</td><td><strong>25</strong></td></tr>
+  <tr><td>Decoder</td><td>\(5 \cdot 6 / 2\)</td><td><strong>15</strong></td></tr>
+  <tr><td>Prefix-LM (\(p = 3\))</td><td>\(3^2 + 4 + 5\)</td><td><strong>18</strong></td></tr>
+</table></div>
+<p>In the prefix-LM, "the" can see "flew" (both are in the prefix) — impossible in a plain decoder — but "away" still cannot see "fast".</p>
+<p><strong>Encoder–decoder version</strong> (source "the bat flew", 3 tokens; target "away fast", 2 tokens):</p>
+<ul>
+  <li>Encoder self-attention: \(3 \times 3 = 9\)</li>
+  <li>Decoder self-attention (causal): \(2 \cdot 3 / 2 = 3\)</li>
+  <li>Cross-attention: \(2 \times 3 = 6\)</li>
+</ul>
+
+<h3>6.2 Three objectives on one sentence</h3>
+<p>Sentence (8 tokens): <strong>students often study late at night before exams</strong></p>
+<p><strong>Masked LM</strong> (one token hidden — 15% of 8 rounds to 1):</p>
+<ul>
+  <li>Input: <code>students often [MASK] late at night before exams</code></li>
+  <li>Target: <code>study</code> at position 3 → <strong>1</strong> supervised position</li>
+</ul>
+<p><strong>Causal LM:</strong></p>
+<ul>
+  <li>Input: <code>&lt;bos&gt; students often study late at night before exams</code></li>
+  <li>Targets: <code>students often study late at night before exams &lt;eos&gt;</code> → <strong>9</strong> supervised positions (every one)</li>
+</ul>
+<p><strong>Span corruption</strong> (two spans, chosen large here so it's easy to see):</p>
+<ul>
+  <li>Input: <code>students often &lt;X&gt; at night &lt;Y&gt; exams</code></li>
+  <li>Target: <code>&lt;X&gt; study late &lt;Y&gt; before &lt;Z&gt;</code></li>
+  <li>The decoder reconstructs <strong>3</strong> corrupted tokens (plus the sentinels marking where each span goes; <code>&lt;Z&gt;</code> marks the end).</li>
+</ul>
+
+<div class="demo" id="objs">
+  <p class="demo-title">Try it: what does each objective supervise?</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Sentence">
+      <button type="button" data-s="short" class="on">8-token sentence</button>
+      <button type="button" data-s="long">20-token sentence</button>
+    </span>
+    <button class="btn" type="button" id="ob-reroll">Re-pick hidden tokens</button>
+  </div>
+  <div class="slider">
+    <label for="ob-rate">corruption rate (MLM, span)</label><input id="ob-rate" type="range" min="0.1" max="0.5" step="0.05" value="0.15"><output id="ob-rateo">15%</output>
+  </div>
+  <div id="ob-view"></div>
+  <p class="demo-status" id="ob-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 One task, three framings</h3>
+<p><strong>Task:</strong> decide whether the review <em>"the movie was great"</em> is positive or negative.</p>
+<div class="tw"><table>
+  <tr><th>Architecture</th><th>Input</th><th>Output</th><th>Extra parts needed</th></tr>
+  <tr><td><strong>Encoder</strong> (BERT)</td><td><code>[CLS] the movie was great [SEP]</code></td><td>label from a classifier on the <code>[CLS]</code> vector</td><td>a trained classification head</td></tr>
+  <tr><td><strong>Encoder–decoder</strong> (T5)</td><td><code>sentiment: the movie was great</code></td><td>the text <code>positive</code></td><td>none — the label is generated as text</td></tr>
+  <tr><td><strong>Decoder-only</strong> (GPT/LLaMA)</td><td><code>Review: the movie was great. Sentiment:</code></td><td>next token <code> positive</code></td><td>none — just a prompt</td></tr>
+</table></div>
+<p>The encoder needs a task-specific head and fine-tuning; the other two turn the task into <strong>text generation</strong>. The decoder-only version needs no fine-tuning at all if the model is large enough — the prompt alone defines the task.</p>
+
+<div class="demo" id="frames">
+  <p class="demo-title">Try it: the same task, three ways</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Task">
+      <button type="button" data-t="sent" class="on">sentiment</button>
+      <button type="button" data-t="trans">translation</button>
+      <button type="button" data-t="ner">find names</button>
+      <button type="button" data-t="qa">answer a question</button>
+    </span>
+  </div>
+  <div class="frames" id="fr-view"></div>
+  <p class="demo-status" id="fr-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 Training signals per sentence</h3>
+<p>For a 20-token sentence:</p>
+<div class="tw"><table>
+  <tr><th>Objective</th><th>Supervised predictions</th></tr>
+  <tr><td>MLM (15%)</td><td>\(0.15 \times 20 = 3\)</td></tr>
+  <tr><td>Span corruption (15%)</td><td>about 3 tokens (in 1–2 spans)</td></tr>
+  <tr><td>Causal LM</td><td><strong>20</strong> (21 counting the final <code>&lt;eos&gt;</code>)</td></tr>
+</table></div>
+<p>Causal LM extracts the most supervision from each sentence — one reason it scales so well.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    subgraph E["Encoder-only (BERT)"]
+        e1["tokens"] --> e2["bidirectional blocks"] --> e3["vectors / labels"]
+    end
+    subgraph D["Decoder-only (GPT, LLaMA, Claude)"]
+        d1["prompt + text so far"] --> d2["causal blocks"] --> d3["next token"]
+    end
+    subgraph ED["Encoder–decoder (T5, Whisper)"]
+        s1["source"] --> s2["bidirectional encoder"]
+        t1["target so far"] --> t2["causal decoder + cross-attention"]
+        s2 --> t2
+        t2 --> t3["next target token"]
+    end
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Architecture</th><th>Examples</th><th>Best at</th><th>Weak at</th></tr>
+  <tr><td>Encoder-only</td><td>BERT, RoBERTa, DeBERTa, E5/BGE, ModernBERT</td><td>classification, tagging, embeddings, re-ranking</td><td>generating text</td></tr>
+  <tr><td>Decoder-only</td><td>GPT series, LLaMA, Mistral, Qwen, Claude</td><td>open-ended generation, chat, code, reasoning, few-shot tasks</td><td>overkill (large and slow) for simple labelling jobs</td></tr>
+  <tr><td>Encoder–decoder</td><td>T5 / Flan-T5, BART, mT5, Whisper</td><td>translation, summarization, speech-to-text</td><td>open-ended chat at scale</td></tr>
+  <tr><td>Prefix-LM / hybrids</td><td>UL2, GLM</td><td>mixes of understanding and generation</td><td>less common today</td></tr>
+</table></div>
+<p><strong>Choosing in practice:</strong></p>
+<div class="tw"><table>
+  <tr><th>If you need…</th><th>Choose</th></tr>
+  <tr><td>a label or a score for each input, cheaply, at high volume</td><td><strong>encoder</strong> (fine-tuned)</td></tr>
+  <tr><td>a vector to search millions of documents</td><td><strong>encoder</strong> (embedding model)</td></tr>
+  <tr><td>a fixed input→output transform, e.g. speech-to-text or translation, on limited hardware</td><td><strong>encoder–decoder</strong></td></tr>
+  <tr><td>open-ended answers, many different tasks, chat, tool use</td><td><strong>decoder-only LLM</strong></td></tr>
+</table></div>
+<p>The lines are blurring: some recent embedding models are built from decoder LLMs, and decoder-only LLMs now translate and summarize very well.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Encoders and decoders use different kinds of blocks."</strong> They use the same block; the <strong>mask</strong> (and the objective) differ.</li>
+  <li class="mistake"><strong>"Decoder-only models can't understand input; they only generate."</strong> The prompt <em>is</em> the input; causal self-attention over it provides understanding. Each prompt token just can't see later prompt tokens.</li>
+  <li class="mistake"><strong>"Encoder–decoder is always better because it has both."</strong> It's better suited to some transformation tasks, but it's more complex and less convenient for chat and in-context learning. Most frontier LLMs are decoder-only.</li>
+  <li class="mistake"><strong>"BERT is obsolete."</strong> Encoders are still the workhorse for search, classification and RAG retrieval because they're small, fast and accurate.</li>
+  <li class="mistake"><strong>"Span corruption is the same as MLM."</strong> MLM predicts each hidden token in place with an encoder; span corruption removes whole spans and has a <strong>decoder</strong> generate them as a sequence.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Encoder, decoder and encoder–decoder share the same block; they differ in <strong>attention mask</strong> and <strong>training objective</strong>.</li>
+  <li>Masks: encoder <strong>full</strong> (\(n^2\)), decoder <strong>causal</strong> (\(n(n+1)/2\)), prefix-LM <strong>full on the prompt, causal after</strong>, encoder–decoder <strong>full + causal + cross</strong>.</li>
+  <li>Objectives: <strong>MLM</strong> (~15% supervised), <strong>causal LM</strong> (100% supervised), <strong>span corruption</strong> (reconstruct removed spans).</li>
+  <li>Any task can be framed as text generation; decoder-only LLMs win on simplicity, scaling, prompting/in-context learning and cacheable generation.</li>
+  <li>Encoders still win for embeddings and labels; encoder–decoders for long-input → short-output transforms like translation and speech recognition.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>For \(n = 6\) tokens with a prefix of \(p = 4\), how many pairs are allowed under (a) bidirectional, (b) causal, and (c) prefix-LM attention?</li>
+  <li>Pick an architecture for each, with one reason: (a) a spam filter scanning one million emails a day; (b) a customer-support chatbot; (c) converting lecture recordings to text.</li>
+  <li>Write the input and target for <strong>span corruption</strong> on "the bat flew out of the cave" if the spans "flew out" and "cave" are removed.</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>(a) \(6^2 = \mathbf{36}\); (b) \(6 \cdot 7/2 = \mathbf{21}\); (c) \(4^2 + 5 + 6 = \mathbf{27}\).</li>
+    <li>(a) <strong>Encoder</strong> — a small fine-tuned classifier is fast and cheap at high volume. (b) <strong>Decoder-only LLM</strong> — open-ended conversation, many kinds of request. (c) <strong>Encoder–decoder</strong> (e.g. Whisper) — long audio input read once, text output generated.</li>
+    <li>Input: <code>the bat &lt;X&gt; of the &lt;Y&gt;</code>. Target: <code>&lt;X&gt; flew out &lt;Y&gt; cave &lt;Z&gt;</code>.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Devlin, J. et al. (2019). <strong>"BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding."</strong> <a href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener">arXiv:1810.04805</a> — the encoder-only recipe.</li>
+  <li>Radford, A. et al. (2019). <strong>"Language Models are Unsupervised Multitask Learners."</strong> OpenAI — GPT-2: tasks as text continuation.</li>
+  <li>Brown, T. et al. (2020). <strong>"Language Models are Few-Shot Learners."</strong> <a href="https://arxiv.org/abs/2005.14165" target="_blank" rel="noopener">arXiv:2005.14165</a> — GPT-3 and in-context learning.</li>
+  <li>Raffel, C. et al. (2020). <strong>"Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer."</strong> <a href="https://arxiv.org/abs/1910.10683" target="_blank" rel="noopener">arXiv:1910.10683</a> — T5, span corruption, and a systematic comparison of architectures and objectives.</li>
+  <li>Lewis, M. et al. (2019). <strong>"BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation, Translation, and Comprehension."</strong> <a href="https://arxiv.org/abs/1910.13461" target="_blank" rel="noopener">arXiv:1910.13461</a>.</li>
+  <li>Wang, T. et al. (2022). <strong>"What Language Model Architecture and Pretraining Objective Work Best for Zero-Shot Generalization?"</strong> <a href="https://arxiv.org/abs/2204.05832" target="_blank" rel="noopener">arXiv:2204.05832</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- 1. Attention patterns ---------- */
+  (function masks() {
+    var wrap = document.getElementById("mk-grids");
+    if (!wrap) return;
+    var TOK = ["the", "bat", "flew", "away", "fast"], mode = "enc", p = 3, focus = { g: 0, r: 1 };
+    var pS = document.getElementById("mk-p");
+    function grid(title, rows, cols, allow, gi, preCols) {
+      var h = '<div><p class="gcap">' + title + '</p><div class="mat-scroll"><table class="grid"><tr><th></th>' + cols.map(function (c, j) { return '<th class="' + (preCols && j < preCols ? "pre" : "") + '">' + c + "</th>"; }).join("") + "</tr>";
+      var n = 0;
+      rows.forEach(function (r, i) {
+        h += '<tr><th class="rowh' + (focus.g === gi && focus.r === i ? " on" : "") + '" data-g="' + gi + '" data-r="' + i + '" tabindex="0">' + r + "</th>" + cols.map(function (_, j) {
+          var ok = allow(i, j); if (ok) n++;
+          return '<td class="' + (ok ? "ok" : "no") + (ok && focus.g === gi && focus.r === i ? " focus" : "") + '">' + (ok ? "✓" : "") + "</td>";
+        }).join("") + "</tr>";
+      });
+      return { html: h + "</table></div></div>", n: n };
+    }
+    function render() {
+      document.querySelectorAll("#masks [data-m]").forEach(function (b) { b.classList.toggle("on", b.dataset.m === mode); });
+      document.getElementById("mk-pslider").style.display = mode === "pre" ? "" : "none";
+      document.getElementById("mk-po").textContent = p;
+      var parts = [], total = 0, label;
+      if (mode === "enc") { var g = grid("bidirectional self-attention", TOK, TOK, function () { return true; }, 0); parts.push(g); total = g.n; label = "5² = 25"; }
+      if (mode === "dec") { var g2 = grid("causal self-attention", TOK, TOK, function (i, j) { return j <= i; }, 0); parts.push(g2); total = g2.n; label = "5·6/2 = 15"; }
+      if (mode === "pre") { var g3 = grid("prefix-LM (shaded = prefix)", TOK, TOK, function (i, j) { return j < p || j <= i; }, 0, p); parts.push(g3); total = g3.n; label = p + "² + " + TOK.slice(p).map(function (_, k) { return p + k + 1; }).join(" + ") + " = " + g3.n; }
+      if (mode === "ed") {
+        var src = TOK.slice(0, 3), tgt = TOK.slice(3);
+        var a = grid("encoder self (full)", src, src, function () { return true; }, 0);
+        var b = grid("decoder self (causal)", tgt, tgt, function (i, j) { return j <= i; }, 1);
+        var c = grid("cross (target → source)", tgt, src, function () { return true; }, 2);
+        parts = [a, b, c]; total = a.n + b.n + c.n; label = "9 + 3 + 6 = 18";
+      }
+      wrap.innerHTML = parts.map(function (x) { return x.html; }).join("");
+      document.getElementById("mk-count").textContent = "allowed pairs: " + label;
+      wrap.querySelectorAll("th.rowh").forEach(function (th) {
+        function pick() { focus = { g: parseInt(th.dataset.g, 10), r: parseInt(th.dataset.r, 10) }; render(); }
+        th.addEventListener("click", pick);
+        th.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      });
+      if (canAnimate) M.animate(wrap.querySelectorAll("td.focus"), { scale: [0.6, 1] }, { duration: 0.25, delay: M.stagger(0.03) });
+      var msg = {
+        enc: "Encoder: every token sees every token, including later ones. Good for understanding; useless for generating (it could copy the answer).",
+        dec: "Decoder: each token sees only itself and earlier tokens. “the” can’t see “flew” — the price of being able to generate.",
+        pre: "Prefix-LM: the first " + p + " tokens (the prompt) see each other in both directions; later tokens are causal. Slide p to move the boundary.",
+        ed: "Encoder–decoder: the source is read bidirectionally, the target is generated causally, and every target token may look at every source token through cross-attention."
+      }[mode];
+      document.getElementById("mk-status").textContent = msg + " Click a row label to highlight what that token can see.";
+      window.__masks = { mode: mode, p: p, total: total };
+    }
+    document.querySelectorAll("#masks [data-m]").forEach(function (b) { b.addEventListener("click", function () { mode = b.dataset.m; focus = { g: 0, r: mode === "ed" ? 0 : 1 }; render(); }); });
+    pS.addEventListener("input", function () { p = parseInt(pS.value, 10); render(); });
+    render();
+  })();
+
+  /* ---------- 2. Objectives on one sentence ---------- */
+  (function objs() {
+    var view = document.getElementById("ob-view");
+    if (!view) return;
+    var SENTS = {
+      short: ["students", "often", "study", "late", "at", "night", "before", "exams"],
+      long: ["students", "in", "hyderabad", "often", "study", "late", "at", "night", "before", "the", "final", "exams", "because", "the", "syllabus", "is", "long", "and", "difficult", "."]
+    };
+    var which = "short", rate = 0.15, seed = 3;
+    var SENT = ["<X>", "<Y>", "<Z>", "<W>", "<V>", "<U>", "<T>"];
+    function pickPositions(n, k, r) { var idx = []; for (var i = 0; i < n; i++) idx.push(i); for (var j = n - 1; j > 0; j--) { var t = Math.floor(r() * (j + 1)); var tmp = idx[j]; idx[j] = idx[t]; idx[t] = tmp; } return idx.slice(0, k).sort(function (a, b) { return a - b; }); }
+    function spans(n, k, r) {
+      // split k corrupted tokens into spans of mean length ~3, placed without touching each other
+      var count = Math.max(1, Math.round(k / 3)), lens = [];
+      for (var s = 0; s < count; s++) lens.push(Math.floor(k / count) + (s < k % count ? 1 : 0));
+      for (var tries = 0; tries < 300; tries++) {
+        var starts = lens.map(function (L) { return Math.floor(r() * (n - L + 1)); }).sort(function (a, b) { return a - b; });
+        var ok = true; for (var q = 1; q < starts.length; q++) if (starts[q] <= starts[q - 1] + lens[q - 1]) ok = false;
+        if (ok) return starts.map(function (st, q) { return [st, lens[q]]; });
+      }
+      return [[0, k]];
+    }
+    function chip(t, cls) { return '<span class="tk ' + (cls || "") + '">' + esc(t) + "</span>"; }
+    function row(label, html) { return '<div class="seq"><span class="rowlbl">' + label + "</span>" + html + "</div>"; }
+    function render() {
+      var W = SENTS[which], n = W.length, r = rng(seed * 131 + n);
+      document.getElementById("ob-rateo").textContent = Math.round(rate * 100) + "%";
+      document.querySelectorAll("#objs [data-s]").forEach(function (b) { b.classList.toggle("on", b.dataset.s === which); });
+      var k = Math.max(1, Math.round(rate * n));
+      // MLM
+      var mpos = pickPositions(n, k, r);
+      var mlmIn = W.map(function (w, i) { return mpos.indexOf(i) >= 0 ? chip("[MASK]", "mask") : chip(w); }).join("");
+      var mlmT = mpos.map(function (i) { return chip(W[i] + " @" + (i + 1), "sup"); }).join("");
+      // CLM
+      var clmIn = [chip("<bos>")].concat(W.map(function (w) { return chip(w); })).join("");
+      var clmT = W.concat(["<eos>"]).map(function (w) { return chip(w, "sup"); }).join("");
+      // span corruption
+      var sp = spans(n, k, r), inp = [], tgt = [], si = 0, i2 = 0;
+      sp.forEach(function (s) { while (i2 < s[0]) { inp.push(chip(W[i2])); i2++; } inp.push(chip(SENT[si], "sent")); tgt.push(chip(SENT[si], "sent")); for (var q = 0; q < s[1]; q++) tgt.push(chip(W[s[0] + q], "sup")); i2 = s[0] + s[1]; si++; });
+      while (i2 < n) { inp.push(chip(W[i2])); i2++; }
+      tgt.push(chip(SENT[si], "sent"));
+      var spanTokens = sp.reduce(function (a, s) { return a + s[1]; }, 0);
+      function meter(frac) { return '<div class="meter"><i data-w="' + frac + '"></i></div>'; }
+      view.innerHTML =
+        '<p class="sub-cap">Masked LM (encoder) — ' + mpos.length + " of " + n + " positions supervised</p>" + row("input", mlmIn) + row("predict", mlmT) + meter(mpos.length / n) +
+        '<p class="sub-cap">Causal LM (decoder) — ' + (n + 1) + " of " + (n + 1) + " positions supervised</p>" + row("input", clmIn) + row("predict", clmT) + meter(1) +
+        '<p class="sub-cap">Span corruption (encoder–decoder) — ' + spanTokens + " corrupted tokens in " + sp.length + " span" + (sp.length > 1 ? "s" : "") + "</p>" + row("encoder in", inp.join("")) + row("decoder out", tgt.join("")) + meter(spanTokens / n);
+      view.querySelectorAll(".meter > i").forEach(function (el) { var pct = (parseFloat(el.dataset.w) * 100).toFixed(0) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.45 }); else el.style.width = pct; });
+      if (canAnimate) M.animate(view.querySelectorAll(".tk.mask, .tk.sent"), { scale: [0.6, 1] }, { duration: 0.3, delay: M.stagger(0.04) });
+      document.getElementById("ob-status").textContent = "Green tokens are what the model is trained to predict. Causal LM learns from every position (" + (n + 1) + "); MLM from " + mpos.length + "; span corruption from " + spanTokens + " (plus sentinels). Gold sentinels mark where each removed span belongs.";
+      window.__objs = { n: n, mlm: mpos.length, clm: n + 1, span: spanTokens, spans: sp.length };
+    }
+    document.querySelectorAll("#objs [data-s]").forEach(function (b) { b.addEventListener("click", function () { which = b.dataset.s; render(); }); });
+    document.getElementById("ob-reroll").addEventListener("click", function () { seed++; render(); });
+    var rs = document.getElementById("ob-rate"); rs.addEventListener("input", function () { rate = parseFloat(rs.value); render(); });
+    render();
+  })();
+
+  /* ---------- 3. One task, three framings ---------- */
+  (function frames() {
+    var view = document.getElementById("fr-view");
+    if (!view) return;
+    var TASKS = {
+      sent: {
+        enc: ["[CLS] the movie was great [SEP]", "class “positive” from a classifier on the [CLS] vector", "fine-tuned classification head"],
+        ed:  ["sentiment: the movie was great", "positive", "nothing extra; the label is generated as text"],
+        dec: ["Review: the movie was great.\nSentiment:", " positive", "nothing extra; just a prompt"]
+      },
+      trans: {
+        enc: ["[CLS] the bat flew [SEP]", "not a natural fit: an encoder can’t write new text", "you would need to bolt on a decoder"],
+        ed:  ["translate English to Hindi: the bat flew", "चमगादड़ उड़ा", "the classic use of encoder–decoder"],
+        dec: ["English: the bat flew\nHindi:", " चमगादड़ उड़ा", "a prompt (a few examples help)"]
+      },
+      ner: {
+        enc: ["[CLS] Akhil studies in Hyderabad [SEP]", "per-token tags: Akhil → PERSON, Hyderabad → PLACE, others → O", "token-classification head on every vector"],
+        ed:  ["find names: Akhil studies in Hyderabad", "person: Akhil; place: Hyderabad", "output format learned in fine-tuning"],
+        dec: ["List the people and places in: “Akhil studies in Hyderabad”\nPeople:", " Akhil\nPlaces: Hyderabad", "a prompt describing the format"]
+      },
+      qa: {
+        enc: ["[CLS] Where does Akhil study? [SEP] Akhil studies in Hyderabad. [SEP]", "answer span: start = “Hyderabad”, end = “Hyderabad”", "start/end span head; the answer must appear in the text"],
+        ed:  ["question: Where does Akhil study? context: Akhil studies in Hyderabad.", "Hyderabad", "fine-tuned on QA pairs"],
+        dec: ["Akhil studies in Hyderabad.\nQ: Where does Akhil study?\nA:", " In Hyderabad.", "a prompt; can also answer without the context if it knows"]
+      }
+    };
+    var NAMES = { enc: "Encoder (BERT-style)", ed: "Encoder–decoder (T5-style)", dec: "Decoder-only (GPT-style)" }, task = "sent";
+    function render() {
+      document.querySelectorAll("#frames [data-t]").forEach(function (b) { b.classList.toggle("on", b.dataset.t === task); });
+      var t = TASKS[task];
+      view.innerHTML = ["enc", "ed", "dec"].map(function (k) {
+        return '<div class="frame"><p class="ttl">' + NAMES[k] + '</p><div class="lab">input</div><div class="io">' + esc(t[k][0]).replace(/\n/g, "<br>") + '</div><div class="lab">output</div><div class="io">' + esc(t[k][1]).replace(/\n/g, "<br>") + '</div><div class="lab">needs</div><div class="need">' + esc(t[k][2]) + "</div></div>";
+      }).join("");
+      if (canAnimate) M.animate(view.querySelectorAll(".frame"), { opacity: [0, 1], y: [8, 0] }, { duration: 0.3, delay: M.stagger(0.08) });
+      document.getElementById("fr-status").textContent = task === "trans"
+        ? "Translation produces new text, so the encoder alone can’t do it; the other two can."
+        : "The encoder produces labels or spans through a task-specific head; the encoder–decoder and decoder-only models write the answer as text.";
+    }
+    document.querySelectorAll("#frames [data-t]").forEach(function (b) { b.addEventListener("click", function () { task = b.dataset.t; render(); }); });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

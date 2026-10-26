@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 14: KV Cache &amp; Fast Attention</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.4em; text-align: right; }
+.big { font-family: var(--hand); font-size: 22px; font-weight: 700; color: var(--ink); }
+/* cache simulator */
+.simrow { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+.simrow .lab { font-family: var(--hand); font-weight: 700; color: var(--ink); min-width: 8.5em; font-size: 15px; }
+.cells { display: flex; flex-wrap: wrap; gap: 3px; }
+.cell { width: 22px; height: 22px; border-radius: 4px; border: 1.5px solid #c9d2ea; background: #fff; font-family: var(--mono); font-size: 10px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.cell.recompute { background: #fde7e2; border-color: #c0472f; color: #8a2b16; }
+.cell.cached { background: #e3f4ea; border-color: #2e7d5b; color: #1d5a3e; }
+.cell.newc { background: var(--gold-fill); border-color: var(--gold); color: #7a5500; }
+.counts { display: grid; grid-template-columns: auto auto; gap: 2px 16px; font-size: 15px; margin: 8px 0; max-width: 420px; }
+.counts dt { color: var(--muted); } .counts dd { margin: 0; font-family: var(--mono); font-weight: 700; color: var(--ink); text-align: right; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1.5px solid; }
+/* memory */
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input, .calc-in select { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible, .calc-in select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.gpu { position: relative; height: 34px; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; display: flex; background: #fff; margin: 8px 0 2px; }
+.gpu > span { display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--mono); font-size: 12px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.g-w { background: #1b2fa8; } .g-c { background: #b07a00; } .g-over { background: #c0472f; }
+.gpu-cap { font-size: 13px; color: var(--muted); }
+.mtable td:nth-child(2) { font-family: var(--mono); font-size: 13.5px; }
+/* online softmax */
+.os-in { display: grid; grid-template-columns: auto repeat(6, minmax(52px, 1fr)); gap: 4px 6px; align-items: center; font-size: 14px; margin: 8px 0; max-width: 560px; }
+.os-in input { width: 100%; font-family: var(--mono); font-size: 13.5px; border: 1.5px solid #b9c3e0; border-radius: 5px; padding: 1px 4px; text-align: right; color: var(--ink); }
+.os-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.os-in .chunk { border-radius: 4px; height: 6px; }
+.ostable { font-family: var(--mono); font-size: 13px; }
+.ostable td, .ostable th { padding: 4px 8px; }
+.ostable tr.cur td { background: var(--gold-fill); }
+.ok { color: #2e7d5b; font-weight: 700; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .os-in { grid-template-columns: auto repeat(6, minmax(40px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 14</p>
+  <h1>KV Cache &amp; Fast Attention</h1>
+  <p class="lede"><strong>In one line:</strong> during generation, a token's keys and values never change once computed, so we <strong>cache</strong> them instead of recomputing the whole prefix every step. That makes decoding fast but turns memory into the bottleneck — solved with smaller caches (GQA, quantization, sliding windows, paging) and with <strong>FlashAttention</strong>, which computes exact attention without ever storing the \(n \times n\) score matrix.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why keys and values can be cached during generation, and count the work saved.</li>
+  <li><strong>Calculate</strong> the size of a KV cache for a real model, context length and batch size.</li>
+  <li><strong>Explain</strong> why decoding is limited by memory bandwidth, and estimate a lower bound on time per token.</li>
+  <li><strong>Describe</strong> the main ways to shrink the cache: GQA/MQA, quantization, sliding windows, PagedAttention, prefix caching.</li>
+  <li><strong>Compute</strong> softmax in chunks with the <strong>online softmax</strong> trick, and explain how FlashAttention uses it.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 10:</strong> generation runs one forward pass per new token; causal attention means earlier tokens never see later ones.</li>
+  <li><strong>Section 6:</strong> GQA — groups of query heads share key/value heads.</li>
+  <li><strong>Section 5:</strong> attention scores, softmax, and the "subtract the max" trick for numerical stability.</li>
+  <li><strong>Section 13:</strong> prefill vs decode.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — bandwidth vs compute</span>
+  A GPU can do arithmetic extremely fast (hundreds of trillions of operations per second), but it can only <strong>read memory</strong> at a few terabytes per second. If a job needs very few calculations per byte it reads, it is <strong>memory-bound</strong>: its speed is set by how fast data can be loaded, not by how fast the GPU can calculate.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: generation repeats itself</h2>
+<p>Without any caching, generating token \(t+1\) means running the model on <strong>all</strong> \(t\) previous tokens again — recomputing every key and value for the whole prefix — only to use the output at the last position.</p>
+<p>But with a causal mask, the key and value of token \(j\) depend only on tokens \(1 \dots j\). Adding new tokens later <strong>never changes them</strong>. Recomputing them is pure waste.</p>
+<div class="tw"><table>
+  <tr><th>Generating 500 tokens after a 1,000-token prompt</th><th>K/V computations (per layer, per head)</th></tr>
+  <tr><td>Without caching</td><td>\(1000 + 1001 + \dots + 1499 = 624{,}750\)</td></tr>
+  <tr><td>With a KV cache</td><td>\(1000 + 499 = 1{,}499\) (≈ <strong>417× fewer</strong>)</td></tr>
+</table></div>
+<p>So every LLM server keeps a <strong>KV cache</strong>. But the cache itself costs memory — often more than the model weights — and that creates the next set of problems.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: a running class notebook</h2>
+<p>A teacher dictates a long passage, one sentence at a time, and after each sentence asks the class a question about everything so far.</p>
+<ul>
+  <li><strong>No cache:</strong> after every new sentence, students rewrite their notes on the <em>whole</em> passage from scratch before answering. Exhausting, and it gets slower with every sentence.</li>
+  <li><strong>KV cache:</strong> students keep a <strong>notebook</strong>. For each new sentence they add one new line of notes, then answer by reading back through the notebook. Fast — but the notebook keeps growing, and with 100 students' notebooks the shelf fills up.</li>
+  <li><strong>FlashAttention:</strong> instead of spreading the whole notebook across a big table to read it (which needs a huge table), a student reads it <strong>one page at a time</strong>, keeping a small running tally — and gets exactly the same answer.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>The "notebook" isn't a summary; it's an exact copy of every past token's key and value vectors, in every layer and every key/value head.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Decoding with a KV cache</h3>
+<p><strong>Prefill:</strong> run the whole prompt once; store each layer's \(K\) and \(V\) (shape \(n_{\text{prompt}} \times d_k\) per KV head) in the cache.</p>
+<p><strong>Each decode step</strong>, in every layer:</p>
+<ol class="steps">
+  <li>Compute \(q_t, k_t, v_t\) for the <strong>new token only</strong>.</li>
+  <li>Append \(k_t, v_t\) to the cache.</li>
+  <li>Attend: \(\text{softmax}\!\left(q_t K_{\text{cache}}^{\top} / \sqrt{d_k}\right) V_{\text{cache}}\) — one query row against all cached keys.</li>
+</ol>
+<p>The output is <strong>identical</strong> to recomputing everything; the cache just avoids redundant work. Per step, the cost of the projections no longer grows with the context; the attention itself still reads all \(t\) cached keys and values.</p>
+
+<div class="demo" id="sim">
+  <p class="demo-title">Try it: generation with and without a KV cache</p>
+  <div class="sliders" style="max-width:520px">
+    <label>prompt tokens <input type="range" id="sm-p" min="1" max="12" step="1" value="5"><output id="sm-po"></output></label>
+  </div>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="sm-step">Generate one token</button>
+    <button class="btn" type="button" id="sm-reset">Start over</button>
+  </div>
+  <div class="simrow"><span class="lab">without cache</span><div class="cells" id="sm-no"></div></div>
+  <div class="simrow"><span class="lab">with KV cache</span><div class="cells" id="sm-yes"></div></div>
+  <div class="legend"><span><i class="sw" style="background:#fde7e2;border-color:#c0472f"></i>K/V recomputed this step</span><span><i class="sw" style="background:#e3f4ea;border-color:#2e7d5b"></i>read from cache</span><span><i class="sw" style="background:#ffe9a8;border-color:#b07a00"></i>new token: computed once, then cached</span></div>
+  <dl class="counts" id="sm-counts"></dl>
+  <p class="demo-status" id="sm-status" aria-live="polite"></p>
+</div>
+
+<h3>5.2 How big is the cache?</h3>
+<div class="math-block">$$\text{bytes} = \underbrace{2}_{K \text{ and } V} \times \text{layers} \times \text{KV heads} \times d_{\text{head}} \times \text{bytes per number} \times \text{tokens} \times \text{batch}$$</div>
+<p>It grows <strong>linearly</strong> with context length and with the number of simultaneous users.</p>
+
+<h3>5.3 Why decoding is memory-bound</h3>
+<p>At each decode step with batch size 1, the GPU must <strong>read every weight once</strong> (and the whole KV cache) to produce <strong>one</strong> token. That's only about 2 floating-point operations per weight read — far too few to keep the GPU's arithmetic units busy. So:</p>
+<div class="math-block">$$\text{time per token} \;\gtrsim\; \frac{\text{bytes of weights} + \text{bytes of KV cache}}{\text{memory bandwidth}}$$</div>
+<p><strong>Batching</strong> helps enormously: one read of the weights can serve many users' tokens at once, so throughput rises almost linearly with batch size — until the KV caches of all those users fill the GPU's memory. That's why cache size matters so much.</p>
+
+<h3>5.4 Shrinking the cache</h3>
+<div class="tw"><table>
+  <tr><th>Technique</th><th>Idea</th><th>Saving</th></tr>
+  <tr><td><strong>GQA / MQA</strong> (Section 6)</td><td>fewer key/value heads, shared by groups of query heads</td><td>\(h / g\) (e.g. 4–8×)</td></tr>
+  <tr><td><strong>KV quantization</strong></td><td>store cached values in 8-bit (or fewer) instead of 16-bit</td><td>2× or more</td></tr>
+  <tr><td><strong>Sliding-window attention</strong></td><td>each layer attends only to the last \(W\) tokens, so older entries are dropped</td><td>cache capped at \(W\) tokens</td></tr>
+  <tr><td><strong>PagedAttention</strong></td><td>store the cache in fixed-size blocks ("pages") anywhere in memory, like an OS's virtual memory</td><td>almost no wasted (fragmented) memory → more users per GPU</td></tr>
+  <tr><td><strong>Prefix caching</strong></td><td>reuse the cached K/V of a shared prompt (e.g. a long system prompt) across requests</td><td>skip repeated prefill</td></tr>
+</table></div>
+
+<h3>5.5 FlashAttention: exact attention without the \(n \times n\) matrix</h3>
+<p>Standard attention writes the full score matrix \(S = QK^{\top}\) (\(n \times n\)) to GPU main memory, reads it back for the softmax, writes \(A\), reads it again for \(AV\). For long sequences that's a lot of memory <strong>traffic</strong> — and memory traffic, not arithmetic, is the slow part.</p>
+<p><strong>FlashAttention</strong> splits \(Q\), \(K\) and \(V\) into <strong>tiles</strong> small enough to fit in the GPU's tiny but very fast on-chip memory (SRAM), and processes the keys/values tile by tile. The problem: softmax needs the maximum and the sum over the <strong>whole</strong> row before any weight is known. The solution is the <strong>online softmax</strong>.</p>
+<p><strong>Online softmax.</strong> Process scores in chunks, keeping three running quantities per query row:</p>
+<ul>
+  <li>\(m\): the largest score seen so far,</li>
+  <li>\(\ell\): the sum of \(e^{s - m}\) so far,</li>
+  <li>\(o\): the sum of \(e^{s - m}\, v\) so far.</li>
+</ul>
+<p>When a new chunk arrives with a larger maximum \(m'\), rescale the old totals by \(e^{m - m'}\), then add the new chunk's contributions. At the end, the output is \(o / \ell\) — <strong>exactly</strong> the same as normal softmax attention.</p>
+<p>Results:</p>
+<ul>
+  <li><strong>Memory:</strong> \(O(n)\) instead of \(O(n^2)\) — the full score matrix is never stored.</li>
+  <li><strong>Speed:</strong> typically 2–4× faster in practice, because far less data moves between memory and the chip.</li>
+  <li><strong>Exactness:</strong> not an approximation; same output up to floating-point rounding.</li>
+</ul>
+
+<h3>5.6 Beyond full attention (brief)</h3>
+<p>Other ideas trade some exactness or generality for lower cost: <strong>sparse attention</strong> (each token attends to a selected subset), <strong>linear attention</strong> (rewrite attention to avoid the \(n^2\) term), and <strong>state-space / recurrent models</strong> (e.g. Mamba) with a fixed-size state instead of a growing cache. Several recent models mix such layers with standard attention.</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 One decode step with a cache</h3>
+<p>Prompt "the bat" (2 tokens). After prefill, each layer's cache holds \(k_{\text{the}}, k_{\text{bat}}\) and \(v_{\text{the}}, v_{\text{bat}}\).</p>
+<p>To generate the next token after "flew" has just been chosen:</p>
+<ol class="steps">
+  <li>Compute \(q_{\text{flew}}, k_{\text{flew}}, v_{\text{flew}}\) — <strong>one</strong> new set of projections.</li>
+  <li>Cache becomes \(K = [k_{\text{the}}; k_{\text{bat}}; k_{\text{flew}}]\), \(V\) likewise.</li>
+  <li>Attention for "flew": one row of scores \(q_{\text{flew}} \cdot [k_{\text{the}}, k_{\text{bat}}, k_{\text{flew}}]\) → softmax → mix the three cached values.</li>
+</ol>
+<p>Small count: generating 3 tokens after a 5-token prompt needs \(5 + 6 + 7 = 18\) K/V computations without a cache, but only \(5 + 1 + 1 = 7\) with it.</p>
+
+<h3>6.2 Cache sizes for real models (16-bit numbers)</h3>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Layers</th><th>KV heads</th><th>\(d_{\text{head}}\)</th><th>Per token</th><th>4,096-token context</th></tr>
+  <tr><td>LLaMA-2 7B (MHA)</td><td>32</td><td>32</td><td>128</td><td>\(2 \cdot 32 \cdot 32 \cdot 128 \cdot 2 = 524{,}288\) B = <strong>0.5 MB</strong></td><td><strong>2 GiB</strong></td></tr>
+  <tr><td>Mistral 7B (GQA)</td><td>32</td><td>8</td><td>128</td><td>0.125 MB</td><td>0.5 GiB</td></tr>
+  <tr><td>LLaMA-2 70B (GQA)</td><td>80</td><td>8</td><td>128</td><td>0.31 MB</td><td>1.25 GiB</td></tr>
+</table></div>
+<p><strong>Serving 32 users</strong> of LLaMA-2 7B at 4,096 tokens each needs \(32 \times 2 = 64\) GiB (≈ 69 GB) of cache — about <strong>5×</strong> the model's own weights (13.5 GB). Mistral's GQA brings that down to 16 GiB.</p>
+
+<h3>6.3 A lower bound on decode speed</h3>
+<p>LLaMA-2 7B in 16-bit: \(6.74 \times 10^9 \times 2 = 13.5\) GB of weights. On an A100 GPU with about 2.0 TB/s of memory bandwidth, batch size 1, short context:</p>
+<div class="math-block">$$\frac{13.5 \times 10^9 \text{ bytes}}{2.0 \times 10^{12} \text{ bytes/s}} = 6.7 \text{ ms per token} \;\Rightarrow\; \text{at most} \approx 150 \text{ tokens/s}$$</div>
+<p>No amount of extra arithmetic speed can beat this — the weights simply can't be read faster. Ways around it: <strong>quantize</strong> the weights (8-bit → half the bytes → about twice as fast, Section 17), and <strong>batch</strong> many users so each weight read produces many tokens.</p>
+
+<div class="demo" id="mem">
+  <p class="demo-title">Try it: cache memory and decode speed</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-m="7b">LLaMA-2 7B</button>
+    <button class="btn" type="button" data-m="mis">Mistral 7B</button>
+    <button class="btn" type="button" data-m="70b">LLaMA-2 70B</button>
+  </div>
+  <div class="calc-in">
+    <label>layers<input id="mm-L" type="number" min="1"></label>
+    <label>KV heads<input id="mm-kv" type="number" min="1"></label>
+    <label>d<sub>head</sub><input id="mm-dh" type="number" min="1"></label>
+    <label>parameters (B)<input id="mm-n" type="number" min="0.1" step="0.01"></label>
+    <label>context tokens<input id="mm-ctx" type="number" min="1" value="4096"></label>
+    <label>users (batch)<input id="mm-b" type="number" min="1" value="1"></label>
+    <label>number format<select id="mm-q"><option value="2">16-bit (2 bytes)</option><option value="1">8-bit (1 byte)</option></select></label>
+    <label>sliding window (0 = off)<input id="mm-w" type="number" min="0" value="0"></label>
+    <label>GPU memory (GB)<input id="mm-gpu" type="number" min="1" value="80"></label>
+    <label>bandwidth (TB/s)<input id="mm-bw" type="number" min="0.1" step="0.1" value="2.0"></label>
+  </div>
+  <div class="gpu" id="mm-bar"></div>
+  <p class="gpu-cap" id="mm-cap"></p>
+  <div class="tw"><table class="mtable" id="mm-out"></table></div>
+  <p class="demo-status" id="mm-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 Online softmax by hand</h3>
+<p>One query, four keys with scores \(s = [2, 1, 3, 0]\) and (scalar) values \(v = [1, 2, 3, 4]\). Process the keys in <strong>two chunks</strong> of two.</p>
+<p><strong>Chunk 1</strong> (scores 2, 1):</p>
+<ul>
+  <li>\(m = 2\)</li>
+  <li>\(\ell = e^{2-2} + e^{1-2} = 1 + 0.3679 = 1.3679\)</li>
+  <li>\(o = 1 \cdot 1 + 0.3679 \cdot 2 = 1.7358\)</li>
+</ul>
+<p><strong>Chunk 2</strong> (scores 3, 0) — new maximum \(m' = 3\):</p>
+<ul>
+  <li>Rescale the old totals by \(e^{2-3} = 0.3679\): \(\ell = 0.5032\), \(o = 0.6386\)</li>
+  <li>Add the new terms: \(e^{3-3} = 1\) (value 3) and \(e^{0-3} = 0.0498\) (value 4): \(\ell = 0.5032 + 1 + 0.0498 = 1.5530\); \(o = 0.6386 + 3 + 0.1991 = 3.8377\)</li>
+</ul>
+<p><strong>Output:</strong> \(o / \ell = 3.8377 / 1.5530 = \mathbf{2.4711}\).</p>
+<p><strong>Check with ordinary softmax:</strong> weights \([0.2369, 0.0871, 0.6439, 0.0321]\), output \(= 0.2369(1) + 0.0871(2) + 0.6439(3) + 0.0321(4) = \mathbf{2.4711}\). Identical — but we never needed all four scores at once.</p>
+
+<div class="demo" id="os">
+  <p class="demo-title">Try it: online softmax, one chunk at a time</p>
+  <div class="os-in" id="os-in"></div>
+  <div class="sliders" style="max-width:480px">
+    <label>chunk size <input type="range" id="os-c" min="1" max="6" step="1" value="2"><output id="os-co"></output></label>
+  </div>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="os-next">Process next chunk</button>
+    <button class="btn" type="button" id="os-reset">Start over</button>
+    <button class="btn" type="button" id="os-ex">Back to 6.4</button>
+  </div>
+  <div class="tw"><table class="ostable" id="os-table"></table></div>
+  <p class="big" id="os-out"></p>
+  <p class="demo-status" id="os-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 Why the score matrix is a problem</h3>
+<p>For a 32,768-token context, one head's score matrix in 16-bit is \(32{,}768^2 \times 2 \approx 2.1\) GB — per head, per layer. A model with 32 heads would need about 69 GB <em>per layer</em> just to hold scores. FlashAttention never builds this matrix, so the memory stays proportional to \(n\).</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    subgraph STEP["One decode step (each layer)"]
+        N["new token x_t"] --> P["compute q_t, k_t, v_t"]
+        P -->|"append k_t, v_t"| C[("KV cache<br/>K: t × d_k, V: t × d_k")]
+        P --> A["attention:<br/>q_t against all cached keys"]
+        C --> A
+        A --> O["output for x_t"]
+    end
+</pre>
+<pre class="mermaid">
+flowchart LR
+    S1["chunk 1 of keys/values"] --> R1["running max m, sum ℓ, output o"]
+    R1 --> S2["chunk 2: rescale by e^(m − m′), add"]
+    S2 --> S3["… chunk k"]
+    S3 --> F["final output = o / ℓ<br/>(exact softmax attention)"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<ul>
+  <li><strong>Every production LLM server</strong> uses a KV cache; systems like <strong>vLLM</strong> add PagedAttention and <strong>continuous batching</strong> (new requests join the running batch at every step) to serve many users per GPU (Section 18).</li>
+  <li><strong>Long-context costs:</strong> a 128k-token conversation needs a cache 32× larger than at 4k tokens. Long contexts are expensive mainly because of cache memory and the time to read it every step, not the weights.</li>
+  <li><strong>FlashAttention</strong> (and successors) is the default attention implementation in modern training and inference libraries; in PyTorch, <code>scaled_dot_product_attention</code> selects it automatically when it can.</li>
+  <li><strong>Prefix caching</strong> makes repeated system prompts and multi-turn chats cheaper: the shared beginning is prefilled once and reused.</li>
+  <li><strong>Speculative decoding</strong> (Section 13/17) tackles the same memory-bound problem from another angle: verify several drafted tokens per weight read.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"The KV cache is an approximation."</strong> It gives exactly the same results as recomputing everything; it only removes redundant work.</li>
+  <li class="mistake"><strong>"Queries are cached too."</strong> Only keys and values. Each past query was used once, at its own step, and is never needed again.</li>
+  <li class="mistake"><strong>"Decoding is slow because GPUs can't compute fast enough."</strong> For small batches it's limited by memory <strong>bandwidth</strong> — reading the weights and cache — not arithmetic.</li>
+  <li class="mistake"><strong>"FlashAttention is a cheaper, approximate attention."</strong> It computes <strong>exact</strong> attention; it's faster because it moves less data, not because it computes less.</li>
+  <li class="mistake"><strong>"Bigger context only costs more compute."</strong> It costs <strong>memory</strong>: the KV cache grows linearly with context for every user, limiting how many users fit on a GPU.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Causal attention means past keys and values never change, so the <strong>KV cache</strong> stores them; each decode step computes \(q, k, v\) only for the new token (417× fewer K/V computations in our example).</li>
+  <li>Cache size \(= 2 \times \text{layers} \times \text{KV heads} \times d_{\text{head}} \times \text{bytes} \times \text{tokens} \times \text{batch}\) — LLaMA-2 7B: 0.5 MB per token, 2 GiB per 4k-token conversation.</li>
+  <li>Decoding is <strong>memory-bandwidth bound</strong>: ≥ (weights + cache) / bandwidth per step (≈ 6.7 ms/token for a 7B model on an A100); batching and quantization help.</li>
+  <li>Shrink the cache with <strong>GQA/MQA</strong>, <strong>quantization</strong>, <strong>sliding windows</strong>, <strong>PagedAttention</strong> and <strong>prefix caching</strong>.</li>
+  <li><strong>FlashAttention</strong> tiles the computation and uses the <strong>online softmax</strong> (running max, sum, output with rescaling) to get exact attention in \(O(n)\) memory.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Without a cache, how many K/V computations are needed to generate 4 tokens after a 10-token prompt? With a cache?</li>
+  <li>A model has 40 layers, 8 KV heads, \(d_{\text{head}} = 128\), 16-bit cache. How much cache does one token need? How much for a batch of 16 users at 8,192 tokens each?</li>
+  <li>Redo the online softmax of 6.4 with chunks in the order (3, 0) then (2, 1). Do you get the same output? Which running quantity changes on the second chunk?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>Without: \(10 + 11 + 12 + 13 = \mathbf{46}\). With: \(10 + 1 + 1 + 1 = \mathbf{13}\). (The cache simulator only goes to 12 prompt tokens; try 10 and press "Generate" four times.)</li>
+    <li>Per token: \(2 \times 40 \times 8 \times 128 \times 2 = \mathbf{163{,}840}\) bytes = <strong>0.156 MB</strong>. Batch: \(163{,}840 \times 8{,}192 \times 16 = 21{,}474{,}836{,}480\) bytes ≈ <strong>20 GiB</strong>. (Enter these in the memory calculator.)</li>
+    <li>Chunk 1 (3, 0): \(m = 3\), \(\ell = 1 + e^{-3} = 1.0498\), \(o = 3 + 4e^{-3} = 3.1991\). Chunk 2 (2, 1): the maximum stays 3, so <strong>no rescaling</strong> is needed; add \(e^{-1} = 0.3679\) (value 1) and \(e^{-2} = 0.1353\) (value 2): \(\ell = 1.5530\), \(o = 3.1991 + 0.3679 + 0.2707 = 3.8377\). Output <strong>2.4711</strong> — the same. Only \(\ell\) and \(o\) change; \(m\) doesn't, because the second chunk has no larger score. (Reorder the scores in the online-softmax demo to check.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Pope, R. et al. (2022). <strong>"Efficiently Scaling Transformer Inference."</strong> <a href="https://arxiv.org/abs/2211.05102" target="_blank" rel="noopener">arXiv:2211.05102</a> — memory-bandwidth limits, KV cache, and batching trade-offs.</li>
+  <li>Dao, T. et al. (2022). <strong>"FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness."</strong> <a href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">arXiv:2205.14135</a>.</li>
+  <li>Milakov, M., &amp; Gimelshein, N. (2018). <strong>"Online normalizer calculation for softmax."</strong> <a href="https://arxiv.org/abs/1805.02867" target="_blank" rel="noopener">arXiv:1805.02867</a> — the online softmax.</li>
+  <li>Kwon, W. et al. (2023). <strong>"Efficient Memory Management for Large Language Model Serving with PagedAttention."</strong> <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">arXiv:2309.06180</a> — vLLM.</li>
+  <li>Ainslie, J. et al. (2023). <strong>"GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints."</strong> <a href="https://arxiv.org/abs/2305.13245" target="_blank" rel="noopener">arXiv:2305.13245</a>.</li>
+  <li>Jiang, A. Q. et al. (2023). <strong>"Mistral 7B."</strong> <a href="https://arxiv.org/abs/2310.06825" target="_blank" rel="noopener">arXiv:2310.06825</a> — sliding-window attention with GQA.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+
+  /* ---------- 1. With vs without KV cache ---------- */
+  (function sim() {
+    var sP = document.getElementById("sm-p");
+    if (!sP) return;
+    // Pass k produces generated token k. It processes the prompt plus the k-1 tokens generated so far.
+    // Without a cache that pass computes K/V for all p+k-1 tokens; with a cache, pass 1 (prefill) computes p and later passes compute 1.
+    var p = 5, gen = 0, totNo = 0, totYes = 0;
+    function reset() { p = parseInt(sP.value, 10); gen = 0; totNo = 0; totYes = 0; render(true); }
+    function cells(kind) {
+      var total = gen === 0 ? p : p + gen - 1, h = "";
+      for (var i = 0; i < total; i++) {
+        var lbl = i < p ? "p" + (i + 1) : "g" + (i - p + 1), cls;
+        if (gen === 0) cls = "";
+        else if (kind === "no") cls = "recompute";
+        else if (gen === 1) cls = "newc";
+        else cls = i === total - 1 ? "newc" : "cached";
+        h += '<span class="cell ' + cls + '">' + lbl + "</span>";
+      }
+      if (gen > 0) h += '<span class="cell" style="border-style:dashed">→g' + gen + "</span>";
+      return h;
+    }
+    function render(isReset) {
+      document.getElementById("sm-po").textContent = p;
+      document.getElementById("sm-no").innerHTML = cells("no");
+      document.getElementById("sm-yes").innerHTML = cells("yes");
+      document.getElementById("sm-counts").innerHTML =
+        "<dt>tokens generated</dt><dd>" + gen + "</dd>" +
+        "<dt>K/V computations without cache</dt><dd>" + n(totNo) + "</dd>" +
+        "<dt>K/V computations with cache</dt><dd>" + n(totYes) + "</dd>" +
+        "<dt>saving</dt><dd>" + (totNo / totYes).toFixed(2) + "×</dd>";
+      if (!isReset && canAnimate) M.animate(document.querySelectorAll("#sm-no .cell, #sm-yes .cell.newc"), { scale: [0.6, 1] }, { duration: 0.25, delay: M.stagger(0.01) });
+      var proc = p + gen - 1;
+      document.getElementById("sm-status").textContent = gen === 0
+        ? "A " + p + "-token prompt. Press “Generate one token”: the first pass (prefill) reads the whole prompt and produces generated token g1."
+        : gen === 1
+        ? "Pass 1 (prefill): both versions compute K/V for all " + p + " prompt tokens and produce g1. With a cache, those K/V are now stored (gold)."
+        : "Pass " + gen + " produces g" + gen + " from " + proc + " tokens. Without a cache, all " + proc + " tokens’ K/V are recomputed (red). With a cache, only the newest token (g" + (gen - 1) + ") is computed (gold); the other " + (proc - 1) + " are read from the cache (green).";
+      window.__sim = { p: p, gen: gen, no: totNo, yes: totYes };
+    }
+    document.getElementById("sm-step").addEventListener("click", function () {
+      if (gen >= 20) return;
+      gen++; totNo += p + gen - 1; totYes += gen === 1 ? p : 1;
+      render(false);
+    });
+    document.getElementById("sm-reset").addEventListener("click", reset);
+    sP.addEventListener("input", reset);
+    reset();
+  })();
+
+  /* ---------- 2. Cache memory and decode speed ---------- */
+  (function mem() {
+    var out = document.getElementById("mm-out");
+    if (!out) return;
+    var PRE = { "7b": { L: 32, kv: 32, dh: 128, n: 6.74 }, mis: { L: 32, kv: 8, dh: 128, n: 7.24 }, "70b": { L: 80, kv: 8, dh: 128, n: 69 } };
+    var F = ["L", "kv", "dh", "n", "ctx", "b", "q", "w", "gpu", "bw"];
+    function v(k) { return parseFloat(document.getElementById("mm-" + k).value); }
+    function load(k) { var p = PRE[k]; ["L", "kv", "dh", "n"].forEach(function (f) { document.getElementById("mm-" + f).value = p[f]; }); document.querySelectorAll("#mem [data-m]").forEach(function (b) { b.classList.toggle("on", b.dataset.m === k); }); calc(); }
+    function calc() {
+      var L = v("L"), kv = v("kv"), dh = v("dh"), N = v("n") * 1e9, ctx = v("ctx"), B = v("b"), q = v("q"), W = v("w"), gpu = v("gpu") * 1e9, bw = v("bw") * 1e12;
+      if (![L, kv, dh, N, ctx, B, gpu, bw].every(function (x) { return x > 0; })) return;
+      var stored = W > 0 ? Math.min(ctx, W) : ctx;
+      var perTok = 2 * L * kv * dh * q, cache = perTok * stored * B, weights = N * 2;          // weights kept in 16-bit here
+      var total = weights + cache, fits = total <= gpu;
+      var tStep = (weights + cache) / bw, tps = B / tStep;
+      var wPct = Math.min(100, 100 * weights / Math.max(total, gpu)), cPct = Math.min(100 - wPct, 100 * cache / Math.max(total, gpu));
+      document.getElementById("mm-bar").innerHTML = '<span class="g-w" style="width:' + wPct.toFixed(1) + '%">weights ' + (weights / 1e9).toFixed(1) + ' GB</span><span class="' + (fits ? "g-c" : "g-over") + '" style="width:' + cPct.toFixed(1) + '%">KV cache ' + (cache / 1e9).toFixed(1) + " GB</span>";
+      document.getElementById("mm-cap").textContent = (fits ? "Fits: " : "Does NOT fit: ") + (total / 1e9).toFixed(1) + " GB needed of " + (gpu / 1e9).toFixed(0) + " GB" + (fits ? "" : " — reduce users, context, or use GQA / 8-bit cache / a sliding window.");
+      var rows = [
+        ["Cache per token", n(perTok) + " bytes = " + (perTok / 1048576).toFixed(3) + " MB"],
+        ["Tokens kept per user", n(stored) + (W > 0 && W < ctx ? " (sliding window)" : "")],
+        ["Cache for all " + n(B) + " user" + (B > 1 ? "s" : ""), (cache / 1073741824).toFixed(2) + " GiB"],
+        ["Bytes read per decode step (weights + cache)", ((weights + cache) / 1e9).toFixed(1) + " GB"],
+        ["Lower bound on time per step", (tStep * 1000).toFixed(1) + " ms"],
+        ["Tokens/s per user · total", (1 / tStep).toFixed(0) + " · " + tps.toFixed(0)]
+      ];
+      out.innerHTML = "<tr><th>Quantity</th><th>Value</th></tr>" + rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
+      if (canAnimate) M.animate(document.querySelectorAll("#mm-bar > span"), { opacity: [0.4, 1] }, { duration: 0.3 });
+      document.getElementById("mm-status").textContent = "Each decode step must read all the weights plus every user’s cache, so more users raise total throughput (" + tps.toFixed(0) + " tokens/s) until memory runs out. Try 32 users at 4,096 tokens for LLaMA-2 7B, then switch to Mistral 7B (GQA) or 8-bit.";
+      window.__mem = { perTok: perTok, cacheGiB: cache / 1073741824, msStep: tStep * 1000, fits: fits };
+    }
+    F.forEach(function (k) { var el = document.getElementById("mm-" + k); el.addEventListener(el.tagName === "SELECT" ? "change" : "input", function () { if (["L", "kv", "dh", "n"].indexOf(k) >= 0) document.querySelectorAll("#mem [data-m]").forEach(function (b) { b.classList.remove("on"); }); calc(); }); });
+    document.querySelectorAll("#mem [data-m]").forEach(function (b) { b.addEventListener("click", function () { load(b.dataset.m); }); });
+    load("7b");
+  })();
+
+  /* ---------- 3. Online softmax ---------- */
+  (function os() {
+    var inWrap = document.getElementById("os-in");
+    if (!inWrap) return;
+    var S = [2, 1, 3, 0, null, null], V = [1, 2, 3, 4, null, null], chunk = 2, done = 0, state = null, log = [];
+    var COLORS = ["#1b2fa8", "#b07a00", "#2e7d5b", "#9b3b8f", "#c0472f", "#3a87b5"];
+    function build() {
+      var h = "<span>score</span>";
+      for (var i = 0; i < 6; i++) h += '<input type="number" step="0.5" id="os-s' + i + '" value="' + (S[i] === null ? "" : S[i]) + '" placeholder="–" aria-label="score ' + (i + 1) + '">';
+      h += "<span>value</span>";
+      for (var j = 0; j < 6; j++) h += '<input type="number" step="0.5" id="os-v' + j + '" value="' + (V[j] === null ? "" : V[j]) + '" placeholder="–" aria-label="value ' + (j + 1) + '">';
+      h += "<span>chunk</span>";
+      for (var k = 0; k < 6; k++) h += '<span class="chunk" id="os-ch' + k + '"></span>';
+      inWrap.innerHTML = h;
+      for (var q = 0; q < 6; q++) {
+        (function (i) {
+          document.getElementById("os-s" + i).addEventListener("input", function (e) { S[i] = e.target.value === "" ? null : parseFloat(e.target.value); reset(); });
+          document.getElementById("os-v" + i).addEventListener("input", function (e) { V[i] = e.target.value === "" ? null : parseFloat(e.target.value); reset(); });
+        })(q);
+      }
+    }
+    function items() { var it = []; for (var i = 0; i < 6; i++) if (S[i] !== null && V[i] !== null && !isNaN(S[i]) && !isNaN(V[i])) it.push({ i: i, s: S[i], v: V[i] }); return it; }
+    function reset() { done = 0; state = null; log = []; render(); }
+    function step() {
+      var it = items(); if (done >= it.length) return;
+      var part = it.slice(done, done + chunk), mNew = Math.max.apply(null, part.map(function (x) { return x.s; }));
+      var row = { idx: part.map(function (x) { return x.i + 1; }).join(", ") };
+      if (!state) { state = { m: mNew, l: 0, o: 0 }; row.rescale = "—"; }
+      else {
+        var m2 = Math.max(state.m, mNew), r = Math.exp(state.m - m2);
+        row.rescale = state.m === m2 ? "none (max stays " + m2 + ")" : "× e^(" + state.m + "−" + m2 + ") = " + r.toFixed(4);
+        state.l *= r; state.o *= r; state.m = m2;
+      }
+      part.forEach(function (x) { var e = Math.exp(x.s - state.m); state.l += e; state.o += e * x.v; });
+      row.m = state.m; row.l = state.l; row.o = state.o;
+      log.push(row); done += part.length; render(true);
+    }
+    function render(anim) {
+      document.getElementById("os-co").textContent = chunk;
+      var it = items();
+      for (var k = 0; k < 6; k++) {
+        var pos = it.map(function (x) { return x.i; }).indexOf(k), el = document.getElementById("os-ch" + k);
+        el.style.background = pos < 0 ? "transparent" : COLORS[Math.floor(pos / chunk) % COLORS.length];
+        el.style.opacity = pos >= 0 && pos < done ? 1 : 0.35;
+      }
+      var t = document.getElementById("os-table");
+      t.innerHTML = "<tr><th>chunk (items)</th><th>rescale old totals</th><th>running max m</th><th>running sum ℓ</th><th>running output o</th></tr>" +
+        log.map(function (r, i) { return '<tr class="' + (i === log.length - 1 ? "cur" : "") + '"><td>' + r.idx + "</td><td>" + r.rescale + "</td><td>" + r.m + "</td><td>" + r.l.toFixed(4) + "</td><td>" + r.o.toFixed(4) + "</td></tr>"; }).join("");
+      if (anim && canAnimate) M.animate(t.querySelectorAll("tr.cur td"), { opacity: [0, 1] }, { duration: 0.3 });
+      // direct softmax for comparison
+      var mx = Math.max.apply(null, it.map(function (x) { return x.s; })), ex = it.map(function (x) { return Math.exp(x.s - mx); }), sum = ex.reduce(function (a, b) { return a + b; }, 0);
+      var direct = it.reduce(function (a, x, j) { return a + ex[j] / sum * x.v; }, 0);
+      var finished = it.length && done >= it.length, outEl = document.getElementById("os-out");
+      document.getElementById("os-next").disabled = finished || !it.length;
+      outEl.innerHTML = finished ? "o / ℓ = " + state.o.toFixed(4) + " / " + state.l.toFixed(4) + " = " + (state.o / state.l).toFixed(4) + ' &nbsp; <span class="ok">ordinary softmax: ' + direct.toFixed(4) + (Math.abs(state.o / state.l - direct) < 1e-9 ? " ✓ identical" : "") + "</span>" : "";
+      document.getElementById("os-status").textContent = !it.length ? "Enter at least one score and value." : finished
+        ? "Done. Only " + chunk + " score" + (chunk > 1 ? "s were" : " was") + " needed at a time, yet the answer equals ordinary softmax attention over all " + it.length + ". That is the core of FlashAttention."
+        : "Processed " + done + " of " + it.length + " items. Each new chunk may raise the running max; when it does, the old sum and output are shrunk by e^(old max − new max) so everything stays on the same scale.";
+      window.__os = { done: done, out: state && finished ? state.o / state.l : null, direct: direct };
+    }
+    document.getElementById("os-c").addEventListener("input", function (e) { chunk = parseInt(e.target.value, 10); reset(); });
+    document.getElementById("os-next").addEventListener("click", step);
+    document.getElementById("os-reset").addEventListener("click", reset);
+    document.getElementById("os-ex").addEventListener("click", function () { S = [2, 1, 3, 0, null, null]; V = [1, 2, 3, 4, null, null]; chunk = 2; document.getElementById("os-c").value = 2; build(); reset(); });
+    build(); reset();
+  })();
+})();
+</script>
+</body>
+</html>

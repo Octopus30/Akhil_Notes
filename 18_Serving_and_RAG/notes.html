@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 18: Serving &amp; RAG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.4em; text-align: right; }
+.big { font-family: var(--hand); font-size: 21px; font-weight: 700; color: var(--ink); }
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.stat { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14.5px; margin: 6px 0; max-width: 460px; }
+.stat dt { color: var(--muted); } .stat dd { margin: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; text-align: right; }
+/* batching */
+.tl { overflow-x: auto; max-width: 100%; margin: 6px 0; }
+.tl-grid { display: grid; gap: 1px; width: max-content; }
+.tl-cell { width: 9px; height: 20px; border-radius: 1px; }
+.tl-lab { font-family: var(--mono); font-size: 11px; color: var(--muted); padding-right: 6px; line-height: 20px; white-space: nowrap; }
+.tl-empty { background: #eef0f6; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); margin: 4px 0; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 3px; }
+/* rag */
+.rag-q { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.rag-q input[type=text] { flex: 1 1 260px; min-width: 0; font-family: var(--body); font-size: 15px; border: 2px solid var(--ink); border-radius: 8px; padding: 4px 10px; color: var(--text); }
+.rag-q input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.docs { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 5px 10px; align-items: center; font-size: 14px; margin: 8px 0; }
+.docs .id { font-family: var(--mono); color: var(--muted); }
+.docs .txt { padding: 3px 8px; border-radius: 6px; border: 1.5px solid transparent; }
+.docs .txt.hit { border-color: var(--gold); background: var(--gold-fill); }
+.docs .sc { font-family: var(--mono); font-size: 12.5px; color: var(--ink); min-width: 4.5em; text-align: right; }
+.prompt { font-family: var(--mono); font-size: 13px; background: #f6f7fc; border: 1px solid #dfe5f3; border-radius: 8px; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; }
+.terms { font-size: 12.5px; color: var(--muted); }
+/* chunks */
+.chunkbar { position: relative; height: 18px; margin: 2px 0; }
+.chunkbar span { position: absolute; top: 0; height: 100%; border-radius: 3px; opacity: .85; }
+.docbar { height: 14px; background: #dfe5f3; border-radius: 4px; margin: 6px 0 8px; }
+.chunks-wrap { max-height: 260px; overflow-y: auto; padding-right: 4px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .docs { grid-template-columns: auto minmax(0, 1fr); }
+  .docs .sc { grid-column: 2; text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in, .rag-q { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 18</p>
+  <h1>Serving &amp; RAG</h1>
+  <p class="lede"><strong>In one line:</strong> <strong>serving</strong> is the engineering of running an LLM for many users at once — fast, cheap and reliably (continuous batching, KV-cache management, streaming). <strong>RAG</strong> (retrieval-augmented generation) gives the model the right documents at question time, so it can answer from your own, up-to-date data and cite its sources.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Describe</strong> the path of a request through an LLM serving system and the metrics used to judge it (TTFT, time per output token, throughput, cost per million tokens).</li>
+  <li><strong>Explain</strong> why continuous batching beats static batching, and compute GPU utilisation for both.</li>
+  <li><strong>Draw</strong> the RAG pipeline — chunk, embed, index, retrieve, (re-rank), prompt, generate — and explain each step.</li>
+  <li><strong>Compute</strong> chunk counts, cosine-similarity retrieval, and retrieval metrics (recall@k, MRR) by hand.</li>
+  <li><strong>Diagnose</strong> common RAG failures and choose between RAG and fine-tuning.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Sections 13–14:</strong> prefill vs decode, TTFT, the KV cache, memory-bandwidth limits.</li>
+  <li><strong>Section 9:</strong> encoders produce sentence embeddings by mean pooling; bi-encoders vs cross-encoders.</li>
+  <li><strong>Section 2:</strong> cosine similarity.</li>
+  <li><strong>Section 16:</strong> fine-tuning teaches behaviour; this section shows how to supply knowledge.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — percentiles</span>
+  The <strong>p50</strong> latency is the median: half of requests are faster. The <strong>p99</strong> latency is slower than 99% of requests — it describes the unlucky users. Serving systems care about p99, not just the average.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: two practical gaps</h2>
+<p><strong>Gap 1 — one model, many users.</strong> A model that answers one question in 6 seconds on a GPU is not a product. A real service must handle thousands of users at once, keep the first token fast, stream the rest, and cost cents rather than dollars per conversation.</p>
+<p><strong>Gap 2 — the model doesn't know your data.</strong> A pre-trained LLM:</p>
+<ul>
+  <li>has a <strong>knowledge cutoff</strong> — nothing after its training data,</li>
+  <li>has never seen your <strong>private documents</strong> (college circulars, company policies, your codebase),</li>
+  <li>can <strong>hallucinate</strong> — state plausible-sounding but wrong facts,</li>
+  <li>can't easily <strong>cite</strong> where an answer came from.</li>
+</ul>
+<p>Fine-tuning doesn't fix these well (Section 16): facts change, and the model still can't point to a source. <strong>RAG</strong> fixes them by looking up relevant text at question time and putting it in the prompt.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first</h2>
+<p><strong>Serving = a busy restaurant kitchen.</strong> Orders (requests) arrive at random. A bad kitchen cooks in fixed rounds — nobody's new order starts until every dish in the current round is done (static batching). A good kitchen starts a new dish the moment a burner frees up (continuous batching). The fridge space (GPU memory for KV caches) limits how many dishes can be in progress at once.</p>
+<p><strong>RAG = an open-book exam.</strong> Instead of answering from memory, the student first looks up the relevant pages in the textbook, then writes an answer using them — and can say "see page 42". The quality depends on two things: finding the <strong>right pages</strong> (retrieval) and <strong>writing a good answer</strong> from them (generation).</p>
+<div class="callout"><span class="label">Where the analogies break</span>A kitchen's burners are independent; on a GPU, all requests in a batch share each step, so one very long request still occupies a slot until it finishes. And unlike a student, the model only "reads" the pages you put in its context window — it can't flip to others.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Anatomy of a serving system</h3>
+<ol class="steps">
+  <li><strong>API gateway:</strong> authentication, rate limits, routing.</li>
+  <li><strong>Scheduler:</strong> queues requests, decides which ones join the next batch.</li>
+  <li><strong>Inference engine</strong> (e.g. vLLM, TGI, TensorRT-LLM, SGLang): runs prefill and decode on the GPUs, manages KV-cache memory (PagedAttention, prefix caching — Section 14).</li>
+  <li><strong>Streaming:</strong> sends each token to the user as soon as it's generated.</li>
+</ol>
+<p><strong>Key metrics:</strong></p>
+<div class="tw"><table>
+  <tr><th>Metric</th><th>Meaning</th><th>Mostly set by</th></tr>
+  <tr><td><strong>TTFT</strong> (time to first token)</td><td>how long before the answer starts appearing</td><td>queueing + prefill</td></tr>
+  <tr><td><strong>TPOT</strong> (time per output token)</td><td>speed of the streamed answer</td><td>decode (memory bandwidth, batch size)</td></tr>
+  <tr><td><strong>Throughput</strong></td><td>tokens per second across all users</td><td>batching, KV-cache capacity</td></tr>
+  <tr><td><strong>Cost per million tokens</strong></td><td>GPU price ÷ tokens produced</td><td>throughput</td></tr>
+  <tr><td><strong>p99 latency</strong></td><td>the slow tail of requests</td><td>load, long requests, queueing</td></tr>
+</table></div>
+<p>Total time for one answer of \(n\) tokens ≈ \(\text{TTFT} + n \times \text{TPOT}\).</p>
+
+<h3>5.2 Static vs continuous batching</h3>
+<ul>
+  <li><strong>Static batching:</strong> collect \(B\) requests, run them together until <strong>all</strong> finish. Short requests sit idle, padded, while the longest one finishes; new requests wait for the whole batch.</li>
+  <li><strong>Continuous (in-flight) batching:</strong> the batch is rebuilt <strong>every decode step</strong> — finished requests leave immediately and waiting requests take their slots.</li>
+</ul>
+<p>GPU slot utilisation for static batching:</p>
+<div class="math-block">$$\text{utilisation} = \frac{\sum_i \text{length}_i}{B \times \max_i \text{length}_i}$$</div>
+<p>Continuous batching keeps slots nearly full whenever there's a queue, typically giving several times the throughput.</p>
+
+<div class="demo" id="batch">
+  <p class="demo-title">Try it: static vs continuous batching</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Batching mode">
+      <button type="button" id="bt-static" class="on">static</button>
+      <button type="button" id="bt-cont">continuous</button>
+    </span>
+    <button class="btn" type="button" id="bt-new">New random requests</button>
+  </div>
+  <div class="sliders" style="max-width:520px">
+    <label>batch slots B <input type="range" id="bt-b" min="2" max="6" step="1" value="4"><output id="bt-bo"></output></label>
+  </div>
+  <p class="cap" id="bt-reqs" style="margin:2px 0"></p>
+  <div class="tl"><div class="tl-grid" id="bt-grid"></div></div>
+  <div class="legend" id="bt-legend"></div>
+  <dl class="stat" id="bt-stats"></dl>
+  <p class="demo-status" id="bt-status" aria-live="polite"></p>
+</div>
+
+<h3>5.3 The RAG pipeline</h3>
+<p><strong>Indexing (offline, done once and updated as documents change):</strong></p>
+<ol class="steps">
+  <li><strong>Load</strong> documents (PDF, web pages, wiki, tickets…).</li>
+  <li><strong>Chunk</strong> them into passages of a few hundred tokens, with some <strong>overlap</strong> so sentences cut at a boundary appear whole in one chunk.</li>
+  <li><strong>Embed</strong> each chunk with an embedding model (an encoder, Section 9) → a vector.</li>
+  <li><strong>Store</strong> vectors (plus the text and metadata like source and page) in a <strong>vector index</strong>.</li>
+</ol>
+<p><strong>Answering (online, every question):</strong></p>
+<ol class="steps">
+  <li><strong>Embed the question</strong> with the same embedding model.</li>
+  <li><strong>Retrieve</strong> the top-\(k\) chunks by similarity (usually cosine).</li>
+  <li>Optionally <strong>re-rank</strong> them with a cross-encoder (Section 9) that reads question and chunk together — slower but more accurate.</li>
+  <li><strong>Build the prompt:</strong> instructions + retrieved chunks (numbered, with sources) + the question.</li>
+  <li><strong>Generate</strong> an answer, asking the model to use only the provided context and to cite chunk numbers.</li>
+</ol>
+
+<h3>5.4 Retrieval details</h3>
+<ul>
+  <li><strong>Exact search</strong> compares the query with every vector — fine for thousands of chunks, too slow for hundreds of millions.</li>
+  <li><strong>Approximate nearest-neighbour (ANN)</strong> indexes such as <strong>HNSW</strong> (a navigable graph) or <strong>IVF</strong> (clustering) find almost the same top results in milliseconds.</li>
+  <li><strong>Keyword search (BM25)</strong> matches exact words — great for names, codes and rare terms that embeddings can blur.</li>
+  <li><strong>Hybrid search</strong> runs both and merges the lists, often with <strong>reciprocal rank fusion (RRF)</strong>:</li>
+</ul>
+<div class="math-block">$$\text{RRF}(d) = \sum_{\text{lists}} \frac{1}{k + \text{rank}(d)}, \quad k \approx 60$$</div>
+
+<h3>5.5 Evaluating RAG</h3>
+<p>Evaluate the two halves separately:</p>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Metric</th><th>Question it answers</th></tr>
+  <tr><td>Retrieval</td><td><strong>recall@k</strong></td><td>Is a relevant chunk in the top \(k\)?</td></tr>
+  <tr><td>Retrieval</td><td><strong>MRR</strong> (mean reciprocal rank)</td><td>How high is the first relevant chunk? (average of \(1/\text{rank}\))</td></tr>
+  <tr><td>Generation</td><td><strong>faithfulness</strong></td><td>Is every claim in the answer supported by the retrieved text?</td></tr>
+  <tr><td>Generation</td><td><strong>answer relevance / correctness</strong></td><td>Does it actually answer the question correctly?</td></tr>
+</table></div>
+<p><strong>Common failures:</strong> the right chunk isn't retrieved (bad chunking, vocabulary mismatch → try hybrid search, better chunking, query rewriting); it's retrieved but buried among irrelevant chunks (→ re-ranking, smaller \(k\)); the model ignores or contradicts the context (→ clearer instructions, citations, a stronger model).</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Static vs continuous batching</h3>
+<p>Four requests in one batch (\(B = 4\)) need <strong>10, 50, 20 and 40</strong> output tokens.</p>
+<p><strong>Static:</strong> the batch runs for 50 steps (the longest request). Slot-steps used: \(10 + 50 + 20 + 40 = 120\) out of \(4 \times 50 = 200\).</p>
+<div class="math-block">$$\text{utilisation} = 120 / 200 = \mathbf{60\%}$$</div>
+<p>40% of the GPU's batch capacity is wasted on finished requests, and any new request waits all 50 steps.</p>
+<p><strong>Continuous:</strong> when the 10-token request finishes at step 10, a waiting request takes its slot at step 11, and so on. With a steady queue, slots stay close to 100% busy.</p>
+
+<h3>6.2 What does a token cost?</h3>
+<p>A GPU rented at $2 per hour that sustains <strong>2,000 output tokens per second</strong> across all users:</p>
+<div class="math-block">$$\text{tokens per hour} = 2{,}000 \times 3{,}600 = 7.2 \text{ million} \qquad \text{cost} = \frac{2}{7.2\text{M}} \approx \mathbf{0.28 \text{ dollars per million tokens}}$$</div>
+<p>Doubling throughput (better batching, quantization) halves the cost.</p>
+<p><strong>Latency for one user:</strong> TTFT 0.2 s, TPOT 25 ms, a 300-token answer → \(0.2 + 300 \times 0.025 = \mathbf{7.7}\) <strong>s</strong> — but streaming means they start reading after 0.2 s.</p>
+
+<div class="demo" id="cost">
+  <p class="demo-title">Try it: cost and latency</p>
+  <div class="calc-in">
+    <label>GPU price ($/hour)<input id="ct-p" type="number" min="0.01" step="0.01" value="2"></label>
+    <label>throughput (tokens/s, all users)<input id="ct-t" type="number" min="1" value="2000"></label>
+    <label>TTFT (s)<input id="ct-f" type="number" min="0" step="0.01" value="0.2"></label>
+    <label>TPOT (ms)<input id="ct-o" type="number" min="1" value="25"></label>
+    <label>answer length (tokens)<input id="ct-n" type="number" min="1" value="300"></label>
+  </div>
+  <dl class="stat" id="ct-out"></dl>
+</div>
+
+<h3>6.3 Chunking a document</h3>
+<p>A 10,000-token document, chunk size 500 tokens, overlap 50 tokens → each new chunk starts \(500 - 50 = 450\) tokens after the previous one:</p>
+<ul>
+  <li>Chunk starts: 0, 450, 900, …, 9,450 (22 chunks), plus one final chunk 9,900–10,000 to cover the end.</li>
+  <li>Total: <strong>23 chunks</strong>.</li>
+</ul>
+<p>Storage for the index: with 768-dimensional 32-bit embeddings, each chunk needs \(768 \times 4 = 3{,}072\) bytes; one million chunks need about <strong>3 GB</strong> of vectors (plus the text).</p>
+
+<div class="demo" id="chunk">
+  <p class="demo-title">Try it: chunk a document</p>
+  <div class="calc-in">
+    <label>document length (tokens)<input id="ck-n" type="number" min="1" value="10000"></label>
+    <label>chunk size<input id="ck-c" type="number" min="1" value="500"></label>
+    <label>overlap<input id="ck-o" type="number" min="0" value="50"></label>
+    <label>embedding dimension<input id="ck-d" type="number" min="1" value="768"></label>
+  </div>
+  <p class="big" id="ck-out"></p>
+  <div class="docbar" aria-hidden="true"></div>
+  <div class="chunks-wrap" id="ck-bars" aria-hidden="true"></div>
+  <p class="demo-status" id="ck-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 Retrieval by cosine similarity</h3>
+<p>A tiny index of college notices (3-D toy embeddings):</p>
+<div class="tw"><table>
+  <tr><th>Chunk</th><th>Text</th><th>Embedding</th></tr>
+  <tr><td>c1</td><td>"Library hours: 8 am to 10 pm on weekdays."</td><td>[0.9, 0.1, 0.2]</td></tr>
+  <tr><td>c2</td><td>"The hostel mess serves dinner from 7 pm."</td><td>[0.2, 0.9, 0.1]</td></tr>
+  <tr><td>c3</td><td>"On Sundays the library closes at 6 pm."</td><td>[0.6, 0.3, 0.6]</td></tr>
+  <tr><td>c4</td><td>"The exam fee deadline is 15 March."</td><td>[0.1, 0.2, 0.9]</td></tr>
+</table></div>
+<p>Question: <em>"When is the library open?"</em> → embedding \(q = [0.9, 0.2, 0.2]\), with \(\lVert q \rVert = 0.943\).</p>
+<div class="tw"><table>
+  <tr><th>Chunk</th><th>\(q \cdot c\)</th><th>\(\lVert c \rVert\)</th><th>Cosine</th></tr>
+  <tr><td>c1</td><td>\(0.81 + 0.02 + 0.04 = 0.87\)</td><td>0.927</td><td><strong>0.994</strong></td></tr>
+  <tr><td>c3</td><td>\(0.54 + 0.06 + 0.12 = 0.72\)</td><td>0.900</td><td><strong>0.848</strong></td></tr>
+  <tr><td>c2</td><td>\(0.18 + 0.18 + 0.02 = 0.38\)</td><td>0.927</td><td>0.434</td></tr>
+  <tr><td>c4</td><td>\(0.09 + 0.04 + 0.18 = 0.31\)</td><td>0.927</td><td>0.354</td></tr>
+</table></div>
+<p>With \(k = 2\), retrieval returns <strong>c1 and c3</strong> — both library notices. The prompt then becomes:</p>
+<div class="prompt">Answer using only the context. Cite sources as [1], [2].
+[1] Library hours: 8 am to 10 pm on weekdays.
+[2] On Sundays the library closes at 6 pm.
+Question: When is the library open?</div>
+<p>and a good answer is: <em>"8 am to 10 pm on weekdays [1]; on Sundays it closes at 6 pm [2]."</em></p>
+
+<div class="demo" id="rag">
+  <p class="demo-title">Try it: a working mini-RAG over ten college notices</p>
+  <p class="cap" style="margin:2px 0 6px">This demo really retrieves: it turns every notice and your question into a word-weight vector (TF-IDF — a simple stand-in for a neural embedding model), ranks notices by cosine similarity, and builds the prompt an LLM would receive.</p>
+  <div class="rag-q">
+    <input type="text" id="rg-q" value="When is the library open on Sunday?" aria-label="Your question">
+    <button class="btn" type="button" data-q="When is the library open on Sunday?">library</button>
+    <button class="btn" type="button" data-q="What is the last date to pay the exam fee?">exam fee</button>
+    <button class="btn" type="button" data-q="Can I get dinner late in the hostel?">dinner</button>
+    <button class="btn" type="button" data-q="Is there a bus to the campus from the station?">bus</button>
+  </div>
+  <div class="sliders" style="max-width:420px">
+    <label>retrieve top k <input type="range" id="rg-k" min="1" max="5" step="1" value="2"><output id="rg-ko"></output></label>
+  </div>
+  <div class="docs" id="rg-docs"></div>
+  <p class="sub-cap">Prompt sent to the LLM</p>
+  <div class="prompt" id="rg-prompt"></div>
+  <p class="terms" id="rg-terms"></p>
+  <p class="demo-status" id="rg-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 Retrieval metrics</h3>
+<p>Three test questions; the first relevant chunk appears at rank <strong>1</strong>, rank <strong>3</strong>, and <strong>not at all</strong> in the top 5:</p>
+<ul>
+  <li>recall@1 \(= 1/3 = 0.33\); recall@3 \(= 2/3 = 0.67\)</li>
+  <li>MRR \(= \frac{1}{3}\left(\frac{1}{1} + \frac{1}{3} + 0\right) = \mathbf{0.44}\)</li>
+</ul>
+
+<h3>6.6 Hybrid search with RRF (\(k = 60\))</h3>
+<div class="tw"><table>
+  <tr><th>Document</th><th>BM25 rank</th><th>Vector rank</th><th>RRF score</th></tr>
+  <tr><td>A</td><td>1</td><td>3</td><td>\(1/61 + 1/63 = 0.03227\)</td></tr>
+  <tr><td>B</td><td>2</td><td>1</td><td>\(1/62 + 1/61 = 0.03252\)</td></tr>
+  <tr><td>C</td><td>—</td><td>2</td><td>\(1/62 = 0.01613\)</td></tr>
+</table></div>
+<p>Final order: <strong>B, A, C</strong>. B wins because it's near the top of <em>both</em> lists; C appears in only one.</p>
+
+<h3>6.7 Fitting it into the context window</h3>
+<p>A 4,096-token model: system instructions 200 + five chunks × 500 + question 50 + room for a 500-token answer = <strong>3,250 tokens</strong> — it fits, with about 850 to spare. Ten chunks would not. Retrieval quality matters more than stuffing in more chunks.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    subgraph IDX["Indexing (offline)"]
+        D["Documents"] --> CH["Chunk<br/>(size + overlap)"]
+        CH --> EM["Embed each chunk"]
+        EM --> VI[("Vector index<br/>+ text + metadata")]
+    end
+    subgraph ASK["Answering (each question)"]
+        Q["Question"] --> QE["Embed question"]
+        QE --> RET["Retrieve top-k<br/>(vector / hybrid)"]
+        VI --> RET
+        RET --> RR["Re-rank<br/>(optional)"]
+        RR --> PR["Prompt =<br/>instructions + chunks + question"]
+        PR --> LLM["LLM"]
+        LLM --> ANS["Answer with citations"]
+    end
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<p><strong>Serving stack choices:</strong></p>
+<div class="tw"><table>
+  <tr><th>Need</th><th>Typical tool</th></tr>
+  <tr><td>High-throughput GPU serving</td><td>vLLM, TGI, TensorRT-LLM, SGLang</td></tr>
+  <tr><td>Local / laptop</td><td>llama.cpp, Ollama (quantized GGUF models)</td></tr>
+  <tr><td>Managed</td><td>a cloud provider's hosted model API</td></tr>
+</table></div>
+<p><strong>RAG building blocks:</strong></p>
+<div class="tw"><table>
+  <tr><th>Component</th><th>Examples</th></tr>
+  <tr><td>Embedding models</td><td>sentence-transformers / E5 / BGE family, hosted embedding APIs</td></tr>
+  <tr><td>Vector stores</td><td>FAISS (library), pgvector (PostgreSQL), Qdrant, Weaviate, Milvus, Chroma</td></tr>
+  <tr><td>Keyword search</td><td>BM25 (e.g. in Elasticsearch / OpenSearch)</td></tr>
+  <tr><td>Re-rankers</td><td>cross-encoder models</td></tr>
+</table></div>
+<p><strong>Good practice:</strong></p>
+<ul>
+  <li>Start simple: decent chunking + a good embedding model + top-5 retrieval + a clear prompt with citations. Add hybrid search and re-ranking when evaluation shows retrieval misses.</li>
+  <li><strong>Build a small evaluation set</strong> (questions with known answers and source chunks) before tuning anything.</li>
+  <li>Keep <strong>metadata</strong> (source, date, page, access rights) with every chunk — for citations, filtering, and making sure users only retrieve documents they're allowed to see.</li>
+  <li><strong>RAG vs fine-tuning:</strong> RAG for <em>knowledge</em> (changing facts, private documents, citations); fine-tuning for <em>behaviour</em> (format, tone, a narrow skill). They combine well.</li>
+  <li><strong>Long-context models</strong> can sometimes take whole documents instead of chunks, but cost grows with every token (Section 14), and retrieval still helps when the collection is large.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Bigger batches always mean better service."</strong> Bigger batches raise throughput but can raise each user's latency; serving balances the two, within KV-cache memory.</li>
+  <li class="mistake"><strong>"RAG makes hallucinations impossible."</strong> It reduces them, but the model can still misread, ignore or over-generalise the context — measure faithfulness.</li>
+  <li class="mistake"><strong>"More retrieved chunks is always better."</strong> Irrelevant chunks dilute the context and can mislead the model; quality over quantity.</li>
+  <li class="mistake"><strong>"Vector search understands everything."</strong> Embeddings can blur exact names, numbers and codes; hybrid search with keywords catches these.</li>
+  <li class="mistake"><strong>"RAG and fine-tuning are alternatives."</strong> They solve different problems (knowledge vs behaviour) and are often used together.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li><strong>Serving</strong> turns a model into a service: gateway → scheduler → inference engine → streaming. Judge it by <strong>TTFT</strong>, <strong>TPOT</strong>, <strong>throughput</strong>, <strong>p99 latency</strong> and <strong>cost per million tokens</strong>.</li>
+  <li><strong>Continuous batching</strong> refills slots every step; static batching wastes capacity (60% utilisation in our example).</li>
+  <li><strong>RAG</strong> = chunk → embed → index (offline) and embed question → retrieve top-\(k\) → (re-rank) → prompt with sources → generate (online).</li>
+  <li>Retrieval uses cosine similarity over embeddings, ANN indexes at scale, and <strong>hybrid</strong> keyword + vector search merged with <strong>RRF</strong>.</li>
+  <li>Evaluate retrieval (<strong>recall@k</strong>, <strong>MRR</strong>) and generation (<strong>faithfulness</strong>, correctness) separately; use RAG for knowledge and fine-tuning for behaviour.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A static batch of 4 requests needs 30, 30, 30 and 90 output tokens. What is the slot utilisation? What would help most?</li>
+  <li>A 6,000-token document is split with chunk size 400 and overlap 100. How many chunks are produced?</li>
+  <li>Using 6.4, which chunks are retrieved for the question <em>"What time is dinner?"</em> with embedding \(q = [0.2, 0.9, 0.2]\) and \(k = 1\)? Compute the winning cosine.</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\((30 + 30 + 30 + 90) / (4 \times 90) = 180/360 = \mathbf{50\%}\). <strong>Continuous batching</strong> — the three short requests' slots could serve new requests for 60 of the 90 steps.</li>
+    <li>Step \(= 400 - 100 = 300\). Starts 0, 300, …, 5,400 (19 chunks; the one at 5,400 ends at 5,800), plus one final chunk from 5,700 to 6,000: <strong>20 chunks</strong>. (Check in the chunking demo.)</li>
+    <li>Dot products: c1 \(0.18 + 0.09 + 0.04 = 0.31\); c2 \(0.04 + 0.81 + 0.02 = 0.87\); c3 \(0.12 + 0.27 + 0.12 = 0.51\); c4 \(0.02 + 0.18 + 0.18 = 0.38\). \(\lVert q \rVert = 0.943\), \(\lVert c2 \rVert = 0.927\), so cos(q, c2) \(= 0.87 / (0.943 \times 0.927) = 0.87 / 0.875 = \mathbf{0.994}\) → <strong>c2</strong> (the mess notice) is retrieved.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Lewis, P. et al. (2020). <strong>"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks."</strong> <a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">arXiv:2005.11401</a> — the original RAG paper.</li>
+  <li>Kwon, W. et al. (2023). <strong>"Efficient Memory Management for Large Language Model Serving with PagedAttention."</strong> <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">arXiv:2309.06180</a> — vLLM and continuous batching.</li>
+  <li>Yu, G.-I. et al. (2022). <strong>"Orca: A Distributed Serving System for Transformer-Based Generative Models."</strong> <em>OSDI 2022</em> — iteration-level (continuous) batching.</li>
+  <li>Karpukhin, V. et al. (2020). <strong>"Dense Passage Retrieval for Open-Domain Question Answering."</strong> <a href="https://arxiv.org/abs/2004.04906" target="_blank" rel="noopener">arXiv:2004.04906</a>.</li>
+  <li>Malkov, Y. A., &amp; Yashunin, D. A. (2016). <strong>"Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs."</strong> <a href="https://arxiv.org/abs/1603.09320" target="_blank" rel="noopener">arXiv:1603.09320</a> — HNSW.</li>
+  <li>Cormack, G. V., Clarke, C. L. A., &amp; Büttcher, S. (2009). <strong>"Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods."</strong> <em>SIGIR 2009.</em></li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  var COLORS = ["#1b2fa8", "#b07a00", "#2e7d5b", "#9b3b8f", "#c0472f", "#3a87b5", "#6b5a2a", "#5d4bd0", "#c06e9e", "#4f8a10"];
+
+  /* ---------- 1. Static vs continuous batching ---------- */
+  (function batch() {
+    var grid = document.getElementById("bt-grid");
+    if (!grid) return;
+    var mode = "static", seed = 4, L = [10, 50, 20, 40, 15, 30, 8, 25];
+    var sB = document.getElementById("bt-b");
+    function newReqs() { var r = rng(seed++); L = []; for (var i = 0; i < 8; i++) L.push(5 + Math.floor(r() * 46)); render(); }
+    function schedule(B) {
+      // returns slots[s] = array over time of request index (or -1), plus finish times
+      var slots = [], finish = {}, t;
+      for (var s = 0; s < B; s++) slots.push([]);
+      if (mode === "static") {
+        t = 0;
+        for (var start = 0; start < L.length; start += B) {
+          var group = L.slice(start, start + B), dur = Math.max.apply(null, group);
+          for (var s2 = 0; s2 < B; s2++) for (var k = 0; k < dur; k++) slots[s2][t + k] = (s2 < group.length && k < group[s2]) ? start + s2 : -1;
+          group.forEach(function (len, j) { finish[start + j] = t + len; });
+          t += dur;
+        }
+      } else {
+        var next = 0, rem = [], who = [];
+        for (var s3 = 0; s3 < B; s3++) { who.push(-1); rem.push(0); }
+        t = 0;
+        while (true) {
+          for (var s4 = 0; s4 < B; s4++) if (who[s4] < 0 && next < L.length) { who[s4] = next; rem[s4] = L[next]; next++; }
+          if (who.every(function (w) { return w < 0; })) break;
+          for (var s5 = 0; s5 < B; s5++) { slots[s5][t] = who[s5]; if (who[s5] >= 0) { rem[s5]--; if (rem[s5] === 0) { finish[who[s5]] = t + 1; who[s5] = -1; } } }
+          t++;
+        }
+      }
+      return { slots: slots, T: t, finish: finish };
+    }
+    function render() {
+      var B = parseInt(sB.value, 10); document.getElementById("bt-bo").textContent = B;
+      document.getElementById("bt-static").classList.toggle("on", mode === "static"); document.getElementById("bt-cont").classList.toggle("on", mode === "cont");
+      document.getElementById("bt-reqs").textContent = "8 queued requests needing " + L.join(", ") + " output tokens (all arrive at step 0).";
+      var sch = schedule(B), T = sch.T;
+      grid.style.gridTemplateColumns = "auto repeat(" + T + ", 9px)";
+      var h = "";
+      sch.slots.forEach(function (row, s) {
+        h += '<span class="tl-lab">slot ' + (s + 1) + "</span>";
+        for (var t = 0; t < T; t++) { var w = row[t]; h += '<span class="tl-cell ' + (w === undefined || w < 0 ? "tl-empty" : "") + '"' + (w >= 0 ? ' style="background:' + COLORS[w % COLORS.length] + '" title="request ' + (w + 1) + '"' : "") + "></span>"; }
+      });
+      grid.innerHTML = h;
+      document.getElementById("bt-legend").innerHTML = L.map(function (len, i) { return '<span><i style="background:' + COLORS[i % COLORS.length] + '"></i>r' + (i + 1) + " (" + len + ")</span>"; }).join("") + '<span><i style="background:#eef0f6"></i>idle slot</span>';
+      var used = L.reduce(function (a, b) { return a + b; }, 0), util = used / (B * T);
+      var avgDone = Object.keys(sch.finish).reduce(function (a, k) { return a + sch.finish[k]; }, 0) / L.length;
+      document.getElementById("bt-stats").innerHTML = "<dt>steps to finish all 8</dt><dd>" + T + "</dd><dt>slot utilisation</dt><dd>" + (100 * util).toFixed(0) + "%</dd><dt>average finish step</dt><dd>" + avgDone.toFixed(1) + "</dd>";
+      if (canAnimate) M.animate(grid, { opacity: [0.4, 1] }, { duration: 0.3 });
+      document.getElementById("bt-status").textContent = mode === "static"
+        ? "Static: each group of " + B + " runs until its longest request finishes, so grey slots sit idle and the next group waits. Switch to continuous."
+        : "Continuous: a slot is refilled the step after its request finishes, so the GPU stays busy and everything finishes sooner.";
+      window.__batch = { mode: mode, B: B, T: T, util: util };
+    }
+    document.getElementById("bt-static").addEventListener("click", function () { mode = "static"; render(); });
+    document.getElementById("bt-cont").addEventListener("click", function () { mode = "cont"; render(); });
+    document.getElementById("bt-new").addEventListener("click", newReqs);
+    sB.addEventListener("input", render);
+    window.__batchSet = function (arr) { L = arr.slice(); render(); };
+    render();
+  })();
+
+  /* ---------- 2. Cost and latency ---------- */
+  (function cost() {
+    var out = document.getElementById("ct-out");
+    if (!out) return;
+    function v(id) { return parseFloat(document.getElementById(id).value); }
+    function render() {
+      var p = v("ct-p"), t = v("ct-t"), f = v("ct-f"), o = v("ct-o") / 1000, k = v("ct-n");
+      if (!(p > 0 && t > 0 && o > 0 && k > 0 && f >= 0)) return;
+      var perM = p / (t * 3600 / 1e6), lat = f + k * o;
+      out.innerHTML = "<dt>tokens per hour</dt><dd>" + n(Math.round(t * 3600)) + "</dd><dt>cost per million tokens</dt><dd>$" + perM.toFixed(3) + "</dd><dt>cost of this answer</dt><dd>$" + (perM * k / 1e6).toFixed(6) + "</dd><dt>first token after</dt><dd>" + f.toFixed(2) + " s</dd><dt>full answer after</dt><dd>" + lat.toFixed(2) + " s</dd><dt>streaming speed</dt><dd>" + (1 / o).toFixed(0) + " tokens/s</dd>";
+      window.__cost = { perM: perM, lat: lat };
+    }
+    ["ct-p", "ct-t", "ct-f", "ct-o", "ct-n"].forEach(function (id) { document.getElementById(id).addEventListener("input", render); });
+    render();
+  })();
+
+  /* ---------- 3. Chunking ---------- */
+  (function chunk() {
+    var bars = document.getElementById("ck-bars");
+    if (!bars) return;
+    function v(id) { return parseFloat(document.getElementById(id).value); }
+    function render() {
+      var N = v("ck-n"), C = v("ck-c"), O = v("ck-o"), D = v("ck-d");
+      if (!(N > 0 && C > 0 && O >= 0 && D > 0)) return;
+      if (O >= C) { document.getElementById("ck-status").textContent = "Overlap must be smaller than the chunk size."; return; }
+      var ch = [], s = 0;
+      while (true) { ch.push([s, Math.min(s + C, N)]); if (s + C >= N || ch.length > 2000) break; s += C - O; }
+      document.getElementById("ck-out").textContent = n(ch.length) + " chunks · step " + (C - O) + " tokens · index ≈ " + n(ch.length * D * 4) + " bytes of vectors";
+      var shown = ch.slice(0, 60);
+      bars.innerHTML = shown.map(function (c, i) { return '<div class="chunkbar"><span style="left:' + (100 * c[0] / N).toFixed(2) + "%;width:" + (100 * (c[1] - c[0]) / N).toFixed(2) + "%;background:" + COLORS[i % COLORS.length] + '"></span></div>'; }).join("") + (ch.length > 60 ? '<p class="cap">… ' + (ch.length - 60) + " more</p>" : "");
+      var tokensStored = ch.reduce(function (a, c) { return a + c[1] - c[0]; }, 0);
+      document.getElementById("ck-status").textContent = "Each bar is one chunk placed along the document (grey bar). Overlaps let a sentence cut at one boundary appear whole in the next chunk. Total tokens stored: " + n(tokensStored) + " (" + (100 * (tokensStored / N - 1)).toFixed(1) + "% extra because of overlap).";
+      window.__chunk = { count: ch.length, last: ch[ch.length - 1] };
+    }
+    ["ck-n", "ck-c", "ck-o", "ck-d"].forEach(function (id) { document.getElementById(id).addEventListener("input", render); });
+    render();
+  })();
+
+  /* ---------- 4. Mini RAG with TF-IDF retrieval ---------- */
+  (function rag() {
+    var docsEl = document.getElementById("rg-docs");
+    if (!docsEl) return;
+    // Ten short notices written for this demo.
+    var DOCS = [
+      "Library hours: the central library is open 8 am to 10 pm on weekdays.",
+      "On Sundays the library opens at 10 am and closes at 6 pm.",
+      "The hostel mess serves dinner from 7 pm to 9:30 pm every day.",
+      "Students who return late can collect a packed dinner from the hostel office until 11 pm.",
+      "The last date to pay the semester exam fee is 15 March; a late fee applies after that.",
+      "Exam hall tickets can be downloaded from the student portal one week before exams.",
+      "A college bus leaves the railway station for the campus at 7:30 am and 8:15 am.",
+      "The sports ground is closed for maintenance during the first week of April.",
+      "Wi-Fi passwords for the hostel are reset on the first day of every month.",
+      "The computer lab is open until 8 pm and needs a valid student ID card."
+    ];
+    var STOP = "the a an is are to of and for on in at from can be by with every that this after one until who i get any there do does what when where how".split(" ");
+    function toks(s) { return s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(function (w) { return w && STOP.indexOf(w) < 0; }).map(function (w) { return w.length > 4 && w.slice(-1) === "s" ? w.slice(0, -1) : w; }); }
+    var docT = DOCS.map(toks), df = {};
+    docT.forEach(function (t) { var seen = {}; t.forEach(function (w) { if (!seen[w]) { df[w] = (df[w] || 0) + 1; seen[w] = 1; } }); });
+    var NDOC = DOCS.length;
+    function vec(t) { var tf = {}; t.forEach(function (w) { tf[w] = (tf[w] || 0) + 1; }); var v = {}; Object.keys(tf).forEach(function (w) { if (df[w]) v[w] = tf[w] * Math.log(1 + NDOC / df[w]); }); return v; }
+    function cos(a, b) { var d = 0, na = 0, nb = 0; Object.keys(a).forEach(function (w) { na += a[w] * a[w]; if (b[w]) d += a[w] * b[w]; }); Object.keys(b).forEach(function (w) { nb += b[w] * b[w]; }); return na && nb ? d / Math.sqrt(na * nb) : 0; }
+    var docV = docT.map(vec), qIn = document.getElementById("rg-q"), sK = document.getElementById("rg-k");
+    function render() {
+      var k = parseInt(sK.value, 10); document.getElementById("rg-ko").textContent = k;
+      var qt = toks(qIn.value), qv = vec(qt);
+      var scored = DOCS.map(function (d, i) { return { i: i, s: cos(qv, docV[i]) }; }).sort(function (a, b) { return b.s - a.s; });
+      var top = scored.slice(0, k).filter(function (x) { return x.s > 0; }), topIdx = top.map(function (x) { return x.i; });
+      docsEl.innerHTML = scored.map(function (x) { return '<span class="id">d' + (x.i + 1) + '</span><span class="txt' + (topIdx.indexOf(x.i) >= 0 ? " hit" : "") + '">' + esc(DOCS[x.i]) + '</span><span class="sc">' + x.s.toFixed(3) + "</span>"; }).join("");
+      var prompt = "Answer using only the context below. Cite sources as [1], [2], … If the context does not contain the answer, say you don't know.\n\n" +
+        (top.length ? top.map(function (x, j) { return "[" + (j + 1) + "] " + DOCS[x.i]; }).join("\n") : "(no relevant notices found)") + "\n\nQuestion: " + qIn.value;
+      document.getElementById("rg-prompt").textContent = prompt;
+      var known = qt.filter(function (w) { return df[w]; }), unknown = qt.filter(function (w) { return !df[w]; });
+      document.getElementById("rg-terms").textContent = "Question terms used: " + (known.join(", ") || "none") + (unknown.length ? " · not in any notice (ignored): " + unknown.join(", ") : "");
+      if (canAnimate) M.animate(docsEl.querySelectorAll(".txt.hit"), { opacity: [0.4, 1] }, { duration: 0.3 });
+      document.getElementById("rg-status").textContent = !top.length ? "No notice shares a word with this question — a keyword-style retriever finds nothing. Neural embeddings would match meaning (e.g. “meal” ≈ “dinner”), which is why real systems use them, often together with keywords (hybrid search)."
+        : "Highlighted notices go into the prompt with numbers, so the LLM can cite them. Try the “bus” question, or ask something with words the notices don’t use.";
+      window.__rag = { top: topIdx.map(function (i) { return "d" + (i + 1); }), scores: scored.slice(0, 3).map(function (x) { return ["d" + (x.i + 1), Math.round(x.s * 1000) / 1000]; }) };
+    }
+    qIn.addEventListener("input", render);
+    sK.addEventListener("input", render);
+    document.querySelectorAll("#rag [data-q]").forEach(function (b) { b.addEventListener("click", function () { qIn.value = b.dataset.q; render(); }); });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

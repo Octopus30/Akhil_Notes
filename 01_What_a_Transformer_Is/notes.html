@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 1: What a Transformer Is</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+hr { border: 0; border-top: 1px dashed var(--muted); margin: 36px 0; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+blockquote { margin: 16px 0; padding: 10px 18px; border-left: 4px solid var(--ink); background: var(--tint); border-radius: 0 8px 8px 0; font-style: italic; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each one shows a real property of the model, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.94); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.demo-scroll { overflow-x: auto; }
+.demo svg { display: block; width: 100%; min-width: 640px; height: auto; }
+/* token field (antigravity: no position info = tokens float as an unordered set) */
+.field { position: relative; height: 200px; border: 1.5px dashed #b9c3e0; border-radius: 10px; background: rgba(238,241,251,.45); overflow: hidden; }
+.tok { position: absolute; left: 0; top: 0; font-family: var(--hand); font-weight: 700; font-size: 17px; color: var(--ink); background: #fff; border: 2px solid var(--ink); border-radius: 7px; padding: 0 10px; white-space: nowrap; will-change: transform; }
+.tok .pos { position: absolute; top: -9px; right: -9px; min-width: 18px; text-align: center; background: var(--ink); color: #fff; font-family: var(--body); font-size: 11px; font-weight: 700; border-radius: 9px; padding: 0 4px; line-height: 17px; opacity: 0; }
+/* information-flow graph */
+.node rect { fill: #fff; stroke: var(--ink); stroke-width: 2; transition: fill .25s, stroke .25s; }
+.node text { font-family: var(--hand); fill: var(--ink); font-size: 16px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.node.on rect { fill: var(--tint); }
+.node.focus rect { fill: #ffe9a8; stroke: #b07a00; }
+.node.pick { cursor: pointer; }
+.link { fill: none; stroke: var(--ink); stroke-linecap: round; }
+.link.hl { stroke: #b07a00; }
+.row-cap { font-family: var(--body); font-size: 12px; fill: var(--muted); }
+.counters { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 15px; margin-top: 6px; }
+.counters b { font-variant-numeric: tabular-nums; color: var(--ink); }
+/* shapes with real numbers */
+.stage-count { font-size: 14px; color: var(--muted); }
+.shape-row { display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: flex-start; margin: 10px 0 0; }
+.shape-row > div { min-width: 0; max-width: 100%; }
+.mat-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; display: block; }
+.mat-cap small { font-family: var(--mono); font-weight: 400; font-size: 12px; color: var(--muted); }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 12.5px; }
+table.mat td, table.mat th { border: 0; padding: 3px 6px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 50px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; }
+table.mat th { background: none; font-family: var(--hand); font-size: 14px; color: var(--ink); text-align: center; }
+table.mat th.r { text-align: right; }
+table.mat td.best { box-shadow: inset 0 0 0 2.5px #b07a00; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+}
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header class="hero">
+  <p class="eyebrow">Transformers &amp; LLMs · Section 1</p>
+  <h1>What a Transformer Is</h1>
+  <p class="lede"><strong>In one line:</strong> a Transformer is a neural network that turns a sequence of tokens into a sequence of context-aware vectors by letting every token look directly at every other token, all at the same time.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked example</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> what problem the Transformer was designed to solve and why recurrent networks (RNNs) struggled with it.</li>
+  <li><strong>Describe</strong> the end-to-end pipeline of a Transformer: tokens → embeddings → stacked blocks → output.</li>
+  <li><strong>Name</strong> the two sub-layers inside every Transformer block and say, in one sentence each, what they do.</li>
+  <li><strong>Trace</strong> the shape of the data as it flows through the model for a small example.</li>
+  <li><strong>Compare</strong> the Transformer with an RNN on parallelism, path length between words, and cost.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<p>You should be comfortable with:</p>
+<ul>
+  <li><strong>Python and NumPy</strong>: arrays and <code>.shape</code>.</li>
+  <li><strong>Matrix multiplication</strong>: if \(A\) is \(m \times k\) and \(B\) is \(k \times p\), then \(AB\) is \(m \times p\).</li>
+  <li><strong>What a neural network layer does</strong>: multiply by a weight matrix, add a bias, apply a non-linearity.</li>
+  <li><strong>Gradient descent</strong>: weights are adjusted step by step to reduce a loss.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: a "vector representation"</span>
+  Neural networks can't read words. Each word (or piece of a word) is replaced by a list of numbers called a <strong>vector</strong>, e.g. <code>[0.2, -1.3, 0.7, 0.05]</code>. Similar words end up with similar vectors. Everything in this course is about transforming such vectors into more useful ones.
+</div>
+<p>No earlier sections are needed; this is the starting point.</p>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: why do we need something new?</h2>
+<p>Read this sentence:</p>
+<blockquote>Riya poured water into the glass until <strong>it</strong> was full.</blockquote>
+<p>What does <strong>it</strong> refer to? You instantly know it's <em>the glass</em>, not <em>Riya</em> and not <em>the water</em>. To work that out you had to connect "it" with a word five positions earlier, and use "full" (which comes <em>after</em> "it") as a clue.</p>
+<p>Language is full of these long-range connections. A model that understands text must be able to:</p>
+<ol>
+  <li><strong>Link words that are far apart.</strong></li>
+  <li><strong>Use context from both sides</strong> of a word (or at least everything before it).</li>
+  <li><strong>Do this quickly</strong> on very long texts, because modern models train on trillions of words.</li>
+</ol>
+
+<h3>How RNNs handled it, and where they hit a wall</h3>
+<p>Before 2017 the standard tool was the <strong>recurrent neural network (RNN)</strong>, usually in its LSTM or GRU form. An RNN reads one token at a time and keeps a running summary called the <strong>hidden state</strong>:</p>
+<div class="math-block">$$h_t = f(h_{t-1},\; x_t)$$</div>
+<p>In words: the new summary \(h_t\) is computed from the previous summary \(h_{t-1}\) and the current token \(x_t\).</p>
+<p>This design has three problems:</p>
+<div class="tw"><table>
+  <tr><th>Problem</th><th>Why it happens</th></tr>
+  <tr><td><strong>Slow training</strong></td><td>Step \(t\) can't start until step \(t-1\) is finished, so a 1,000-token sentence needs 1,000 steps one after another, and GPUs sit mostly idle.</td></tr>
+  <tr><td><strong>Forgetting</strong></td><td>Information about word 1 must survive being squeezed through every hidden state up to word 1,000. In practice it fades (the <em>vanishing gradient</em> problem).</td></tr>
+  <tr><td><strong>Long paths</strong></td><td>The signal between two words \(k\) positions apart has to pass through \(k\) steps, which makes long-range links hard to learn.</td></tr>
+</table></div>
+<p>Researchers had already added an <strong>attention mechanism</strong> on top of RNNs (Bahdanau et al., 2014) so the model could "look back" at earlier words directly. The big idea of the Transformer paper was:</p>
+<div class="callout"><span class="label">Keep the attention, throw away the recurrence.</span></div>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: the classroom discussion</h2>
+<p>Imagine a class of students, each holding one word of the sentence on a card.</p>
+<ul>
+  <li><strong>The RNN classroom:</strong> the first student whispers a summary to the second, who adds their word and whispers to the third, and so on. By the end of the line the message is long, slow to deliver and garbled, like a game of telephone.</li>
+  <li><strong>The Transformer classroom:</strong> everyone stands in a circle and can <strong>talk to everyone else at once</strong>. The student holding "it" asks the room, "Who here is a container that can be full?" The student holding "glass" answers loudly, the others quietly. "It" updates its understanding: <em>I mean the glass.</em> Every student does this at the same time, in parallel.</li>
+</ul>
+<div class="demo" id="flow">
+  <p class="demo-title">Try it: how information flows through one layer</p>
+  <div class="demo-bar">
+    <button class="btn" id="play-rnn" type="button">Run an RNN layer</button>
+    <button class="btn" id="play-tf" type="button">Run a self-attention layer</button>
+  </div>
+  <div class="demo-scroll"><svg id="flow-svg" viewBox="0 0 900 300" role="img" aria-label="Information-flow graph for the sentence Riya poured water into the glass until it was full, for an RNN layer and for a self-attention layer."></svg></div>
+  <div class="counters">
+    <span>Sequential steps for this layer: <b id="c-steps">–</b></span>
+    <span>Hops from "glass" to "it": <b id="c-hops">–</b></span>
+    <span>Word pairs connected directly: <b id="c-pairs">–</b></span>
+  </div>
+  <p class="demo-status" id="flow-status" aria-live="polite">Bottom row: the 10 input tokens. Run a layer to see which computations depend on which, and how many steps it takes.</p>
+</div>
+<p>That room-wide question-and-answer is <strong>self-attention</strong>. After one round, each student has a better, context-aware understanding of their word. Repeat the discussion several times (several <strong>layers</strong>) and the understanding deepens.</p>
+<div class="callout"><span class="label">Where the analogy breaks</span>Real students listen to the words in order. The Transformer, by default, has <em>no sense of order at all</em>: shuffle the students and it gives the same answers. We fix this by stamping each card with its position number (<strong>positional information</strong>, Section 7).</div>
+
+<div class="demo" id="order">
+  <p class="demo-title">Try it: what the model sees without positions</p>
+  <div class="demo-bar">
+    <button class="btn" id="order-toggle" type="button" aria-pressed="false">Add position information</button>
+  </div>
+  <div class="field" id="field" aria-hidden="true"></div>
+  <p class="demo-status" id="order-status" aria-live="polite"></p>
+</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Key terms</h3>
+<ul>
+  <li><strong>Token</strong>: the basic unit of text the model works with: a word, part of a word, or punctuation mark. (Section 2.)</li>
+  <li><strong>Embedding</strong>: the vector that represents a token. Its length is called the <strong>model width</strong>, written \(d_{model}\).</li>
+  <li><strong>Sequence length</strong> \(n\): the number of tokens in the input.</li>
+  <li><strong>Transformer block</strong> (also called a <strong>layer</strong>): one round of "discussion" plus "individual thinking". A model stacks \(N\) identical blocks.</li>
+  <li><strong>Self-attention</strong>: the operation that lets each token gather information from all other tokens. (Sections 3–6.)</li>
+  <li><strong>Feed-forward network (FFN)</strong>: a small two-layer neural network applied to each token <em>separately</em>. (Section 8.)</li>
+</ul>
+
+<h3>5.2 The input as a matrix</h3>
+<p>We stack the \(n\) token vectors as rows of a matrix:</p>
+<div class="math-block">$$X \in \mathbb{R}^{n \times d_{model}}$$</div>
+<p>In words: \(X\) has one row per token, and each row is that token's \(d_{model}\)-long vector.</p>
+
+<h3>5.3 What one block does</h3>
+<p>Each block takes \(X\) in and returns a matrix <strong>of the same shape</strong> out:</p>
+<div class="math-block">$$X' = \text{Block}(X), \qquad X, X' \in \mathbb{R}^{n \times d_{model}}$$</div>
+<p>Inside, there are two sub-layers, each wrapped with a <strong>residual connection</strong> (add the input back) and <strong>layer normalization</strong> (rescale the numbers to a stable range):</p>
+<div class="math-block">$$
+\begin{aligned}
+A &= X + \text{SelfAttention}(\text{LN}(X)) \\
+X' &= A + \text{FFN}(\text{LN}(A))
+\end{aligned}
+$$</div>
+<p>In words:</p>
+<ol>
+  <li><strong>Self-attention</strong>: tokens exchange information ("talk to each other"), and the result is added to what each token already knew.</li>
+  <li><strong>Feed-forward network</strong>: each token processes what it has just learned on its own ("think individually"), and again the result is added on.</li>
+</ol>
+<p class="cap">(This is the <em>pre-norm</em> arrangement used by most modern models. The 2017 paper normalized <em>after</em> adding; Section 8 compares the two.)</p>
+<p>Because the output shape equals the input shape, we can stack as many blocks as we like:</p>
+<div class="math-block">$$X^{(N)} = \text{Block}_N(\cdots \text{Block}_2(\text{Block}_1(X^{(0)})))$$</div>
+
+<h3>5.4 The full pipeline</h3>
+<ol class="steps">
+  <li><strong>Tokenize</strong> the text into \(n\) token IDs (integers).</li>
+  <li><strong>Embed</strong> each ID into a \(d_{model}\)-long vector and <strong>add position information</strong>, giving \(X^{(0)}\) with shape \(n \times d_{model}\).</li>
+  <li><strong>Pass through \(N\) blocks</strong>, giving \(X^{(N)}\) with the same shape.</li>
+  <li><strong>Output head</strong>: a final linear layer turns each row into a score for every word in the vocabulary, shape \(n \times \text{vocabulary size}\). A <strong>softmax</strong> turns the scores into probabilities.</li>
+</ol>
+
+<h3>5.5 Three flavours (preview of Section 11)</h3>
+<p>The original 2017 model had two halves:</p>
+<ul>
+  <li>An <strong>encoder</strong>, which reads the input sentence and builds understanding.</li>
+  <li>A <strong>decoder</strong>, which writes the output sentence one token at a time, looking at the encoder's result.</li>
+</ul>
+<p>Since then, many models keep only one half:</p>
+<div class="tw"><table>
+  <tr><th>Flavour</th><th>Example models</th><th>Good at</th></tr>
+  <tr><td>Encoder-only</td><td>BERT</td><td>Understanding: classification, search</td></tr>
+  <tr><td>Decoder-only</td><td>GPT, Claude, LLaMA</td><td>Generating text: chat, code</td></tr>
+  <tr><td>Encoder–decoder</td><td>Original Transformer, T5</td><td>Turning one text into another: translation</td></tr>
+</table></div>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked example: tracing shapes</h2>
+<p>Let's follow a tiny, made-up model through the pipeline.</p>
+<div class="callout">
+  <span class="label">Setup</span>
+  <ul>
+    <li>Input text: <em>"glass is full"</em></li>
+    <li>Tokens (assume one token per word): <code>["glass", "is", "full"]</code>, so \(n = 3\).</li>
+    <li>Model width \(d_{model} = 4\).</li>
+    <li>Vocabulary size = 10 (a toy vocabulary).</li>
+    <li>Number of blocks \(N = 2\).</li>
+  </ul>
+</div>
+<ol class="steps">
+  <li><strong>Tokenize.</strong> Suppose our vocabulary maps <code>glass → 7</code>, <code>is → 2</code>, <code>full → 5</code>.
+    <div class="math-block">$$\text{ids} = [7,\; 2,\; 5] \qquad \text{shape } (3,)$$</div></li>
+  <li><strong>Embed.</strong> The embedding table has shape \(10 \times 4\) (one row per vocabulary word). We pick rows 7, 2 and 5:
+    <div class="math-block">$$
+X^{(0)} =
+\begin{bmatrix}
+0.10 & 0.50 & -0.20 & 0.30 \\
+0.40 & 0.00 & 0.10 & -0.10 \\
+-0.30 & 0.20 & 0.60 & 0.00
+\end{bmatrix}
+\qquad \text{shape } 3 \times 4
+$$</div>
+    <p class="cap">(The numbers are made up for illustration; position information is added here too.)</p></li>
+  <li><strong>Block 1.</strong> Self-attention mixes information <em>across rows</em>, so row 1 (glass) now carries a little of rows 2 and 3. The FFN then transforms each row on its own. Shape in = \(3 \times 4\), shape out = \(3 \times 4\).</li>
+  <li><strong>Block 2.</strong> Same again: \(3 \times 4 \rightarrow 3 \times 4\).</li>
+  <li><strong>Output head.</strong> Multiply by a weight matrix of shape \(4 \times 10\):
+    <div class="math-block">$$(3 \times 4) \cdot (4 \times 10) = 3 \times 10$$</div>
+    Each of the 3 rows now holds 10 scores, one per vocabulary word. After softmax, each row is a probability distribution that sums to 1.</li>
+</ol>
+
+<div class="demo" id="shapes">
+  <p class="demo-title">Try it: run the worked example with real numbers</p>
+  <div class="demo-bar">
+    <button class="btn" id="shape-prev" type="button">← Back</button>
+    <button class="btn" id="shape-next" type="button">Next step →</button>
+    <span class="stage-count" id="shape-count">Stage 1 of 5</span>
+  </div>
+  <div class="shape-row" id="shape-view"></div>
+  <div class="legend"><span><i class="sw" style="background:rgba(27,47,168,.75)"></i>positive</span><span><i class="sw" style="background:rgba(214,120,30,.75)"></i>negative</span><span>darker = larger size</span></div>
+  <p class="demo-status" id="shape-note" aria-live="polite"></p>
+</div>
+
+<h3>Shape summary</h3>
+<div class="tw"><table>
+  <tr><th>Stage</th><th>Shape</th></tr>
+  <tr><td>Token IDs</td><td>\(3\)</td></tr>
+  <tr><td>Embeddings \(X^{(0)}\)</td><td>\(3 \times 4\)</td></tr>
+  <tr><td>After block 1</td><td>\(3 \times 4\)</td></tr>
+  <tr><td>After block 2</td><td>\(3 \times 4\)</td></tr>
+  <tr><td>Output scores</td><td>\(3 \times 10\)</td></tr>
+</table></div>
+<div class="callout"><span class="label">Key observation</span>The "width" stays at \(d_{model}\) through every block. Only the very first step (IDs → vectors) and the very last step (vectors → vocabulary scores) change it.</div>
+
+<h3>A second mini-calculation: RNN vs Transformer path length</h3>
+<p>For \(n = 3\) tokens, how many steps does information need to travel from token 1 to token 3?</p>
+<ul>
+  <li><strong>RNN:</strong> token 1 → hidden state 1 → hidden state 2 → hidden state 3. That's <strong>2 steps</strong> (in general \(n-1\)).</li>
+  <li><strong>Transformer:</strong> token 3 attends to token 1 directly, so <strong>1 step</strong>, whatever \(n\) is.</li>
+</ul>
+<p>For a 1,000-token document that's 999 steps versus 1 step.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<p>The full pipeline:</p>
+<pre class="mermaid">
+flowchart LR
+    T["Text"] --> TK["Tokenizer<br/>n token IDs"]
+    TK --> E["Embedding + position<br/>n × d_model"]
+    E --> B1["Block 1<br/>n × d_model"]
+    B1 --> B2["Block 2<br/>n × d_model"]
+    B2 --> BN["… Block N<br/>n × d_model"]
+    BN --> H["Output head<br/>n × vocabulary size"]
+    H --> P["Softmax → probabilities"]
+</pre>
+<p>Inside one block:</p>
+<pre class="mermaid">
+flowchart LR
+    X["X<br/>n × d_model"] --> LN1["LayerNorm"] --> SA["Self-attention<br/>(tokens talk)"] --> ADD1(("+"))
+    X --> ADD1
+    ADD1 --> LN2["LayerNorm"] --> FF["Feed-forward<br/>(each token thinks)"] --> ADD2(("+"))
+    ADD1 --> ADD2
+    ADD2 --> Y["X′<br/>n × d_model"]
+</pre>
+<p class="cap">The arrows that skip around each sub-layer are the <strong>residual connections</strong>.</p>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<h3>Real model sizes</h3>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Year</th><th>Type</th><th>Blocks \(N\)</th><th>\(d_{model}\)</th><th>Heads \(h\)</th><th>Parameters</th></tr>
+  <tr><td>Original Transformer (base)</td><td>2017</td><td>Encoder–decoder</td><td>6 + 6</td><td>512</td><td>8</td><td>≈ 65 M</td></tr>
+  <tr><td>BERT-base</td><td>2018</td><td>Encoder-only</td><td>12</td><td>768</td><td>12</td><td>≈ 110 M</td></tr>
+  <tr><td>GPT-2 (small)</td><td>2019</td><td>Decoder-only</td><td>12</td><td>768</td><td>12</td><td>≈ 124 M</td></tr>
+  <tr><td>LLaMA-2 7B</td><td>2023</td><td>Decoder-only</td><td>32</td><td>4096</td><td>32</td><td>≈ 7 B</td></tr>
+</table></div>
+<p>Notice the pattern: bigger models mostly get <strong>wider</strong> (larger \(d_{model}\)) and <strong>deeper</strong> (more blocks). The block design itself barely changes.</p>
+
+<h3>Where Transformers are used today</h3>
+<ul>
+  <li><strong>Language:</strong> chatbots, translation, summarization, code completion.</li>
+  <li><strong>Vision:</strong> Vision Transformers split images into patches and treat each patch as a token (Section 15).</li>
+  <li><strong>Speech:</strong> e.g. Whisper turns audio frames into tokens.</li>
+  <li><strong>Science:</strong> e.g. protein-structure models such as AlphaFold 2 use attention-based blocks.</li>
+</ul>
+
+<h3>The one big cost</h3>
+<p>Self-attention compares every token with every other token, so the work grows with \(n^2\). Going from 1,000 to 10,000 tokens makes the attention step about <strong>100× more expensive</strong>. Much of modern research (Section 14) is about reducing this cost.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"A Transformer reads the sentence left to right like a person."</strong> Not by default. It processes all tokens at once and has no built-in notion of order. Order comes only from the position information we add.</li>
+  <li class="mistake"><strong>"Transformer = GPT."</strong> GPT is <em>one</em> kind of Transformer (decoder-only). BERT (encoder-only) and T5 (encoder–decoder) are Transformers too.</li>
+  <li class="mistake"><strong>"Attention is the whole model."</strong> Attention only moves information <em>between</em> tokens. Most of the parameters, roughly two-thirds in typical models, sit in the feed-forward networks, which process each token on its own.</li>
+  <li class="mistake"><strong>"Each block changes the vector size."</strong> No. Every block maps \(n \times d_{model}\) to \(n \times d_{model}\), which is exactly why blocks can be stacked.</li>
+  <li class="mistake"><strong>"Transformers have no weaknesses compared with RNNs."</strong> Their attention cost grows with \(n^2\) while an RNN's grows with \(n\). For very long sequences that matters, which is why RNN-like ideas (e.g. state-space models) are being revisited.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>The Transformer (Vaswani et al., 2017) replaced step-by-step recurrence with <strong>self-attention</strong>, letting every token look at every other token directly.</li>
+  <li>This gives <strong>parallel training</strong> (fast on GPUs) and a <strong>one-step path</strong> between any two tokens (good for long-range meaning).</li>
+  <li>The pipeline is: <strong>tokenize → embed + position → \(N\) identical blocks → output head → softmax</strong>.</li>
+  <li>Each block = <strong>self-attention</strong> (tokens talk) + <strong>feed-forward network</strong> (each token thinks), each with a residual connection and layer normalization.</li>
+  <li>Blocks keep the shape \(n \times d_{model}\), so they stack cleanly. Bigger models are mainly wider and deeper.</li>
+  <li>The main cost: attention work grows with \(n^2\).</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>An RNN and a Transformer each process a 500-token document. Roughly how many <em>sequential</em> steps does each need to process the tokens, and why does this matter for training on GPUs?</li>
+  <li>A Transformer block receives an input of shape \(20 \times 512\). What is the shape of its output? Why must it be this shape?</li>
+  <li>If we shuffle the order of the input tokens and give a Transformer <strong>no</strong> position information, what happens to its output?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>The RNN needs about <strong>500 sequential steps</strong>, because each hidden state depends on the previous one. The Transformer processes all 500 tokens <strong>in one parallel step per layer</strong>. GPUs are built for large parallel computations, so the Transformer uses them far more efficiently and trains much faster.</li>
+    <li><strong>\(20 \times 512\).</strong> Every block maps \(n \times d_{model}\) to \(n \times d_{model}\). The residual connection adds the input to the sub-layer output, which only works if both have the same shape, and keeping the shape fixed is what lets us stack blocks.</li>
+    <li>The output rows get <strong>shuffled in the same way</strong>, but each token's output vector is otherwise identical. Without position information, self-attention can't tell word order apart, so "dog bites man" and "man bites dog" would look the same.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>Advances in Neural Information Processing Systems 30 (NeurIPS 2017).</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. The original Transformer paper. Read Sections 1–3 now; the rest will make sense after Section 6 of this course.</li>
+  <li>Bahdanau, D., Cho, K., &amp; Bengio, Y. (2014). <strong>"Neural Machine Translation by Jointly Learning to Align and Translate."</strong> <a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">arXiv:1409.0473</a>. The paper that introduced attention on top of RNNs; useful for seeing where the idea came from.</li>
+  <li>Jurafsky, D., &amp; Martin, J. H. <strong><em>Speech and Language Processing</em></strong> (3rd edition draft), the chapter on Transformers and large language models. A clear textbook treatment at undergraduate level, freely available online from Stanford.</li>
+  <li>Alammar, J. <strong>"The Illustrated Transformer"</strong> (blog post, 2018). A highly visual walkthrough, good for building intuition alongside these notes.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var WORDS = ["Riya", "poured", "water", "into", "the", "glass", "until", "it", "was", "full"];
+  var GLASS = 5, IT = 7;
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, canAnimate ? ms : 0); }); }
+  function fade(el, to, dur) { if (canAnimate) M.animate(el, { opacity: to }, { duration: dur || 0.3 }); else el.style.opacity = to; }
+  // Interpolate a number from 0 to 1 over `dur` seconds (Motion when available, otherwise jump to the end).
+  function tween(dur, onUpdate) {
+    if (canAnimate) {
+      try { M.animate(0, 1, { duration: dur, ease: "easeInOut", onUpdate: onUpdate }); return sleep(dur * 1000 + 40); }
+      catch (e) { /* fall through */ }
+    }
+    onUpdate(1); return Promise.resolve();
+  }
+
+  /* ---------- 1. Without positions the tokens are an unordered set ("antigravity") ---------- */
+  (function order() {
+    var field = document.getElementById("field"), btn = document.getElementById("order-toggle"), status = document.getElementById("order-status");
+    if (!field) return;
+    var TEXT_FREE = "No position information: the model receives these 10 tokens as a loose, unordered set, so they float freely. “Riya poured water into the glass” and “glass the into water poured Riya” would give exactly the same token vectors.";
+    var TEXT_ORDERED = "Position information added: each token now also carries its position (the number on each card), so word order can change the result. How positions are encoded is Section 7.";
+    var toks = WORDS.map(function (w, i) {
+      var el = document.createElement("span"); el.className = "tok"; el.textContent = w;
+      var b = document.createElement("span"); b.className = "pos"; b.textContent = i; el.appendChild(b);
+      field.appendChild(el);
+      return { el: el, badge: b, x: 0, y: 0, vx: 0, vy: 0, w: 0, h: 0, tx: 0, ty: 0 };
+    });
+    var W = 0, H = 0, ordered = false, running = false, visible = true, raf = 0;
+
+    function layout() {
+      W = field.clientWidth; H = field.clientHeight;
+      toks.forEach(function (t) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; });
+      // targets for the ordered sentence, wrapped into lines and centred
+      var lines = [[]], lineW = [0], gap = 14, maxW = W - 24;
+      toks.forEach(function (t) {
+        var i = lines.length - 1;
+        if (lineW[i] + t.w > maxW && lines[i].length) { lines.push([]); lineW.push(0); i++; }
+        lines[i].push(t); lineW[i] += t.w + gap;
+      });
+      var lineH = 46, top = (H - lines.length * lineH) / 2;
+      lines.forEach(function (line, li) {
+        var x = (W - (lineW[li] - gap)) / 2;
+        line.forEach(function (t) { t.tx = x; t.ty = top + li * lineH + (lineH - t.h) / 2; x += t.w + gap; });
+      });
+    }
+    function scatter() {
+      toks.forEach(function (t) {
+        t.x = 6 + Math.random() * Math.max(1, W - t.w - 12);
+        t.y = 10 + Math.random() * Math.max(1, H - t.h - 20);
+        var a = Math.random() * 6.283; t.vx = Math.cos(a) * 0.4; t.vy = Math.sin(a) * 0.4;
+      });
+    }
+    function place() { toks.forEach(function (t) { t.el.style.transform = "translate(" + t.x.toFixed(1) + "px," + t.y.toFixed(1) + "px)"; }); }
+    function step() {
+      toks.forEach(function (t) {
+        if (ordered) { t.x += (t.tx - t.x) * 0.12; t.y += (t.ty - t.y) * 0.12; return; }
+        t.vy -= 0.006;                                      // weightless drift, slightly upward
+        var s = Math.hypot(t.vx, t.vy); if (s > 0.6) { t.vx *= 0.6 / s; t.vy *= 0.6 / s; }
+        t.x += t.vx; t.y += t.vy;
+        if (t.x < 4) { t.x = 4; t.vx = Math.abs(t.vx); }
+        if (t.x > W - t.w - 4) { t.x = W - t.w - 4; t.vx = -Math.abs(t.vx); }
+        if (t.y < 12) { t.y = 12; t.vy = Math.abs(t.vy) + 0.15; }
+        if (t.y > H - t.h - 4) { t.y = H - t.h - 4; t.vy = -Math.abs(t.vy); }
+      });
+      place();
+    }
+    function loop() { step(); raf = requestAnimationFrame(loop); }
+    function start() { if (!running && visible && canAnimate && !document.hidden) { running = true; raf = requestAnimationFrame(loop); } }
+    function stop() { running = false; cancelAnimationFrame(raf); }
+    function setOrdered(o) {
+      ordered = o;
+      btn.textContent = o ? "Remove position information" : "Add position information";
+      btn.setAttribute("aria-pressed", String(o));
+      status.textContent = o ? TEXT_ORDERED : TEXT_FREE;
+      toks.forEach(function (t, i) {
+        if (canAnimate) M.animate(t.badge, { opacity: o ? 1 : 0, scale: o ? [0.4, 1] : 1 }, { duration: 0.35, delay: o ? 0.35 + i * 0.04 : 0 });
+        else t.badge.style.opacity = o ? 1 : 0;
+      });
+      if (!o) { toks.forEach(function (t) { var a = Math.random() * 6.283; t.vx = Math.cos(a) * 0.5; t.vy = Math.sin(a) * 0.5; }); }
+      if (!canAnimate) { toks.forEach(function (t) { if (o) { t.x = t.tx; t.y = t.ty; } }); if (!o) scatter(); place(); }
+    }
+    btn.addEventListener("click", function () { setOrdered(!ordered); });
+    function init() { layout(); scatter(); place(); setOrdered(false); start(); }
+    if ("ResizeObserver" in window) new ResizeObserver(function () { layout(); if (!canAnimate) { if (ordered) toks.forEach(function (t) { t.x = t.tx; t.y = t.ty; }); place(); } }).observe(field);
+    if ("IntersectionObserver" in window) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; visible ? start() : stop(); }).observe(field);
+    document.addEventListener("visibilitychange", function () { document.hidden ? stop() : start(); });
+    if (document.fonts) document.fonts.ready.then(init); else init();
+  })();
+
+  /* ---------- 2. Information flow: RNN chain vs all-pairs self-attention ---------- */
+  (function flow() {
+    var svg = document.getElementById("flow-svg");
+    if (!svg) return;
+    var status = document.getElementById("flow-status");
+    var cSteps = document.getElementById("c-steps"), cHops = document.getElementById("c-hops"), cPairs = document.getElementById("c-pairs");
+    var bRNN = document.getElementById("play-rnn"), bTF = document.getElementById("play-tf");
+    var Y_IN = 262, Y_MID = 150, Y_OUT = 46, NW = 76, NH = 32, SUB = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉", "₁₀"];
+    function X(i) { return 45 + i * 90; }
+    function mk(name, attrs, parent) { var e = document.createElementNS(SVGNS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+    function node(x, y, label, parent) {
+      var g = mk("g", { "class": "node" }, parent);
+      mk("rect", { x: x - NW / 2, y: y - NH / 2, width: NW, height: NH, rx: 7 }, g);
+      mk("text", { x: x, y: y }, g).textContent = label;
+      return g;
+    }
+    var defs = mk("defs", {});
+    var mkr = mk("marker", { id: "ah", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }, defs);
+    mk("path", { d: "M0,0 L10,5 L0,10 z", fill: "#1b2fa8" }, mkr);
+    var layer = mk("g", {});
+    var inputs = WORDS.map(function (w, i) { return node(X(i), Y_IN, w); });
+
+    function busy(b) { bRNN.disabled = b; bTF.disabled = b; }
+    function clear() {
+      layer.innerHTML = "";
+      inputs.forEach(function (n) { n.classList.remove("on", "focus"); });
+      cSteps.textContent = cHops.textContent = cPairs.textContent = "–";
+    }
+    function line(x1, y1, x2, y2, width, opacity, arrow) {
+      var p = mk("path", { d: "M" + x1 + "," + y1 + " L" + x2 + "," + y2, "class": "link", "stroke-width": width }, layer);
+      if (arrow) p.setAttribute("marker-end", "url(#ah)");
+      p.style.opacity = opacity;
+      return p;
+    }
+    function draw(paths, dur) {
+      paths.forEach(function (p) { var L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = L; });
+      return tween(dur, function (v) { paths.forEach(function (p) { p.style.strokeDashoffset = (1 - v) * parseFloat(p.style.strokeDasharray); }); });
+    }
+
+    async function runRNN() {
+      busy(true); clear();
+      mk("text", { x: 6, y: Y_MID - 24, "class": "row-cap" }, layer).textContent = "hidden states (computed one at a time)";
+      var hidden = WORDS.map(function (_, i) { var n = node(X(i), Y_MID, "h" + SUB[i], layer); n.style.opacity = 0.25; return n; });
+      var up = [], side = [];
+      for (var t = 0; t < WORDS.length; t++) {
+        inputs[t].classList.add("on");
+        up[t] = line(X(t), Y_IN - NH / 2, X(t), Y_MID + NH / 2 + 3, 2, 1, true);
+        var paths = [up[t]];
+        if (t > 0) { side[t] = line(X(t - 1) + NW / 2, Y_MID, X(t) - NW / 2 - 3, Y_MID, 2, 1, true); paths.push(side[t]); }
+        status.textContent = t === 0
+          ? "Step 1: h₁ is computed from “Riya”."
+          : "Step " + (t + 1) + ": h" + SUB[t] + " needs “" + WORDS[t] + "” AND h" + SUB[t - 1] + ", so it cannot start until step " + t + " has finished.";
+        await draw(paths, 0.3);
+        fade(hidden[t], 1, 0.2); hidden[t].classList.add("on");
+        cSteps.textContent = t + 1;
+        await sleep(180);
+      }
+      // highlight the only route from "glass" to "it": glass -> h6 -> h7 -> h8
+      inputs[GLASS].classList.add("focus");
+      [GLASS, GLASS + 1, IT].forEach(function (i) { hidden[i].classList.add("focus"); });
+      [up[GLASS], side[GLASS + 1], side[IT]].forEach(function (p) { p.classList.add("hl"); p.setAttribute("stroke-width", 3.5); });
+      cHops.textContent = "2  (h₆ → h₇ → h₈)";
+      cPairs.textContent = "only neighbours";
+      status.textContent = "Done: 10 tokens needed 10 steps, one after another. Information from “glass” can only reach “it” by passing through h₆ → h₇ → h₈ (2 hops). From “Riya” to “full” it would take 9 hops.";
+      busy(false);
+    }
+
+    async function runTF() {
+      busy(true); clear();
+      mk("text", { x: 6, y: Y_OUT - 24, "class": "row-cap" }, layer).textContent = "outputs of the layer (all computed together)";
+      var linkGroup = mk("g", {}, layer);
+      var outputs = WORDS.map(function (w, i) { var n = node(X(i), Y_OUT, w + "′", layer); n.style.opacity = 0.25; return n; });
+      inputs.forEach(function (n) { n.classList.add("on"); });
+      status.textContent = "Every output looks at every input. None of these 100 connections depends on another, so they are all computed at the same time.";
+      var links = [];                                       // links[j][i]: input i -> output j
+      outputs.forEach(function (_, j) {
+        links[j] = WORDS.map(function (_, i) {
+          var p = mk("path", { d: "M" + X(i) + "," + (Y_IN - NH / 2) + " L" + X(j) + "," + (Y_OUT + NH / 2), "class": "link", "stroke-width": 1 }, linkGroup);
+          p.style.opacity = 0.16; return p;
+        });
+      });
+      await draw([].concat.apply([], links), 0.9);
+      outputs.forEach(function (n) { fade(n, 1, 0.25); n.classList.add("on", "pick"); });
+      cSteps.textContent = "1"; cPairs.textContent = "10 × 10 = 100  (n²)"; cHops.textContent = "1";
+      function focus(j) {
+        outputs.forEach(function (n, k) { n.classList.toggle("focus", k === j); });
+        inputs.forEach(function (n, k) { n.classList.toggle("focus", j === IT && k === GLASS); });
+        links.forEach(function (row, k) {
+          row.forEach(function (p, i) {
+            var mine = k === j, key = mine && j === IT && i === GLASS;
+            p.style.opacity = mine ? 0.75 : 0.1;
+            p.setAttribute("stroke-width", key ? 3.5 : mine ? 1.8 : 1);
+            p.classList.toggle("hl", key);
+          });
+        });
+      }
+      focus(IT);
+      outputs.forEach(function (n, j) {
+        n.addEventListener("click", function () {
+          focus(j);
+          status.textContent = "“" + WORDS[j] + "′” is built from all 10 input tokens in one step. How much it listens to each one is learned; Sections 3–6 show how those weights are computed.";
+        });
+      });
+      status.textContent = "Done in 1 step: all 100 word pairs (10 × 10 = n²) are connected directly, so “glass” reaches “it” in 1 hop. Highlighted: the 10 inputs that build “it′”. Click any top card to see its inputs.";
+      busy(false);
+    }
+    bRNN.addEventListener("click", runRNN);
+    bTF.addEventListener("click", runTF);
+  })();
+
+  /* ---------- 3. The worked example, actually computed ---------- */
+  (function shapes() {
+    var view = document.getElementById("shape-view");
+    if (!view) return;
+    var ROWS = ["glass", "is", "full"], IDS = [7, 2, 5];
+    var VOCAB = ["<end>", "the", "is", "a", "water", "full", "empty", "glass", "cup", "was"];
+    var X0 = [[0.10, 0.50, -0.20, 0.30], [0.40, 0.00, 0.10, -0.10], [-0.30, 0.20, 0.60, 0.00]];   // same as the notes
+
+    function matmul(A, B) { return A.map(function (r) { return B[0].map(function (_, j) { return r.reduce(function (s, v, k) { return s + v * B[k][j]; }, 0); }); }); }
+    function T(A) { return A[0].map(function (_, j) { return A.map(function (r) { return r[j]; }); }); }
+    function softmaxRows(A) { return A.map(function (r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }); }
+    function add(A, B) { return A.map(function (r, i) { return r.map(function (v, j) { return v + B[i][j]; }); }); }
+    // Simplified block: attention with no learned projections, plus the residual. X' = X + softmax(X X^T / sqrt(d)) X
+    function block(X) { var A = softmaxRows(matmul(X, T(X)).map(function (r) { return r.map(function (v) { return v / Math.sqrt(X[0].length); }); })); return { A: A, Y: add(X, matmul(A, X)) }; }
+    var B1 = block(X0), B2 = block(B1.Y);
+    // Untrained output weights, 4 x 10 (fixed values so the page is reproducible).
+    var WOUT = [0, 1, 2, 3].map(function (j) { return VOCAB.map(function (_, k) { return Math.round(Math.sin((j + 1) * (k + 2) * 0.9) * 80) / 100; }); });
+    var LOGITS = matmul(B2.Y, WOUT), P = softmaxRows(LOGITS);
+    window.__shapeCheck = { A1rows: B1.A.map(function (r) { return r.reduce(function (a, b) { return a + b; }, 0); }), Prows: P.map(function (r) { return r.reduce(function (a, b) { return a + b; }, 0); }) };
+
+    function color(v, scale) {
+      var a = Math.min(1, Math.abs(v) / scale) * 0.85;
+      return { bg: v >= 0 ? "rgba(27,47,168," + a.toFixed(3) + ")" : "rgba(214,120,30," + a.toFixed(3) + ")", fg: a > 0.45 ? "#fff" : "#1f2433" };
+    }
+    function fmt(v) { return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }
+    function matrix(cap, dims, M, rowLabels, colLabels, scale, best) {
+      var wrap = document.createElement("div");
+      var html = '<span class="mat-cap">' + cap + ' <small>' + dims + '</small></span><div class="mat-scroll"><table class="mat">';
+      if (colLabels) html += "<tr><th></th>" + colLabels.map(function (c) { return "<th>" + c.replace("<", "&lt;").replace(">", "&gt;") + "</th>"; }).join("") + "</tr>";
+      M.forEach(function (r, i) {
+        var bi = best ? r.indexOf(Math.max.apply(null, r)) : -1;
+        html += '<tr><th class="r">' + rowLabels[i] + "</th>" + r.map(function (v, j) { return '<td' + (j === bi ? ' class="best"' : "") + "></td>"; }).join("") + "</tr>";
+      });
+      wrap.innerHTML = html + "</table></div>";
+      var cells = M.map(function (_, i) { return Array.prototype.slice.call(wrap.querySelectorAll("tr")[i + (colLabels ? 1 : 0)].querySelectorAll("td")); });
+      function paint(Mv) { Mv.forEach(function (r, i) { r.forEach(function (v, j) { var c = color(v, scale), td = cells[i][j]; td.textContent = fmt(v); td.style.background = c.bg; td.style.color = c.fg; }); }); }
+      paint(M);
+      return { el: wrap, paint: paint, cells: [].concat.apply([], cells) };
+    }
+    function lerp(A, B, t) { return A.map(function (r, i) { return r.map(function (v, j) { return v + (B[i][j] - v) * t; }); }); }
+    function popIn(cells) { if (canAnimate) M.animate(cells, { opacity: [0, 1], scale: [0.6, 1] }, { duration: 0.3, delay: M.stagger(0.012) }); }
+
+    var STAGES = [
+      { note: "Stage 1, tokenize: each word becomes one integer ID from the 10-word vocabulary.",
+        show: function () { var m = matrix("Token IDs", "shape (3,)", [[IDS[0]], [IDS[1]], [IDS[2]]], ROWS, null, 99); m.cells.forEach(function (c) { c.textContent = c.textContent.replace(".00", ""); c.style.background = "#fff"; c.style.color = "#1b2fa8"; }); view.appendChild(m.el); return m.cells; } },
+      { note: "Stage 2, embed: each ID selects its row of the 10 × 4 embedding table. These are exactly the X⁽⁰⁾ numbers from the worked example.",
+        show: function () { var m = matrix("X⁽⁰⁾", "3 × 4", X0, ROWS, null, 1.2); view.appendChild(m.el); return m.cells; } },
+      { note: "Stage 3, block 1 (simplified: attention with no learned weights, plus the residual; LayerNorm and FFN left out). Left: how much each word (row) takes from each word (column); every row sums to 1. Right: X⁽¹⁾ = X⁽⁰⁾ + weights · X⁽⁰⁾. Watch the numbers change while the shape stays 3 × 4.",
+        show: function () { return blockStage(B1, X0, "X⁽¹⁾"); } },
+      { note: "Stage 4, block 2: the same computation applied to block 1’s output. Still 3 × 4, which is exactly why blocks can be stacked.",
+        show: function () { return blockStage(B2, B1.Y, "X⁽²⁾"); } },
+      { note: "Stage 5, output head: (3 × 4) · (4 × 10) = 3 × 10 scores, then softmax on each row, so every row sums to 1 across the 10 vocabulary words (outlined = highest). These output weights are random, not trained, so the “predictions” are meaningless until the model is trained (Section 12).",
+        show: function () { var m = matrix("Probabilities", "3 × 10", P, ROWS, VOCAB, 0.3, true); view.appendChild(m.el); return m.cells; } }
+    ];
+    function blockStage(B, prev, name) {
+      var a = matrix("Attention weights", "3 × 3", B.A, ROWS, ROWS, 1);
+      var y = matrix(name, "3 × 4", prev, ROWS, null, 1.2);
+      view.appendChild(a.el); view.appendChild(y.el);
+      if (canAnimate) { a.el.style.opacity = 0; M.animate(a.el, { opacity: 1 }, { duration: 0.4 }); }
+      sleep(450).then(function () { tween(1.2, function (t) { y.paint(lerp(prev, B.Y, t)); }); });
+      if (!canAnimate) y.paint(B.Y);
+      return [];
+    }
+    var idx = 0, prevB = document.getElementById("shape-prev"), nextB = document.getElementById("shape-next");
+    function render(anim) {
+      view.innerHTML = "";
+      var cells = STAGES[idx].show();
+      document.getElementById("shape-note").textContent = STAGES[idx].note;
+      document.getElementById("shape-count").textContent = "Stage " + (idx + 1) + " of " + STAGES.length;
+      prevB.disabled = idx === 0; nextB.disabled = idx === STAGES.length - 1;
+      if (anim && cells.length) popIn(cells);
+    }
+    prevB.addEventListener("click", function () { if (idx > 0) { idx--; render(true); } });
+    nextB.addEventListener("click", function () { if (idx < STAGES.length - 1) { idx++; render(true); } });
+    render(false);
+  })();
+})();
+</script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: "$$", right: "$$", display: true },
+      { left: "\\(", right: "\\)", display: false }
+    ],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8",
+      lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px"
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 2: Tokens &amp; Embeddings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* BPE */
+.bpe-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px 22px; }
+.wordrow { display: flex; align-items: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+.wordrow .w { font-family: var(--mono); font-size: 13px; color: var(--muted); width: 5.5em; }
+.wordrow .cnt { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.tk { display: inline-block; font-family: var(--mono); font-size: 15px; color: var(--ink); background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 0 7px; line-height: 24px; }
+.tk.new { background: var(--gold-fill); border-color: var(--gold); }
+.tk.pairhit { background: var(--tint); }
+.mini { width: auto; border-collapse: collapse; font-size: 14px; }
+.mini td, .mini th { padding: 2px 10px; }
+.mini tr.top td { background: var(--gold-fill); font-weight: 700; }
+.vocab { display: flex; flex-wrap: wrap; gap: 5px; }
+.rules { margin: 4px 0; padding-left: 22px; font-family: var(--mono); font-size: 14px; }
+/* lookup */
+.lookup { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-start; }
+.lookup > div { min-width: 0; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td, table.mat th { border: 0; padding: 3px 7px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 52px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; transition: background .25s; }
+table.mat th { background: none; font-family: var(--hand); font-size: 14px; color: var(--ink); text-align: right; font-weight: 700; }
+table.mat tr.pick td { background: var(--gold-fill); box-shadow: inset 0 0 0 2px var(--gold); }
+table.mat td.one { background: var(--ink); color: #fff; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+.times { font-family: var(--hand); font-size: 28px; color: var(--ink); align-self: center; }
+/* similarity plot */
+.sim { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.sim svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.vec { stroke: var(--ink); stroke-width: 2.5; }
+.vec.sel { stroke: var(--gold); stroke-width: 3.5; }
+.pt { fill: var(--ink); cursor: pointer; }
+.pt.sel { fill: var(--gold); }
+.plabel { font-family: var(--hand); font-size: 17px; fill: var(--ink); cursor: pointer; font-weight: 700; }
+.angle { fill: rgba(176,122,0,.18); stroke: var(--gold); stroke-width: 1.5; }
+.readout { font-size: 15px; }
+.readout .big { font-family: var(--hand); font-size: 30px; color: var(--ink); font-weight: 700; display: block; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .bpe-grid, .sim { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 2</p>
+  <h1>Tokens &amp; Embeddings</h1>
+  <p class="lede"><strong>In one line:</strong> before a Transformer can do anything, text must be cut into <strong>tokens</strong>, each token turned into an integer <strong>ID</strong>, and each ID turned into a learned vector called an <strong>embedding</strong>. This section is about those three steps.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why models use sub-word tokens instead of whole words or single characters.</li>
+  <li><strong>Run</strong> the Byte-Pair Encoding (BPE) algorithm by hand on a small corpus, and use the learned merges to tokenize a new word.</li>
+  <li><strong>Show</strong> that an embedding lookup is the same as multiplying a one-hot vector by the embedding matrix.</li>
+  <li><strong>Compute</strong> the cosine similarity between two embedding vectors and interpret the result.</li>
+  <li><strong>Calculate</strong> the size of an embedding table for a real model.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 1</strong>: the pipeline <em>tokenize → embed → blocks → output</em>, and the symbols \(n\) (number of tokens) and \(d_{model}\) (vector width).</li>
+  <li><strong>Dot product</strong>: \(a \cdot b = \sum_i a_i b_i\). For \(a = [1, 2]\) and \(b = [3, 4]\): \(1\cdot3 + 2\cdot4 = 11\).</li>
+  <li><strong>Vector length (norm)</strong>: \(\lVert a \rVert = \sqrt{\sum_i a_i^2}\). For \(a = [3, 4]\): \(\sqrt{9 + 16} = 5\).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: one-hot vectors</span>
+  A <strong>one-hot vector</strong> has a single 1 and zeros everywhere else. With 5 possible items, item number 3 (counting from 0) is <code>[0, 0, 0, 1, 0]</code>. It's the simplest way to say "this one, and nothing else" as numbers.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: computers only understand numbers</h2>
+<p>A neural network multiplies and adds numbers. It can't multiply the word "tea". So we need a reliable way to turn any text, in any language, including typos, emoji and code, into numbers.</p>
+<p>The obvious idea is "give every word a number". It runs into trouble fast:</p>
+<div class="tw"><table>
+  <tr><th>Approach</th><th>Example: "unhappiness"</th><th>Problem</th></tr>
+  <tr><td><strong>Word-level</strong></td><td><code>["unhappiness"]</code></td><td>The vocabulary must hold every word in every form: <em>happy, happier, happiest, unhappy, unhappiness…</em> Any word not in the list (a new name, a typo like "teh") becomes an <strong>unknown</strong> token and its meaning is lost.</td></tr>
+  <tr><td><strong>Character-level</strong></td><td><code>["u","n","h","a","p","p","i","n","e","s","s"]</code></td><td>Only about 100 symbols needed and nothing is ever unknown. But sequences become ~4× longer, and attention cost grows with \(n^2\) (Section 1), so that's roughly 16× more work. Single letters also carry almost no meaning.</td></tr>
+  <tr><td><strong>Sub-word</strong></td><td><code>["un", "happi", "ness"]</code></td><td>The middle ground. Common words stay whole, rare words split into meaningful pieces, and nothing is ever unknown. <strong>This is what every modern LLM uses.</strong></td></tr>
+</table></div>
+<p>Sub-word tokenization reuses pieces. A model that has learned "un-" (not), "-ness" (state of being) and "happi" can make sense of "unhappiness" even if it saw that exact word rarely.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first</h2>
+<h3>Tokens: LEGO bricks for text</h3>
+<p>Think of a tokenizer's vocabulary as a box of LEGO bricks. There are small bricks (single letters), medium bricks (common chunks like "ing", "pre", "tion") and big special bricks (very common whole words like "the"). To build any word, use the <strong>biggest bricks that fit</strong>. Frequent words are one big brick; a rare word like "neaten" is built from several smaller ones.</p>
+<h3>Embeddings: a map of meaning</h3>
+<p>Now give every brick a location on a map. Bricks with similar meanings sit close together: "tea" near "coffee", both far from "brick". The location is just a list of coordinates, and that list <em>is</em> the embedding vector.</p>
+<div class="callout"><span class="label">Where the analogy breaks</span>
+  <ul>
+    <li>A real map has 2 dimensions; real embeddings have hundreds or thousands (\(d_{model}\) = 768, 4096, …).</li>
+    <li>On a real map the axes mean "north" and "east". Embedding axes have <strong>no human-chosen meaning</strong>. The model learns whatever directions are useful, and they're usually not interpretable one at a time.</li>
+  </ul>
+</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Key terms</h3>
+<ul>
+  <li><strong>Tokenizer</strong>: the fixed procedure that splits text into tokens and maps them to IDs. It's built <em>before</em> the model is trained and never changes afterwards.</li>
+  <li><strong>Vocabulary</strong>: the list of all tokens the tokenizer can produce. Its size is the <strong>vocabulary size</strong>, written \(|\mathcal{V}|\) in this section so it isn't confused with the value matrix \(V\) later.</li>
+  <li><strong>Token ID</strong>: a token's position in the vocabulary, an integer from \(0\) to \(|\mathcal{V}| - 1\).</li>
+  <li><strong>Embedding matrix</strong> \(E\): a learned table with one row per token, shape \(|\mathcal{V}| \times d_{model}\).</li>
+  <li><strong>Embedding</strong>: one row of \(E\), the vector that represents a token.</li>
+</ul>
+
+<h3>5.2 Byte-Pair Encoding (BPE): how the vocabulary is learned</h3>
+<p>BPE builds the vocabulary from a training corpus by repeatedly gluing together the most common neighbouring pair:</p>
+<ol class="steps">
+  <li>Start with every word split into <strong>single characters</strong>. The initial vocabulary is the set of characters.</li>
+  <li>Count every <strong>adjacent pair</strong> of tokens across the corpus, weighting each word by how often it occurs.</li>
+  <li><strong>Merge</strong> the most frequent pair into one new token, add it to the vocabulary, and record the merge rule.</li>
+  <li>Repeat steps 2–3 until the vocabulary reaches the target size (e.g. 32,000 or 50,000 tokens).</li>
+</ol>
+<p><strong>To tokenize new text</strong>, split it into characters and apply the recorded merges <strong>in the order they were learned</strong>.</p>
+
+<h3>5.3 From token IDs to vectors: the embedding lookup</h3>
+<p>Let token \(i\) have the one-hot vector \(o_i\) (length \(|\mathcal{V}|\), with a 1 at position \(i\)). Its embedding is</p>
+<div class="math-block">$$x_i = o_i^{\top} E = E[i, :]$$</div>
+<p>In words: multiplying a one-hot vector by \(E\) picks out exactly row \(i\). In practice libraries skip the multiplication and simply <strong>index</strong> row \(i\), which is much faster and gives the same result.</p>
+<p>For a sequence of token IDs \((t_1, \dots, t_n)\) we stack the rows:</p>
+<div class="math-block">$$X = \begin{bmatrix} E[t_1, :] \\ \vdots \\ E[t_n, :] \end{bmatrix} \in \mathbb{R}^{n \times d_{model}}$$</div>
+<p>This is the matrix \(X\) from Section 1 (before position information is added).</p>
+
+<h3>5.4 Embeddings are learned</h3>
+<p>\(E\) starts as <strong>small random numbers</strong>. During training, gradients flow back into the rows of the tokens that appeared in each batch, nudging them so the model's predictions improve. Tokens used in similar contexts receive similar nudges, so they end up with <strong>similar vectors</strong>. Nobody tells the model that "tea" and "coffee" are related; it discovers this because they appear in similar sentences ("a hot cup of ___").</p>
+
+<h3>5.5 Measuring similarity: cosine similarity</h3>
+<div class="math-block">$$\cos(a, b) = \frac{a \cdot b}{\lVert a \rVert \, \lVert b \rVert}$$</div>
+<p>In words: the dot product divided by both lengths. It measures the <strong>angle</strong> between two vectors and ignores their lengths:</p>
+<div class="tw"><table>
+  <tr><th>Value</th><th>Angle</th><th>Meaning</th></tr>
+  <tr><td>\(1\)</td><td>0°</td><td>Same direction: very similar</td></tr>
+  <tr><td>\(0\)</td><td>90°</td><td>Unrelated</td></tr>
+  <tr><td>\(-1\)</td><td>180°</td><td>Opposite directions</td></tr>
+</table></div>
+
+<h3>5.6 Two practical details</h3>
+<ul>
+  <li><strong>Special tokens.</strong> Vocabularies include tokens that aren't text, such as <code>&lt;bos&gt;</code> (beginning of sequence), <code>&lt;eos&gt;</code> (end), <code>&lt;pad&gt;</code> (filler to make sequences the same length), and BERT's <code>[CLS]</code>, <code>[SEP]</code> and <code>[MASK]</code>. They get embeddings like any other token.</li>
+  <li><strong>Weight tying.</strong> The output head (Section 1) maps vectors back to vocabulary scores with a \(d_{model} \times |\mathcal{V}|\) matrix. Many models simply reuse \(E^{\top}\) for this, which saves \(|\mathcal{V}| \cdot d_{model}\) parameters.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 BPE by hand</h3>
+<p><strong>Corpus</strong> (word: how many times it appears): <code>tea</code> × 4, <code>ten</code> × 3, <code>tent</code> × 2, <code>neat</code> × 1.</p>
+<p><strong>Start</strong>: split into characters. Vocabulary = <code>{t, e, a, n}</code>.</p>
+<div class="tw"><table>
+  <tr><th>Word</th><th>Tokens</th><th>Count</th></tr>
+  <tr><td>tea</td><td>t · e · a</td><td>4</td></tr>
+  <tr><td>ten</td><td>t · e · n</td><td>3</td></tr>
+  <tr><td>tent</td><td>t · e · n · t</td><td>2</td></tr>
+  <tr><td>neat</td><td>n · e · a · t</td><td>1</td></tr>
+</table></div>
+<p><strong>Round 1: count the pairs.</strong></p>
+<ul>
+  <li><code>t e</code>: 4 (tea) + 3 (ten) + 2 (tent) = <strong>9</strong></li>
+  <li><code>e a</code>: 4 (tea) + 1 (neat) = 5</li>
+  <li><code>e n</code>: 3 (ten) + 2 (tent) = 5</li>
+  <li><code>n t</code>: 2 (tent) = 2</li>
+  <li><code>n e</code>: 1, <code>a t</code>: 1</li>
+</ul>
+<p>Most frequent: <code>t e</code> (9), so <strong>merge 1: t + e → te</strong>.</p>
+<p><strong>Round 2.</strong> Words are now <code>te·a</code>, <code>te·n</code>, <code>te·n·t</code>, <code>n·e·a·t</code>. Pairs: <code>te n</code> = 3 + 2 = <strong>5</strong>, <code>te a</code> = 4, <code>n t</code> = 2, <code>n e</code> = <code>e a</code> = <code>a t</code> = 1. <strong>Merge 2: te + n → ten</strong>.</p>
+<p><strong>Round 3.</strong> Words: <code>te·a</code>, <code>ten</code>, <code>ten·t</code>, <code>n·e·a·t</code>. Pairs: <code>te a</code> = <strong>4</strong>, <code>ten t</code> = 2, others 1. <strong>Merge 3: te + a → tea</strong>.</p>
+<p><strong>Round 4.</strong> Words: <code>tea</code>, <code>ten</code>, <code>ten·t</code>, <code>n·e·a·t</code>. Pairs: <code>ten t</code> = <strong>2</strong>, others 1. <strong>Merge 4: ten + t → tent</strong>.</p>
+<p><strong>Result.</strong> Vocabulary = <code>{t, e, a, n, te, ten, tea, tent}</code> (8 tokens), with the merge rules in order: 1. t + e, 2. te + n, 3. te + a, 4. ten + t. Notice that <code>neat</code> was too rare to earn its own token; it's still four characters.</p>
+<p><strong>Tokenizing new words</strong> (apply the merges in order):</p>
+<div class="tw"><table>
+  <tr><th>New word</th><th>After merging</th><th>Tokens</th></tr>
+  <tr><td>tent</td><td>t·e·n·t → te·n·t → ten·t → tent</td><td><code>["tent"]</code></td></tr>
+  <tr><td>teat</td><td>t·e·a·t → te·a·t → tea·t</td><td><code>["tea", "t"]</code></td></tr>
+  <tr><td>neaten</td><td>n·e·a·t·e·n → n·e·a·te·n → n·e·a·ten</td><td><code>["n", "e", "a", "ten"]</code></td></tr>
+</table></div>
+<p>"neaten" never appeared in the corpus, yet it was tokenized with no unknown token. That is the main strength of sub-word tokenization.</p>
+
+<div class="demo" id="bpe">
+  <p class="demo-title">Try it: train BPE yourself, one merge at a time</p>
+  <div class="demo-bar">
+    <button class="btn" id="bpe-merge" type="button">Merge the top pair</button>
+    <button class="btn" id="bpe-reset" type="button">Start over</button>
+    <span class="cap" id="bpe-round">Round 1</span>
+  </div>
+  <div class="bpe-grid">
+    <div>
+      <p class="sub-cap">Corpus, split into current tokens</p>
+      <div id="bpe-words"></div>
+    </div>
+    <div>
+      <p class="sub-cap">Pair counts (count × word frequency)</p>
+      <div class="tw" style="margin:0"><table class="mini" id="bpe-pairs"></table></div>
+    </div>
+  </div>
+  <p class="sub-cap">Vocabulary</p>
+  <div class="vocab" id="bpe-vocab"></div>
+  <p class="sub-cap">Merge rules learned (in order)</p>
+  <ol class="rules" id="bpe-rules"></ol>
+  <p class="sub-cap">Tokenize a new word with the rules learned so far</p>
+  <div class="demo-bar">
+    <label for="bpe-input" class="cap">Word:</label>
+    <input class="inp" id="bpe-input" type="text" value="neaten" maxlength="16" autocomplete="off" spellcheck="false">
+    <button class="btn" type="button" data-word="tent">tent</button>
+    <button class="btn" type="button" data-word="teat">teat</button>
+    <button class="btn" type="button" data-word="neaten">neaten</button>
+    <button class="btn" type="button" data-word="tenet">tenet</button>
+  </div>
+  <div id="bpe-trace"></div>
+  <p class="demo-status" id="bpe-status" aria-live="polite"></p>
+</div>
+
+<h3>6.2 Embedding lookup = one-hot × matrix</h3>
+<p>A toy vocabulary of 5 tokens with \(d_{model} = 3\):</p>
+<div class="tw"><table>
+  <tr><th>ID</th><th>Token</th><th>Row of \(E\)</th></tr>
+  <tr><td>0</td><td><code>&lt;pad&gt;</code></td><td>[ 0.00, 0.00, 0.00]</td></tr>
+  <tr><td>1</td><td>tea</td><td>[ 0.90, 0.10, 0.30]</td></tr>
+  <tr><td>2</td><td>is</td><td>[−0.20, 0.40, 0.10]</td></tr>
+  <tr><td>3</td><td>hot</td><td>[ 0.30, −0.50, 0.80]</td></tr>
+  <tr><td>4</td><td>cold</td><td>[ 0.20, −0.60, −0.70]</td></tr>
+</table></div>
+<p><strong>Look up "hot" (ID 3).</strong> One-hot: \(o_3 = [0, 0, 0, 1, 0]\). First entry of \(o_3^{\top} E\):</p>
+<div class="math-block">$$0(0.00) + 0(0.90) + 0(-0.20) + 1(0.30) + 0(0.20) = 0.30$$</div>
+<p>Doing the same for the other two columns gives \([0.30, -0.50, 0.80]\), exactly row 3. Every zero in the one-hot vector wipes out a row, and the single 1 keeps row 3.</p>
+<p><strong>Whole sentence "tea is hot"</strong>: IDs \([1, 2, 3]\), so</p>
+<div class="math-block">$$X = \begin{bmatrix} 0.90 & 0.10 & 0.30 \\ -0.20 & 0.40 & 0.10 \\ 0.30 & -0.50 & 0.80 \end{bmatrix} \qquad \text{shape } 3 \times 3 \;(n \times d_{model})$$</div>
+
+<div class="demo" id="lookup">
+  <p class="demo-title">Try it: one-hot × E picks out one row</p>
+  <div class="demo-bar">
+    <span class="cap">Pick a token:</span>
+    <span class="chips" id="lk-tokens"></span>
+    <button class="btn" id="lk-sentence" type="button">Build X for "tea is hot"</button>
+  </div>
+  <div class="lookup" id="lk-view"></div>
+  <p class="demo-status" id="lk-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Cosine similarity by hand</h3>
+<p>Three 3-dimensional embeddings (toy values):</p>
+<ul>
+  <li>tea = [0.9, 0.1, 0.3]</li>
+  <li>coffee = [0.8, 0.2, 0.4]</li>
+  <li>brick = [0.1, 0.9, −0.2]</li>
+</ul>
+<p><strong>tea vs coffee</strong></p>
+<ul>
+  <li>Dot product: \(0.9(0.8) + 0.1(0.2) + 0.3(0.4) = 0.72 + 0.02 + 0.12 = 0.86\)</li>
+  <li>Lengths: \(\lVert\text{tea}\rVert = \sqrt{0.81 + 0.01 + 0.09} = \sqrt{0.91} = 0.954\) and \(\lVert\text{coffee}\rVert = \sqrt{0.64 + 0.04 + 0.16} = \sqrt{0.84} = 0.917\)</li>
+  <li>Cosine: \(0.86 / (0.954 \times 0.917) = 0.86 / 0.874 = \mathbf{0.98}\), very similar.</li>
+</ul>
+<p><strong>tea vs brick</strong></p>
+<ul>
+  <li>Dot product: \(0.9(0.1) + 0.1(0.9) + 0.3(-0.2) = 0.09 + 0.09 - 0.06 = 0.12\)</li>
+  <li>\(\lVert\text{brick}\rVert = \sqrt{0.01 + 0.81 + 0.04} = \sqrt{0.86} = 0.927\)</li>
+  <li>Cosine: \(0.12 / (0.954 \times 0.927) = 0.12 / 0.885 = \mathbf{0.14}\), nearly unrelated.</li>
+</ul>
+
+<div class="demo" id="similarity">
+  <p class="demo-title">Try it: cosine similarity is about the angle</p>
+  <p class="cap" style="margin:2px 0 6px">These are toy <strong>2-dimensional</strong> embeddings, so they can be drawn exactly. Real embeddings have hundreds of dimensions, but the formula is the same.</p>
+  <div class="sim">
+    <div><svg id="sim-svg" viewBox="0 0 420 420" role="img" aria-label="2-D plot of toy word embeddings with the angle between two selected vectors."></svg></div>
+    <div class="readout">
+      <p class="cap" style="margin:0">Click two words on the plot (or below).</p>
+      <div class="chips" id="sim-chips"></div>
+      <span class="big" id="sim-cos">cos = –</span>
+      <div id="sim-work"></div>
+      <p class="demo-status" id="sim-status" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
+<h3>6.4 How big is an embedding table?</h3>
+<p>Parameters = vocabulary size × \(d_{model}\).</p>
+<ul>
+  <li><strong>GPT-2 (small):</strong> \(50{,}257 \times 768 = 38{,}597{,}376 \approx 38.6\) M parameters, about <strong>31%</strong> of its ≈124 M total. At 4 bytes per number (FP32) that's ≈154 MB.</li>
+  <li><strong>LLaMA-2 7B:</strong> \(32{,}000 \times 4{,}096 = 131{,}072{,}000 \approx 131\) M parameters, under 2% of 7 B.</li>
+</ul>
+<p>Small models spend a surprisingly large share of their parameters on the embedding table.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    T["Text<br/>'tea is hot'"] --> TK["Tokenizer<br/>(BPE merges)"]
+    TK --> TO["Tokens<br/>tea · is · hot"]
+    TO --> ID["Token IDs<br/>[1, 2, 3]<br/>shape (n,)"]
+    ID --> L["Lookup rows of E<br/>E: |V| × d_model"]
+    L --> X["Embeddings X<br/>n × d_model"]
+    X --> P["+ position info<br/>(Section 7)"]
+    P --> B["Transformer blocks"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<h3>Real tokenizers</h3>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Tokenizer</th><th>Vocabulary size</th></tr>
+  <tr><td>BERT-base</td><td>WordPiece</td><td>30,522</td></tr>
+  <tr><td>GPT-2</td><td>Byte-level BPE</td><td>50,257</td></tr>
+  <tr><td>LLaMA-2</td><td>SentencePiece (BPE)</td><td>32,000</td></tr>
+  <tr><td>LLaMA-3</td><td>Byte-level BPE (tiktoken-based)</td><td>128,256</td></tr>
+</table></div>
+<ul>
+  <li><strong>WordPiece</strong> is a close cousin of BPE: it picks merges that most increase the likelihood of the training data, and marks word-internal pieces with <code>##</code> (e.g. <code>play</code>, <code>##ing</code>).</li>
+  <li><strong>SentencePiece</strong> works directly on raw text, treating spaces as a normal symbol (shown as <code>▁</code>). This suits languages without spaces, like Japanese or Chinese.</li>
+  <li><strong>Byte-level BPE</strong> starts from the 256 possible bytes instead of characters, so <em>any</em> input (emoji, any script, binary junk) can be tokenized with no unknown tokens at all.</li>
+</ul>
+<h3>Rules of thumb (English text)</h3>
+<ul>
+  <li>1 token ≈ 4 characters ≈ ¾ of a word, so 1,000 tokens ≈ 750 words.</li>
+  <li>Other languages, code and numbers usually need <strong>more tokens per word</strong>. That makes them more expensive and uses up the context window faster.</li>
+</ul>
+<h3>Typical embedding widths</h3>
+<p>\(d_{model}\) = 768 (BERT-base, GPT-2 small), 4,096 (LLaMA-2 7B), 8,192 (LLaMA-2 70B).</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"A token is a word."</strong> Often it's part of a word, a single character, a space plus a word (<code>" the"</code>), or punctuation. "Tokens" and "words" are different units, which is why API prices and context limits are counted in tokens.</li>
+  <li class="mistake"><strong>"Token ID 500 is similar to token ID 501."</strong> IDs are just positions in a list and carry no meaning. All meaning lives in the embedding vectors.</li>
+  <li class="mistake"><strong>"The embedding table is a fixed dictionary someone wrote."</strong> It's learned from data by gradient descent, exactly like the other weights.</li>
+  <li class="mistake"><strong>"A bigger vocabulary is always better."</strong> Bigger vocabularies give shorter sequences but a bigger embedding table, and many rare tokens that are seldom trained. It's a trade-off, which is why sizes cluster around 30k–130k.</li>
+  <li class="mistake"><strong>"LLMs read letters."</strong> They read tokens. That's why tasks like "how many r's are in <em>strawberry</em>?" or reversing a word can be surprisingly hard: the model may never see the individual letters.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Text → <strong>tokens</strong> → <strong>IDs</strong> → <strong>embeddings</strong>, giving the matrix \(X\) of shape \(n \times d_{model}\).</li>
+  <li><strong>Sub-word tokenization</strong> sits between word-level (huge vocabulary, unknown words) and character-level (long sequences): common words stay whole, rare words split into pieces, nothing is unknown.</li>
+  <li><strong>BPE</strong> learns the vocabulary by repeatedly merging the most frequent adjacent pair, and tokenizes new text by replaying those merges in order.</li>
+  <li>An <strong>embedding lookup</strong> picks row \(i\) of the matrix \(E\), which is the same as one-hot × \(E\).</li>
+  <li>Embeddings are <strong>learned</strong>; similar usage leads to similar vectors, measured with <strong>cosine similarity</strong>.</li>
+  <li>The embedding table has vocabulary size × \(d_{model}\) parameters, a large share of a small model.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Using the four merges learned in 6.1, tokenize the word <strong>"tenet"</strong>.</li>
+  <li>A model has a vocabulary of 32,000 tokens and \(d_{model} = 512\). How many parameters are in its embedding table? If the output head uses weight tying, how many extra parameters does the output head's weight matrix add?</li>
+  <li>Two embeddings have cosine similarity \(-0.95\). What does that tell you about the angle between them? Does it mean the two words have "opposite meanings"?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>Start: t·e·n·e·t. Merge 1 (t+e): te·n·e·t. Merge 2 (te+n): ten·e·t. Merge 3 (te+a): nothing to merge. Merge 4 (ten+t): nothing, because "ten" is followed by "e", not "t". Result: <strong><code>["ten", "e", "t"]</code></strong>. (You can check this in the BPE demo above.)</li>
+    <li>\(32{,}000 \times 512 = \mathbf{16{,}384{,}000}\) (≈16.4 M) parameters. With weight tying the output head reuses \(E^{\top}\), so its weight matrix adds <strong>0</strong> extra parameters.</li>
+    <li>The vectors point in <strong>nearly opposite directions</strong> (about 162°). That doesn't reliably mean "opposite meanings": words like <em>hot</em> and <em>cold</em> often appear in the same contexts and so tend to have fairly <strong>similar</strong> embeddings. Embedding directions reflect how words are used, not dictionary definitions.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Sennrich, R., Haddow, B., &amp; Birch, A. (2016). <strong>"Neural Machine Translation of Rare Words with Subword Units."</strong> <em>ACL 2016.</em> <a href="https://arxiv.org/abs/1508.07909" target="_blank" rel="noopener">arXiv:1508.07909</a>. The paper that brought BPE to NLP.</li>
+  <li>Kudo, T., &amp; Richardson, J. (2018). <strong>"SentencePiece: A simple and language independent subword tokenizer and detokenizer for Neural Text Processing."</strong> <a href="https://arxiv.org/abs/1808.06226" target="_blank" rel="noopener">arXiv:1808.06226</a>.</li>
+  <li>Mikolov, T. et al. (2013). <strong>"Efficient Estimation of Word Representations in Vector Space."</strong> <a href="https://arxiv.org/abs/1301.3781" target="_blank" rel="noopener">arXiv:1301.3781</a>. word2vec, the classic demonstration that learned word vectors capture meaning.</li>
+  <li>Jurafsky, D., &amp; Martin, J. H. <strong><em>Speech and Language Processing</em></strong> (3rd edition draft), the chapter on vector semantics and embeddings.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function pop(els, opts) { if (canAnimate && els && (els.length === undefined || els.length)) M.animate(els, { scale: [0.6, 1], opacity: [0, 1] }, Object.assign({ duration: 0.3 }, opts || {})); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function fmt(v) { return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }
+
+  /* ---------- 1. BPE, computed live on the corpus from 6.1 ---------- */
+  (function bpe() {
+    var root = document.getElementById("bpe");
+    if (!root) return;
+    var CORPUS = [["tea", 4], ["ten", 3], ["tent", 2], ["neat", 1]];
+    var words, vocab, merges, lastNew;
+    var elWords = document.getElementById("bpe-words"), elPairs = document.getElementById("bpe-pairs"), elVocab = document.getElementById("bpe-vocab"),
+        elRules = document.getElementById("bpe-rules"), elRound = document.getElementById("bpe-round"), elStatus = document.getElementById("bpe-status"),
+        btnMerge = document.getElementById("bpe-merge"), inp = document.getElementById("bpe-input"), elTrace = document.getElementById("bpe-trace");
+
+    function reset() {
+      words = CORPUS.map(function (c) { return { w: c[0], n: c[1], t: c[0].split("") }; });
+      vocab = []; words.forEach(function (w) { w.t.forEach(function (ch) { if (vocab.indexOf(ch) < 0) vocab.push(ch); }); });
+      merges = []; lastNew = null;
+      elStatus.textContent = "Every word starts as single characters. The table on the right counts each neighbouring pair, multiplied by how often the word appears.";
+      render(); tokenize();
+    }
+    function pairCounts() {
+      var counts = {}, order = [];
+      words.forEach(function (w) {
+        for (var i = 0; i < w.t.length - 1; i++) {
+          var k = w.t[i] + "\u0000" + w.t[i + 1];
+          if (!(k in counts)) { counts[k] = 0; order.push(k); }
+          counts[k] += w.n;
+        }
+      });
+      // sort by count (desc); ties keep first-seen order
+      return order.map(function (k, i) { return { a: k.split("\u0000")[0], b: k.split("\u0000")[1], c: counts[k], i: i }; })
+                  .sort(function (x, y) { return y.c - x.c || x.i - y.i; });
+    }
+    function applyMerge(tokens, a, b) {
+      var out = [];
+      for (var i = 0; i < tokens.length; i++) {
+        if (i < tokens.length - 1 && tokens[i] === a && tokens[i + 1] === b) { out.push(a + b); i++; } else out.push(tokens[i]);
+      }
+      return out;
+    }
+    function render() {
+      var pairs = pairCounts(), top = pairs[0];
+      elRound.textContent = pairs.length ? "Round " + (merges.length + 1) : "No pairs left";
+      elWords.innerHTML = words.map(function (w) {
+        return '<div class="wordrow"><span class="w">' + w.w + '</span>' + w.t.map(function (tk, i) {
+          var hit = top && ((tk === top.a && w.t[i + 1] === top.b) || (tk === top.b && w.t[i - 1] === top.a));
+          return '<span class="tk' + (tk === lastNew ? " new" : "") + (hit ? " pairhit" : "") + '">' + esc(tk) + "</span>";
+        }).join("") + '<span class="cnt">× ' + w.n + "</span></div>";
+      }).join("");
+      elPairs.innerHTML = "<tr><th>pair</th><th>count</th></tr>" + pairs.map(function (p, i) {
+        return '<tr' + (i === 0 ? ' class="top"' : "") + "><td><code>" + esc(p.a) + " " + esc(p.b) + "</code></td><td>" + p.c + "</td></tr>";
+      }).join("");
+      elVocab.innerHTML = vocab.map(function (v) { return '<span class="tk' + (v === lastNew ? " new" : "") + '">' + esc(v) + "</span>"; }).join("");
+      elRules.innerHTML = merges.length ? merges.map(function (m) { return "<li>" + esc(m[0]) + " + " + esc(m[1]) + " → " + esc(m[0] + m[1]) + "</li>"; }).join("") : "<li style=\"list-style:none;margin-left:-22px\">(none yet)</li>";
+      btnMerge.disabled = !pairs.length;
+      pop(root.querySelectorAll(".tk.new"), { duration: 0.4 });
+    }
+    function mergeTop() {
+      var pairs = pairCounts();
+      if (!pairs.length) return;
+      var p = pairs[0], tie = pairs[1] && pairs[1].c === p.c;
+      words.forEach(function (w) { w.t = applyMerge(w.t, p.a, p.b); });
+      lastNew = p.a + p.b; vocab.push(lastNew); merges.push([p.a, p.b]);
+      elStatus.textContent = "Merge " + merges.length + ": “" + p.a + "” + “" + p.b + "” appeared " + p.c + " times, more than any other pair" + (tie ? " (tied; the first one found wins)" : "") + ", so “" + lastNew + "” becomes a new vocabulary token. The vocabulary now has " + vocab.length + " tokens.";
+      render(); tokenize();
+    }
+    function tokenize() {
+      var word = (inp.value || "").trim().toLowerCase().replace(/\s+/g, "");
+      if (!word) { elTrace.innerHTML = ""; return; }
+      var t = word.split(""), lines = ['<div class="wordrow"><span class="w">start</span>' + chips(t) + "</div>"];
+      merges.forEach(function (m, i) {
+        var next = applyMerge(t, m[0], m[1]), changed = next.length !== t.length;
+        t = next;
+        lines.push('<div class="wordrow"><span class="w">rule ' + (i + 1) + "</span>" + (changed ? chips(t) : '<span class="cnt">' + esc(m[0]) + " + " + esc(m[1]) + ": nothing to merge</span>") + "</div>");
+      });
+      elTrace.innerHTML = lines.join("");
+      var unseen = word.split("").filter(function (ch) { return "tean".indexOf(ch) < 0; });
+      document.getElementById("bpe-status").dataset.last = JSON.stringify(t);
+      elTrace.insertAdjacentHTML("beforeend", '<p class="cap" style="margin:4px 0 0">Result: <code>' + esc(JSON.stringify(t)) + "</code> (" + t.length + " token" + (t.length === 1 ? "" : "s") + ")" +
+        (unseen.length ? ". Letters not in the training corpus (" + esc(unseen.join(", ")) + ") stay as single characters; a real byte-level tokenizer would fall back to bytes." : "") + "</p>");
+    }
+    function chips(t) { return t.map(function (x) { return '<span class="tk">' + esc(x) + "</span>"; }).join(""); }
+
+    btnMerge.addEventListener("click", mergeTop);
+    document.getElementById("bpe-reset").addEventListener("click", reset);
+    inp.addEventListener("input", tokenize);
+    root.querySelectorAll("[data-word]").forEach(function (b) { b.addEventListener("click", function () { inp.value = b.dataset.word; tokenize(); }); });
+    window.__bpe = { run: function (k) { reset(); for (var i = 0; i < k; i++) mergeTop(); return { merges: merges.map(function (m) { return m[0] + "+" + m[1]; }), vocab: vocab.slice() }; },
+                     tok: function (w) { inp.value = w; tokenize(); return JSON.parse(elStatus.dataset.last); } };
+    reset();
+  })();
+
+  /* ---------- 2. Embedding lookup: one-hot x E ---------- */
+  (function lookup() {
+    var view = document.getElementById("lk-view");
+    if (!view) return;
+    var VOCAB = ["<pad>", "tea", "is", "hot", "cold"];
+    var E = [[0.00, 0.00, 0.00], [0.90, 0.10, 0.30], [-0.20, 0.40, 0.10], [0.30, -0.50, 0.80], [0.20, -0.60, -0.70]];
+    var status = document.getElementById("lk-status"), tokWrap = document.getElementById("lk-tokens");
+    var buttons = VOCAB.map(function (t, i) {
+      var b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = t;
+      b.addEventListener("click", function () { showOne(i); }); tokWrap.appendChild(b); return b;
+    });
+    function table(rows, rowLabels, opts) {
+      opts = opts || {};
+      return '<div class="mat-scroll"><table class="mat">' + (opts.cols ? "<tr><th></th>" + opts.cols.map(function (c) { return "<th style=\"text-align:center\">" + c + "</th>"; }).join("") + "</tr>" : "") +
+        rows.map(function (r, i) {
+          return '<tr' + (opts.pick && opts.pick.indexOf(i) >= 0 ? ' class="pick"' : "") + "><th>" + esc(rowLabels[i]) + "</th>" +
+            r.map(function (v) { return "<td" + (opts.onehot && v === 1 ? ' class="one"' : "") + ">" + (opts.ints ? v : fmt(v)) + "</td>"; }).join("") + "</tr>";
+        }).join("") + "</table></div>";
+    }
+    function block(title, html) { return '<div><p class="sub-cap">' + title + "</p>" + html + "</div>"; }
+    function showOne(i) {
+      buttons.forEach(function (b, k) { b.classList.toggle("on", k === i); });
+      var onehot = VOCAB.map(function (_, k) { return k === i ? 1 : 0; });
+      var x = E[0].map(function (_, j) { return onehot.reduce(function (s, o, k) { return s + o * E[k][j]; }, 0); });
+      view.innerHTML =
+        block("one-hot o<sub>" + i + "</sub> (1 × 5)", table([onehot], ["“" + VOCAB[i] + "”"], { onehot: true, ints: true, cols: VOCAB.map(function (_, k) { return k; }) })) +
+        '<span class="times">×</span>' +
+        block("E (5 × 3)", table(E, VOCAB.map(function (t, k) { return k + " " + t; }), { pick: [i] })) +
+        '<span class="times">=</span>' +
+        block("embedding x (1 × 3)", table([x], ["“" + VOCAB[i] + "”"]));
+      var col0 = onehot.map(function (o, k) { return o + "(" + fmt(E[k][0]) + ")"; }).join(" + ");
+      status.innerHTML = "First entry: " + col0 + " = <strong>" + fmt(x[0]) + "</strong>. Every 0 in the one-hot vector wipes out a row of E, so the result is exactly row " + i + " (“" + esc(VOCAB[i]) + "”).";
+      if (canAnimate) {
+        M.animate(view.querySelectorAll("tr.pick td"), { scale: [1, 1.12, 1] }, { duration: 0.45, delay: M.stagger(0.05) });
+        pop(view.querySelectorAll(".lookup > div:last-child td"), { delay: M.stagger(0.08, { startDelay: 0.25 }) });
+      }
+    }
+    document.getElementById("lk-sentence").addEventListener("click", function () {
+      buttons.forEach(function (b) { b.classList.remove("on"); });
+      var ids = [1, 2, 3], X = ids.map(function (k) { return E[k]; });
+      view.innerHTML = block("token IDs", table(ids.map(function (k) { return [k]; }), ["tea", "is", "hot"], { ints: true })) +
+        '<span class="times">→</span>' + block("E (5 × 3)", table(E, VOCAB.map(function (t, k) { return k + " " + t; }), { pick: ids })) +
+        '<span class="times">→</span>' + block("X (3 × 3) = n × d<sub>model</sub>", table(X, ["tea", "is", "hot"]));
+      status.textContent = "Rows 1, 2 and 3 of E are stacked in sentence order to make X, the 3 × 3 input to the Transformer (before position information is added).";
+      if (canAnimate) pop(view.querySelectorAll(".lookup > div:last-child tr"), { delay: M.stagger(0.18, { startDelay: 0.2 }) });
+    });
+    showOne(3);
+  })();
+
+  /* ---------- 3. Cosine similarity on toy 2-D embeddings ---------- */
+  (function similarity() {
+    var svg = document.getElementById("sim-svg");
+    if (!svg) return;
+    var PTS = [["tea", 0.92, 0.30], ["coffee", 0.85, 0.48], ["juice", 0.62, 0.70], ["brick", -0.50, 0.78], ["stone", -0.70, 0.55], ["run", 0.20, -0.85]];
+    var C = 210, S = 170, sel = [0, 1];
+    function px(v) { return C + v * S; } function py(v) { return C - v * S; }
+    function mk(name, attrs, parent) { var e = document.createElementNS(SVGNS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+    mk("line", { x1: 20, y1: C, x2: 400, y2: C, "class": "axis" });
+    mk("line", { x1: C, y1: 20, x2: C, y2: 400, "class": "axis" });
+    mk("circle", { cx: C, cy: C, r: S, fill: "none", "class": "axis", "stroke-dasharray": "3 4" });
+    var arcLayer = mk("g", {});
+    var vecs = [], dots = [], labels = [];
+    PTS.forEach(function (p, i) {
+      vecs.push(mk("line", { x1: C, y1: C, x2: px(p[1]), y2: py(p[2]), "class": "vec" }));
+      dots.push(mk("circle", { cx: px(p[1]), cy: py(p[2]), r: 6, "class": "pt" }));
+      var lbl = mk("text", { x: px(p[1]) + (p[1] < 0 ? -10 : 10), y: py(p[2]) - 8, "class": "plabel", "text-anchor": p[1] < 0 ? "end" : "start" });
+      lbl.textContent = p[0]; labels.push(lbl);
+      [dots[i], lbl].forEach(function (el) { el.addEventListener("click", function () { choose(i); }); });
+    });
+    var chipWrap = document.getElementById("sim-chips");
+    var chipBtns = PTS.map(function (p, i) { var b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = p[0]; b.addEventListener("click", function () { choose(i); }); chipWrap.appendChild(b); return b; });
+    function choose(i) { if (sel.indexOf(i) >= 0) return; sel = [sel[1], i]; update(true); }
+    function update(anim) {
+      var a = PTS[sel[0]], b = PTS[sel[1]];
+      var dot = a[1] * b[1] + a[2] * b[2], na = Math.hypot(a[1], a[2]), nb = Math.hypot(b[1], b[2]), cos = dot / (na * nb);
+      var deg = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+      vecs.forEach(function (v, k) { v.classList.toggle("sel", sel.indexOf(k) >= 0); v.style.opacity = sel.indexOf(k) >= 0 ? 1 : 0.25; });
+      dots.forEach(function (d, k) { d.classList.toggle("sel", sel.indexOf(k) >= 0); });
+      chipBtns.forEach(function (c, k) { c.classList.toggle("on", sel.indexOf(k) >= 0); });
+      // angle wedge from vector a to vector b (the shorter way round)
+      var t1 = Math.atan2(a[2], a[1]), t2 = Math.atan2(b[2], b[1]), d = t2 - t1;
+      while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+      var r = 48, x1 = C + r * Math.cos(t1), y1 = C - r * Math.sin(t1), x2 = C + r * Math.cos(t1 + d), y2 = C - r * Math.sin(t1 + d);
+      arcLayer.innerHTML = "";
+      var wedge = mk("path", { d: "M" + C + "," + C + " L" + x1 + "," + y1 + " A" + r + "," + r + " 0 0 " + (d > 0 ? 0 : 1) + " " + x2 + "," + y2 + " Z", "class": "angle" }, arcLayer);
+      var mid = t1 + d / 2, tl = mk("text", { x: C + (r + 16) * Math.cos(mid), y: C - (r + 16) * Math.sin(mid) + 5, "class": "plabel", "text-anchor": "middle", style: "font-size:14px" }, arcLayer);
+      tl.textContent = Math.round(deg) + "°";
+      document.getElementById("sim-cos").textContent = "cos = " + fmt(cos);
+      document.getElementById("sim-work").innerHTML =
+        "<code>" + a[0] + " = [" + fmt(a[1]) + ", " + fmt(a[2]) + "]</code><br><code>" + b[0] + " = [" + fmt(b[1]) + ", " + fmt(b[2]) + "]</code><br>" +
+        "dot = " + fmt(a[1]) + "×" + fmt(b[1]) + " + " + fmt(a[2]) + "×" + fmt(b[2]) + " = <strong>" + fmt(dot) + "</strong><br>" +
+        "lengths = " + na.toFixed(3) + " and " + nb.toFixed(3) + "<br>" +
+        "cos = " + fmt(dot) + " / (" + na.toFixed(3) + " × " + nb.toFixed(3) + ") = <strong>" + fmt(cos) + "</strong> → angle " + deg.toFixed(1) + "°";
+      var verdict = cos > 0.8 ? "pointing almost the same way: very similar" : cos > 0.3 ? "somewhat similar" : cos > -0.3 ? "close to 90°: roughly unrelated" : "pointing in opposite-ish directions";
+      document.getElementById("sim-status").textContent = "“" + a[0] + "” and “" + b[0] + "” are " + verdict + ". Only the angle matters; the lengths of the arrows cancel out.";
+      if (anim && canAnimate) M.animate(wedge, { opacity: [0, 1] }, { duration: 0.35 });
+      window.__sim = { a: a[0], b: b[0], cos: cos, deg: deg };
+    }
+    update(false);
+  })();
+})();
+</script>
+</body>
+</html>

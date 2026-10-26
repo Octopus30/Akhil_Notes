@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 15: Vision Transformers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.4em; text-align: right; }
+.stat { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14.5px; margin: 6px 0; }
+.stat dt { color: var(--muted); } .stat dd { margin: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; text-align: right; }
+/* patchify */
+.patch-wrap { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.patch-wrap > div { min-width: 0; }
+.canvas-box { position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 360px; }
+.canvas-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 8px; image-rendering: pixelated; }
+#pz-overlay { cursor: crosshair; }
+#pz-zoom { width: 140px; height: 140px; border: 2px solid var(--ink); border-radius: 8px; image-rendering: pixelated; display: block; }
+.flatstrip { display: flex; height: 18px; border: 1px solid #c9d2ea; border-radius: 4px; overflow: hidden; margin: 6px 0; max-width: 100%; }
+.flatstrip > i { flex: 1 1 0; min-width: 0; }
+/* hand embedding */
+.hand { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 24px; align-items: start; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 42px); gap: 3px; padding: 4px; border: 2px solid var(--ink); border-radius: 8px; width: max-content; }
+.grid4 button { width: 42px; height: 42px; border: 0; border-radius: 4px; font-family: var(--mono); font-size: 13px; cursor: pointer; }
+.grid4 button:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+.grid4 button.q0 { box-shadow: inset 0 0 0 3px rgba(27,47,168,.55); }
+.grid4 button.q1 { box-shadow: inset 0 0 0 3px rgba(176,122,0,.75); }
+.grid4 button.q2 { box-shadow: inset 0 0 0 3px rgba(46,125,91,.7); }
+.grid4 button.q3 { box-shadow: inset 0 0 0 3px rgba(155,59,143,.7); }
+table.emb { border-collapse: collapse; width: auto; font-size: 14px; }
+table.emb td, table.emb th { padding: 4px 10px; border: 1px solid #b9c3e0; }
+table.emb td { font-family: var(--mono); font-size: 13px; }
+table.emb tr.same td { background: var(--gold-fill); }
+/* clip */
+.clip { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.clip svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.cbars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px 10px; align-items: center; font-size: 14.5px; }
+.bar { height: 16px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--ink); border-radius: 4px; width: 0; }
+.cbars b, .cbars em { font-family: var(--mono); font-weight: 400; font-style: normal; font-size: 12.5px; color: var(--ink); }
+.cbars em { color: var(--muted); }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .patch-wrap, .hand, .clip { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 15</p>
+  <h1>Vision Transformers (ViT)</h1>
+  <p class="lede"><strong>In one line:</strong> a Vision Transformer cuts an image into small square <strong>patches</strong>, turns each patch into a vector (a "visual token"), adds position information, and feeds the sequence to a standard Transformer <strong>encoder</strong> — the same architecture as BERT, applied to pictures instead of words.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Convert</strong> an image into a sequence of patch tokens and compute the number of tokens for any image and patch size.</li>
+  <li><strong>Compute</strong> patch embeddings by hand as a linear projection of flattened pixel values.</li>
+  <li><strong>Count</strong> the parameters of ViT-B/16 using the formulas from earlier sections.</li>
+  <li><strong>Compare</strong> ViTs with convolutional networks (CNNs): built-in assumptions, data needs, and cost.</li>
+  <li><strong>Explain</strong> the key ViT-family ideas: DeiT, Swin, MAE, CLIP, and how vision–language models connect a ViT to an LLM.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 9:</strong> the encoder — bidirectional blocks, a <code>[CLS]</code> token for classification.</li>
+  <li><strong>Section 7:</strong> learned absolute position embeddings.</li>
+  <li><strong>Section 2:</strong> an embedding is a vector; cosine similarity.</li>
+  <li><strong>Images as numbers:</strong> a colour image of height \(H\) and width \(W\) is an \(H \times W \times 3\) array (red, green, blue values for each pixel).</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — flattening</span>
+  "Flattening" a small block of numbers means listing them in one row, e.g. the \(2 \times 2\) block \(\begin{bmatrix} a & b \\ c & d \end{bmatrix}\) becomes \([a, b, c, d]\). A \(16 \times 16 \times 3\) patch flattens to \(16 \cdot 16 \cdot 3 = 768\) numbers.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: can attention replace convolutions?</h2>
+<p>For a decade, image recognition was dominated by <strong>convolutional neural networks (CNNs)</strong>, which slide small filters over the image. CNNs build in two strong assumptions:</p>
+<ul>
+  <li><strong>Locality:</strong> nearby pixels matter most.</li>
+  <li><strong>Translation equivariance:</strong> a cat in the corner is detected the same way as a cat in the centre.</li>
+</ul>
+<p>Meanwhile Transformers had taken over language. The question was: <em>can the same architecture — with no image-specific assumptions — do vision too?</em></p>
+<p>The naive approach fails: treating every <strong>pixel</strong> as a token gives \(224 \times 224 = 50{,}176\) tokens, and attention's \(n^2\) cost makes that about 2.5 billion scores per head per layer. The <strong>ViT</strong> trick (2020): use <strong>patches</strong>, not pixels, as tokens. A \(224 \times 224\) image becomes just <strong>196</strong> tokens.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: a jigsaw puzzle</h2>
+<p>Cut a photograph into a \(14 \times 14\) grid of jigsaw pieces.</p>
+<ul>
+  <li>Each <strong>piece</strong> is a token. On its own it shows only a little — some fur, an edge, part of an eye.</li>
+  <li>Each piece has a <strong>position</strong> written on the back (row 3, column 7) — the position embedding.</li>
+  <li><strong>Self-attention</strong> lets every piece "look at" every other piece: the piece with an ear figures out it belongs with the pieces showing whiskers and eyes — "together we're a cat".</li>
+  <li>A special <strong>summary card</strong> (<code>[CLS]</code>) looks at all the pieces and announces the answer.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>A jigsaw solver <em>moves</em> pieces to fit them. A ViT keeps every patch in place and instead updates each patch's <strong>vector</strong> to reflect what the whole image shows.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Image → patches → tokens</h3>
+<p>For an image of size \(H \times W \times C\) and patch size \(P\):</p>
+<div class="math-block">$$N = \frac{H}{P} \times \frac{W}{P} \quad \text{patches, each with } P^2 C \text{ numbers}$$</div>
+<ol class="steps">
+  <li><strong>Split</strong> the image into \(N\) non-overlapping \(P \times P\) patches.</li>
+  <li><strong>Flatten</strong> each patch into a vector of length \(P^2 C\).</li>
+  <li><strong>Project</strong> each flattened patch with a learned matrix \(E\) of shape \(P^2 C \times d_{model}\) (plus a bias) → a <strong>patch embedding</strong>.</li>
+</ol>
+<p>In code this is usually written as a convolution with kernel size \(P\) and stride \(P\) — mathematically the same linear projection, applied to every patch.</p>
+
+<div class="demo" id="patch">
+  <p class="demo-title">Try it: cut an image into tokens</p>
+  <div class="demo-bar">
+    <span class="cap">patch size P:</span>
+    <span class="toggle" role="group" aria-label="Patch size" id="pz-sizes"></span>
+  </div>
+  <div class="sliders" style="max-width:480px">
+    <label>MAE: mask this % of patches <input type="range" id="pz-mask" min="0" max="90" step="5" value="0"><output id="pz-masko"></output></label>
+  </div>
+  <div class="patch-wrap">
+    <div><div class="canvas-box"><canvas id="pz-img" width="224" height="224" aria-label="A 224 by 224 drawing of a house, a tree and the sun, divided into patches"></canvas><canvas id="pz-overlay" width="224" height="224" aria-hidden="true"></canvas></div></div>
+    <div>
+      <dl class="stat" id="pz-stats"></dl>
+      <p class="sub-cap">Click a patch to inspect it</p>
+      <canvas id="pz-zoom" width="140" height="140" aria-label="Enlarged view of the selected patch"></canvas>
+      <div class="flatstrip" id="pz-flat" aria-hidden="true"></div>
+      <p class="cap" id="pz-sel" style="margin:2px 0 0"></p>
+    </div>
+  </div>
+  <p class="demo-status" id="pz-status" aria-live="polite"></p>
+</div>
+
+<h3>5.2 The full ViT</h3>
+<div class="math-block">$$
+\begin{aligned}
+z_0 &= [\,x_{\text{cls}};\; x_1 E;\; x_2 E;\; \dots;\; x_N E\,] + E_{\text{pos}} && (N+1) \times d_{model} \\
+z_\ell &= \text{Block}_\ell(z_{\ell-1}), \quad \ell = 1, \dots, L \\
+y &= \text{softmax}\big(\text{LN}(z_L^{\text{cls}})\, W_{\text{head}}\big)
+\end{aligned}
+$$</div>
+<ul>
+  <li>\(x_{\text{cls}}\): a learned <code>[CLS]</code> vector prepended to the sequence (as in BERT).</li>
+  <li>\(E_{\text{pos}}\): learned position embeddings, one per token (\(N + 1\) of them).</li>
+  <li>Blocks: standard <strong>encoder</strong> blocks — bidirectional self-attention + FFN (Section 8), no mask.</li>
+  <li>Classification: a linear head on the final <code>[CLS]</code> vector (some models average all patch vectors instead).</li>
+</ul>
+
+<h3>5.3 ViT vs CNN</h3>
+<div class="tw"><table>
+  <tr><th></th><th>CNN</th><th>ViT</th></tr>
+  <tr><td>Built-in assumptions</td><td>locality, translation equivariance</td><td>almost none — learned from data</td></tr>
+  <tr><td>Each layer sees</td><td>a small neighbourhood</td><td>the <strong>whole image</strong> from layer 1</td></tr>
+  <tr><td>Small datasets</td><td>usually better</td><td>worse (needs lots of data or tricks)</td></tr>
+  <tr><td>Very large datasets</td><td>improvements level off</td><td>keeps improving with scale</td></tr>
+  <tr><td>Cost vs resolution</td><td>grows with number of pixels</td><td>grows with <strong>(number of patches)²</strong> in attention</td></tr>
+</table></div>
+<p>The original ViT matched or beat strong CNNs only when pre-trained on very large datasets (hundreds of millions of images). With less data, a CNN's built-in assumptions are an advantage.</p>
+
+<h3>5.4 The ViT family</h3>
+<ul>
+  <li><strong>DeiT:</strong> training recipes (heavy data augmentation, and distillation from a CNN teacher) that make ViTs work well on ImageNet-size data alone.</li>
+  <li><strong>Swin Transformer:</strong> attention inside <strong>local windows</strong> that shift between layers, plus a <strong>hierarchy</strong> that merges patches as the network deepens. Cost grows linearly with image size, and the multi-scale features suit detection and segmentation.</li>
+  <li><strong>MAE (Masked Autoencoder):</strong> hide <strong>75%</strong> of the patches and train the model to reconstruct the missing pixels — the vision version of masked language modelling. The encoder only processes the visible 25%, which makes pre-training cheap.</li>
+  <li><strong>CLIP:</strong> an image encoder (often a ViT) and a text encoder trained together so that matching image–caption pairs get <strong>similar embeddings</strong> (contrastive learning on hundreds of millions of pairs). Result: <strong>zero-shot</strong> classification — compare an image's embedding with the embeddings of texts like <em>"a photo of a dog"</em>.</li>
+  <li><strong>Vision–language models (e.g. LLaVA-style):</strong> a ViT turns an image into patch vectors, a small <strong>projector</strong> maps them into the LLM's embedding space, and they're placed in the LLM's input like ordinary tokens. The LLM can then answer questions about the image.</li>
+</ul>
+
+<h3>5.5 Higher resolution</h3>
+<p>Patch size stays fixed, so a bigger image means more patches: \(384 \times 384\) with \(P = 16\) gives \(24^2 = 576\) tokens instead of 196. Two consequences:</p>
+<ul>
+  <li><strong>Cost:</strong> attention grows with \(576^2 / 196^2 \approx 8.6\times\).</li>
+  <li><strong>Positions:</strong> a model trained at 224 has only 196 learned position embeddings, so they are <strong>interpolated</strong> (resized as a 2-D grid) to 576 before fine-tuning at the new resolution.</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Patch arithmetic</h3>
+<div class="tw"><table>
+  <tr><th>Image</th><th>Patch size</th><th>Patches \(N\)</th><th>Numbers per patch</th><th>Tokens (with <code>[CLS]</code>)</th><th>Attention cost vs 196</th></tr>
+  <tr><td>224 × 224 × 3</td><td>16</td><td>\(14^2 = 196\)</td><td>\(16 \cdot 16 \cdot 3 = 768\)</td><td>197</td><td>1×</td></tr>
+  <tr><td>224 × 224 × 3</td><td>8</td><td>\(28^2 = 784\)</td><td>192</td><td>785</td><td><strong>16×</strong></td></tr>
+  <tr><td>224 × 224 × 3</td><td>32</td><td>\(7^2 = 49\)</td><td>3,072</td><td>50</td><td>0.06×</td></tr>
+  <tr><td>384 × 384 × 3</td><td>16</td><td>\(24^2 = 576\)</td><td>768</td><td>577</td><td>8.6×</td></tr>
+</table></div>
+<p>Halving the patch size gives finer detail but quadruples the token count and multiplies attention cost by 16.</p>
+
+<h3>6.2 Patch embeddings by hand</h3>
+<p>A tiny \(4 \times 4\) grey-scale image (one channel, brightness 0–8), patch size \(P = 2\):</p>
+<div class="math-block">$$\text{image} = \begin{bmatrix} 0 & 8 & 8 & 8 \\ 0 & 8 & 8 & 8 \\ 0 & 0 & 0 & 8 \\ 0 & 0 & 0 & 8 \end{bmatrix}$$</div>
+<p>That's \(N = (4/2)^2 = 4\) patches of \(2 \cdot 2 = 4\) numbers each (flattened row by row). Use a projection to \(d_{model} = 2\) whose columns we've chosen to be meaningful (a real model learns them):</p>
+<div class="math-block">$$E = \begin{bmatrix} 0.25 & -0.5 \\ 0.25 & 0.5 \\ 0.25 & -0.5 \\ 0.25 & 0.5 \end{bmatrix} \quad \begin{matrix} \text{column 1: average brightness} \\ \text{column 2: right minus left (a vertical-edge detector)} \end{matrix}$$</div>
+<div class="tw"><table>
+  <tr><th>Patch</th><th>Pixels (flattened)</th><th>Embedding \([\text{brightness}, \text{edge}]\)</th></tr>
+  <tr><td>top-left</td><td>[0, 8, 0, 8]</td><td>\([0.25(16),\; 0.5(16)] = [4, 8]\)</td></tr>
+  <tr><td>top-right</td><td>[8, 8, 8, 8]</td><td>\([8, 0]\)</td></tr>
+  <tr><td>bottom-left</td><td>[0, 0, 0, 0]</td><td>\([0, 0]\)</td></tr>
+  <tr><td>bottom-right</td><td>[0, 8, 0, 8]</td><td>\([4, 8]\)</td></tr>
+</table></div>
+<p>The top-left and bottom-right patches both contain a dark-to-bright vertical edge, so they get the <strong>same</strong> embedding \([4, 8]\). Without position embeddings the model couldn't tell where each one is — exactly the order problem of Section 7, now in 2-D.</p>
+
+<div class="demo" id="hand">
+  <p class="demo-title">Try it: compute patch embeddings yourself</p>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="hd-ex">Back to 6.2</button>
+    <button class="btn" type="button" id="hd-clear">Clear</button>
+    <span class="toggle" role="group" aria-label="Positions">
+      <button type="button" id="hd-nopos" class="on">no positions</button>
+      <button type="button" id="hd-pos">+ toy positions [row, col]</button>
+    </span>
+  </div>
+  <div class="hand">
+    <div><div class="grid4" id="hd-grid"></div><p class="cap" style="margin:4px 0 0">Click a pixel to cycle 0 → 4 → 8.</p></div>
+    <div><table class="emb" id="hd-table"></table></div>
+  </div>
+  <p class="demo-status" id="hd-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 Every parameter of ViT-B/16</h3>
+<p>ViT-B/16: \(d = 768\), 12 layers, 12 heads, \(d_{ff} = 3072\), patch size 16, 224 × 224 input, 1,000 classes.</p>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Formula</th><th>Parameters</th></tr>
+  <tr><td>Patch embedding</td><td>\(768 \times 768 + 768\) (input 768 = \(16 \cdot 16 \cdot 3\))</td><td>590,592</td></tr>
+  <tr><td><code>[CLS]</code> token</td><td>\(768\)</td><td>768</td></tr>
+  <tr><td>Position embeddings</td><td>\(197 \times 768\)</td><td>151,296</td></tr>
+  <tr><td>12 encoder blocks</td><td>\(12 \times 7{,}087{,}872\) (same block as BERT-base, Section 9)</td><td>85,054,464</td></tr>
+  <tr><td>Final LayerNorm</td><td>\(2 \times 768\)</td><td>1,536</td></tr>
+  <tr><td>Classification head</td><td>\(768 \times 1000 + 1000\)</td><td>769,000</td></tr>
+  <tr><td><strong>Total</strong></td><td></td><td><strong>86,567,656</strong></td></tr>
+</table></div>
+<p>That's ViT-B/16's reported <strong>86M</strong>. Notice almost everything is in the Transformer blocks — the "vision-specific" part (patch embedding) is under 1%.</p>
+
+<h3>6.4 CLIP zero-shot classification (toy)</h3>
+<p>Use 2-D unit vectors. An image embedding \([0.6, 0.8]\); text embeddings for three prompts:</p>
+<div class="tw"><table>
+  <tr><th>Prompt</th><th>Text embedding</th><th>Cosine with image</th><th>\(\times 10\)</th><th>Softmax</th></tr>
+  <tr><td>"a photo of a cat"</td><td>[0.8, 0.6]</td><td>0.96</td><td>9.6</td><td><strong>0.81</strong></td></tr>
+  <tr><td>"a photo of a car"</td><td>[0, 1]</td><td>0.80</td><td>8.0</td><td>0.16</td></tr>
+  <tr><td>"a photo of a dog"</td><td>[1, 0]</td><td>0.60</td><td>6.0</td><td>0.02</td></tr>
+</table></div>
+<p>The image is classified as a <strong>cat</strong> — with no cat-specific training, just by comparing it with text. Real CLIP multiplies cosines by a learned scale of about 100, which makes the softmax much sharper (here "cat" would get essentially 1.00).</p>
+
+<div class="demo" id="clip">
+  <p class="demo-title">Try it: zero-shot classification with text prompts</p>
+  <div class="sliders">
+    <label>image direction (°) <input type="range" id="cl-a" min="0" max="90" step="1" value="53"><output id="cl-ao"></output></label>
+    <label>logit scale <input type="range" id="cl-s" min="1" max="100" step="1" value="10"><output id="cl-so"></output></label>
+  </div>
+  <div class="clip">
+    <div><svg id="cl-svg" viewBox="0 0 300 300" role="img" aria-label="Quarter circle showing the image embedding and three text embeddings"></svg></div>
+    <div><div class="cbars" id="cl-bars"></div></div>
+  </div>
+  <p class="demo-status" id="cl-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 Why MAE pre-training is cheap</h3>
+<p>With 196 patches and 75% masked, the encoder sees only \(196 \times 0.25 = 49\) patches. Attention cost: \(49^2\) instead of \(196^2\) — <strong>16× less</strong> per layer. A small decoder then reconstructs the hidden patches. (Set the mask slider in the first demo to 75%.)</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    IMG["Image<br/>224 × 224 × 3"] --> PAT["Split into 16×16 patches<br/>196 patches"]
+    PAT --> FLAT["Flatten each<br/>768 numbers"]
+    FLAT --> PROJ["Linear projection E<br/>→ 768-dim patch embeddings"]
+    CLS["[CLS] token"] --> SEQ
+    PROJ --> SEQ["Sequence of 197 tokens<br/>+ position embeddings"]
+    SEQ --> ENC["12 × encoder blocks<br/>(bidirectional attention + FFN)"]
+    ENC --> HEAD["[CLS] → LayerNorm → linear head"]
+    HEAD --> OUT["class probabilities"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Year</th><th>Idea</th><th>Used for</th></tr>
+  <tr><td>ViT</td><td>2020</td><td>patches + standard encoder</td><td>image classification</td></tr>
+  <tr><td>DeiT</td><td>2021</td><td>data-efficient training, distillation</td><td>ViTs without huge datasets</td></tr>
+  <tr><td>Swin</td><td>2021</td><td>shifted windows, hierarchy</td><td>detection, segmentation</td></tr>
+  <tr><td>CLIP</td><td>2021</td><td>contrastive image–text training</td><td>zero-shot classification, image search, text-to-image guidance</td></tr>
+  <tr><td>MAE</td><td>2021</td><td>mask 75% of patches, reconstruct</td><td>self-supervised pre-training</td></tr>
+  <tr><td>DINOv2</td><td>2023</td><td>self-distillation</td><td>strong general-purpose image features</td></tr>
+  <tr><td>LLaVA-style VLMs</td><td>2023+</td><td>ViT features → projector → LLM</td><td>chat about images</td></tr>
+</table></div>
+<p><strong>Common sizes:</strong> ViT-B/16 (86M), ViT-L/16 (about 300M, 24 layers, \(d = 1024\)), ViT-H/14 (about 630M). The "/16" or "/14" is the patch size.</p>
+<p><strong>Beyond images:</strong> the same "patchify and use a Transformer" idea works for <strong>audio</strong> (spectrogram patches or frames — Whisper's encoder), <strong>video</strong> (space-time patches), and even <strong>diffusion image generators</strong>, many of which now use Transformer backbones on patches.</p>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"ViTs treat every pixel as a token."</strong> They use <strong>patches</strong> (e.g. \(16 \times 16\) pixels each); per-pixel attention would be far too expensive.</li>
+  <li class="mistake"><strong>"The patch embedding is a CNN, so ViT is really a CNN."</strong> The "convolution" with stride = kernel size is just a convenient way to apply the same linear projection to every non-overlapping patch. There are no stacked convolutional layers.</li>
+  <li class="mistake"><strong>"ViTs are always better than CNNs."</strong> With limited data and no special training tricks, CNNs often win; ViTs shine with large-scale pre-training.</li>
+  <li class="mistake"><strong>"Patch embeddings already know where they are."</strong> Two identical patches get identical embeddings (6.2); position embeddings are required.</li>
+  <li class="mistake"><strong>"CLIP was trained on a fixed list of classes."</strong> It learned from free-form captions, so you can classify into any set of classes by writing text prompts.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>A <strong>ViT</strong> splits an image into \(N = (H/P)(W/P)\) patches, flattens and linearly projects each into a token, adds a <code>[CLS]</code> token and position embeddings, and runs a standard <strong>encoder</strong>.</li>
+  <li>224 × 224 with \(P = 16\) → <strong>196 patches + <code>[CLS]</code> = 197 tokens</strong>; halving \(P\) multiplies attention cost by 16.</li>
+  <li>ViT-B/16 has <strong>86,567,656</strong> parameters — 98% of them in ordinary Transformer blocks.</li>
+  <li>ViTs have fewer built-in assumptions than CNNs: they need more data but scale better and see the whole image from the first layer.</li>
+  <li><strong>DeiT</strong> (efficient training), <strong>Swin</strong> (local windows, hierarchy), <strong>MAE</strong> (masked patches), <strong>CLIP</strong> (image–text contrastive, zero-shot) and <strong>VLMs</strong> (ViT → projector → LLM) extend the idea.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A \(512 \times 512 \times 3\) image is split into \(32 \times 32\) patches. How many patch tokens are there, and how many numbers does each flattened patch contain? How does attention cost compare with the standard 196-token ViT?</li>
+  <li>In 6.2, what would the bottom-right patch's embedding be if its pixels were \([8, 0, 8, 0]\) (bright on the left)? What does the sign of the second number tell you?</li>
+  <li>A ViT trained at 224 × 224 (\(P = 16\)) is fine-tuned at 448 × 448. How many position embeddings are needed now, and where do the extra ones come from?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\((512/32)^2 = \mathbf{256}\) patches; each has \(32 \cdot 32 \cdot 3 = \mathbf{3{,}072}\) numbers. Attention cost \(\approx (256/196)^2 \approx \mathbf{1.7\times}\) the standard model.</li>
+    <li>\([0.25 \cdot 16,\; -0.5 \cdot 8 + 0.5 \cdot 0 - 0.5 \cdot 8 + 0.5 \cdot 0] = \mathbf{[4, -8]}\). The negative edge value means the <strong>left is brighter than the right</strong> — an edge in the opposite direction. (Set those pixels in the hand-embedding demo.)</li>
+    <li>\((448/16)^2 = 784\) patches → <strong>785</strong> position embeddings (with <code>[CLS]</code>). The original \(14 \times 14\) grid of learned patch positions is <strong>interpolated</strong> (resized) to \(28 \times 28\); the <code>[CLS]</code> position is kept.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Dosovitskiy, A. et al. (2021). <strong>"An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale."</strong> <em>ICLR 2021.</em> <a href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener">arXiv:2010.11929</a> — the ViT paper.</li>
+  <li>Touvron, H. et al. (2021). <strong>"Training data-efficient image transformers &amp; distillation through attention."</strong> <a href="https://arxiv.org/abs/2012.12877" target="_blank" rel="noopener">arXiv:2012.12877</a> — DeiT.</li>
+  <li>Liu, Z. et al. (2021). <strong>"Swin Transformer: Hierarchical Vision Transformer using Shifted Windows."</strong> <a href="https://arxiv.org/abs/2103.14030" target="_blank" rel="noopener">arXiv:2103.14030</a>.</li>
+  <li>He, K. et al. (2021). <strong>"Masked Autoencoders Are Scalable Vision Learners."</strong> <a href="https://arxiv.org/abs/2111.06377" target="_blank" rel="noopener">arXiv:2111.06377</a> — MAE.</li>
+  <li>Radford, A. et al. (2021). <strong>"Learning Transferable Visual Models From Natural Language Supervision."</strong> <a href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noopener">arXiv:2103.00020</a> — CLIP.</li>
+  <li>Liu, H. et al. (2023). <strong>"Visual Instruction Tuning."</strong> <a href="https://arxiv.org/abs/2304.08485" target="_blank" rel="noopener">arXiv:2304.08485</a> — LLaVA.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function n(v) { return Number(v).toLocaleString("en-US"); }
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function setBar(el, frac) { var pct = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.35 }); else el.style.width = pct; }
+
+  /* ---------- 1. Patchify an image ---------- */
+  (function patch() {
+    var img = document.getElementById("pz-img");
+    if (!img) return;
+    var ctx = img.getContext("2d"), ov = document.getElementById("pz-overlay"), octx = ov.getContext("2d");
+    // An original simple scene: sky, sun, hills, a house and a tree.
+    (function draw() {
+      var g = ctx.createLinearGradient(0, 0, 0, 224); g.addColorStop(0, "#7fb3ff"); g.addColorStop(0.62, "#d9ecff"); g.addColorStop(0.62, "#7cc36a"); g.addColorStop(1, "#4f9a45");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 224, 224);
+      ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(176, 44, 22, 0, 6.283); ctx.fill();
+      ctx.fillStyle = "#5fae55"; ctx.beginPath(); ctx.ellipse(40, 150, 90, 26, 0, 0, 6.283); ctx.fill();
+      ctx.fillStyle = "#f2e6c9"; ctx.fillRect(92, 108, 66, 56);                    // house walls
+      ctx.fillStyle = "#c0472f"; ctx.beginPath(); ctx.moveTo(84, 110); ctx.lineTo(125, 74); ctx.lineTo(166, 110); ctx.closePath(); ctx.fill();   // roof
+      ctx.fillStyle = "#6b4226"; ctx.fillRect(116, 132, 18, 32);                    // door
+      ctx.fillStyle = "#7fd0ff"; ctx.fillRect(98, 118, 14, 12); ctx.fillRect(140, 118, 14, 12);   // windows
+      ctx.fillStyle = "#6b4226"; ctx.fillRect(34, 112, 10, 40);                     // trunk
+      ctx.fillStyle = "#2e7d3e"; ctx.beginPath(); ctx.arc(39, 104, 22, 0, 6.283); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.ellipse(70, 40, 24, 10, 0, 0, 6.283); ctx.ellipse(88, 34, 18, 9, 0, 0, 6.283); ctx.fill();   // cloud
+    })();
+    var SIZES = [8, 14, 16, 28, 32, 56], P = 16, sel = { r: 6, c: 8 }, maskPct = 0, masked = {};
+    var sizesEl = document.getElementById("pz-sizes");
+    SIZES.forEach(function (s) { var b = document.createElement("button"); b.type = "button"; b.textContent = s; b.dataset.p = s; b.addEventListener("click", function () { P = s; var g = 224 / P; sel = { r: Math.floor(g / 2), c: Math.floor(g / 2) }; render(); }); sizesEl.appendChild(b); });
+    var maskS = document.getElementById("pz-mask");
+    function computeMask() {
+      var g = 224 / P, N = g * g, k = Math.round(N * maskPct / 100), idx = [], r = rng(17 + P);
+      for (var i = 0; i < N; i++) idx.push(i);
+      for (var j = N - 1; j > 0; j--) { var t = Math.floor(r() * (j + 1)); var tmp = idx[j]; idx[j] = idx[t]; idx[t] = tmp; }
+      masked = {}; idx.slice(0, k).forEach(function (i) { masked[i] = true; });
+    }
+    function render() {
+      sizesEl.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", parseInt(b.dataset.p, 10) === P); });
+      maskPct = parseInt(maskS.value, 10); document.getElementById("pz-masko").textContent = maskPct + "%";
+      computeMask();
+      var g = 224 / P, N = g * g, vis = N - Object.keys(masked).length;
+      octx.clearRect(0, 0, 224, 224);
+      for (var r = 0; r < g; r++) for (var c = 0; c < g; c++) if (masked[r * g + c]) { octx.fillStyle = "rgba(40,40,60,.78)"; octx.fillRect(c * P, r * P, P, P); }
+      octx.strokeStyle = "rgba(255,255,255,.9)"; octx.lineWidth = P <= 8 ? 0.5 : 1;
+      for (var i = 0; i <= g; i++) { octx.beginPath(); octx.moveTo(i * P, 0); octx.lineTo(i * P, 224); octx.stroke(); octx.beginPath(); octx.moveTo(0, i * P); octx.lineTo(224, i * P); octx.stroke(); }
+      octx.strokeStyle = "#ffd23f"; octx.lineWidth = 2.5; octx.strokeRect(sel.c * P + 1, sel.r * P + 1, P - 2, P - 2);
+      var vals = P * P * 3, cost = Math.pow(vis / 196, 2);
+      document.getElementById("pz-stats").innerHTML =
+        "<dt>grid</dt><dd>" + g + " × " + g + "</dd>" +
+        "<dt>patches N</dt><dd>" + n(N) + "</dd>" +
+        "<dt>numbers per patch</dt><dd>" + P + "·" + P + "·3 = " + n(vals) + "</dd>" +
+        "<dt>tokens with [CLS]</dt><dd>" + n(N + 1) + "</dd>" +
+        "<dt>patches the encoder sees</dt><dd>" + n(vis) + (maskPct ? " (" + (100 - maskPct) + "%)" : "") + "</dd>" +
+        "<dt>attention cost vs 196</dt><dd>" + (cost < 0.1 ? cost.toFixed(3) : cost.toFixed(2)) + "×</dd>";
+      // zoomed patch + flattened strip
+      var z = document.getElementById("pz-zoom").getContext("2d"); z.imageSmoothingEnabled = false;
+      z.clearRect(0, 0, 140, 140); z.drawImage(img, sel.c * P, sel.r * P, P, P, 0, 0, 140, 140);
+      var data = ctx.getImageData(sel.c * P, sel.r * P, P, P).data, strip = [], step = Math.max(1, Math.floor(P * P / 96));
+      for (var p = 0; p < P * P; p += step) strip.push('<i style="background:rgb(' + data[p * 4] + "," + data[p * 4 + 1] + "," + data[p * 4 + 2] + ')"></i>');
+      document.getElementById("pz-flat").innerHTML = strip.join("");
+      var tokenIdx = sel.r * g + sel.c + 1;
+      document.getElementById("pz-sel").textContent = "Patch at row " + (sel.r + 1) + ", column " + (sel.c + 1) + " → token #" + tokenIdx + " (token #0 is [CLS]). Flattened: " + n(vals) + " numbers (strip shows the pixels in order)." + (masked[sel.r * g + sel.c] ? " This patch is masked — the MAE encoder never sees it." : "");
+      document.getElementById("pz-status").textContent = P === 16 && !maskPct
+        ? "The standard ViT setting: 196 patches of 768 numbers each. Try P = 8 (784 patches, 16× the attention cost) or set the mask to 75% like MAE."
+        : maskPct ? "With " + maskPct + "% of patches masked, the encoder processes only " + vis + " of " + N + " patches, so attention per layer costs " + Math.pow(N / Math.max(vis, 1), 2).toFixed(1) + "× less than on the full image."
+        : "P = " + P + ": " + N + " patches. Smaller patches show finer detail but cost much more attention; bigger patches are cheap but coarse.";
+      window.__patch = { P: P, N: N, vals: vals, vis: vis };
+    }
+    ov.addEventListener("click", function (e) {
+      var rect = ov.getBoundingClientRect(), x = (e.clientX - rect.left) / rect.width * 224, y = (e.clientY - rect.top) / rect.height * 224;
+      sel = { r: Math.min(224 / P - 1, Math.floor(y / P)), c: Math.min(224 / P - 1, Math.floor(x / P)) }; render();
+    });
+    maskS.addEventListener("input", render);
+    render();
+  })();
+
+  /* ---------- 2. Patch embeddings by hand ---------- */
+  (function hand() {
+    var grid = document.getElementById("hd-grid");
+    if (!grid) return;
+    var EX = [[0, 8, 8, 8], [0, 8, 8, 8], [0, 0, 0, 8], [0, 0, 0, 8]], img = EX.map(function (r) { return r.slice(); }), withPos = false;
+    var E = [[0.25, -0.5], [0.25, 0.5], [0.25, -0.5], [0.25, 0.5]];
+    var NAMES = ["top-left", "top-right", "bottom-left", "bottom-right"], START = [[0, 0], [0, 2], [2, 0], [2, 2]];
+    function build() {
+      grid.innerHTML = "";
+      for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) {
+        (function (r, c) {
+          var b = document.createElement("button"); b.type = "button";
+          b.className = "q" + ((r >= 2 ? 2 : 0) + (c >= 2 ? 1 : 0));
+          b.setAttribute("aria-label", "pixel row " + (r + 1) + " column " + (c + 1));
+          b.addEventListener("click", function () { img[r][c] = img[r][c] === 0 ? 4 : img[r][c] === 4 ? 8 : 0; render(); });
+          grid.appendChild(b);
+        })(r, c);
+      }
+    }
+    function render() {
+      grid.querySelectorAll("button").forEach(function (b, k) { var v = img[Math.floor(k / 4)][k % 4], shade = Math.round(255 - v * 28); b.style.background = "rgb(" + shade + "," + shade + "," + Math.min(255, shade + 10) + ")"; b.style.color = v >= 6 ? "#fff" : "#1f2433"; b.textContent = v; });
+      var rows = START.map(function (s, k) {
+        var px = [img[s[0]][s[1]], img[s[0]][s[1] + 1], img[s[0] + 1][s[1]], img[s[0] + 1][s[1] + 1]];
+        var e = [0, 1].map(function (j) { return px.reduce(function (a, v, i) { return a + v * E[i][j]; }, 0); });
+        var pos = [s[0] / 2, s[1] / 2], fin = withPos ? [e[0] + pos[0], e[1] + pos[1]] : e;
+        return { name: NAMES[k], px: px, e: e, pos: pos, fin: fin };
+      });
+      var keyOf = function (v) { return v[0].toFixed(2) + "," + v[1].toFixed(2); }, counts = {};
+      rows.forEach(function (r) { counts[keyOf(r.fin)] = (counts[keyOf(r.fin)] || 0) + 1; });
+      document.getElementById("hd-table").innerHTML = "<tr><th>patch</th><th>flattened</th><th>x·E = [brightness, edge]</th>" + (withPos ? "<th>+ position</th><th>token</th>" : "") + "</tr>" +
+        rows.map(function (r) {
+          return '<tr class="' + (counts[keyOf(r.fin)] > 1 ? "same" : "") + '"><td>' + r.name + "</td><td>[" + r.px.join(", ") + "]</td><td>[" + r.e.map(function (v) { return v.toFixed(2).replace(/\.00$/, ""); }).join(", ") + "]</td>" +
+            (withPos ? "<td>[" + r.pos.join(", ") + "]</td><td>[" + r.fin.map(function (v) { return v.toFixed(2).replace(/\.00$/, ""); }).join(", ") + "]</td>" : "") + "</tr>";
+        }).join("");
+      var dup = Object.keys(counts).some(function (k) { return counts[k] > 1; });
+      document.getElementById("hd-status").textContent = dup
+        ? (withPos ? "Even with positions, some tokens coincide here (rare)." : "Highlighted rows have identical embeddings: the model can’t tell which part of the image they came from. Switch on positions.")
+        : (withPos ? "With a (toy) position added, every patch token is distinct — the model knows both what is in a patch and where it is." : "All four patches have different embeddings. A positive edge value means the right side is brighter; negative, the left.");
+      window.__hand = { rows: rows.map(function (r) { return r.fin; }), dup: dup };
+    }
+    document.getElementById("hd-ex").addEventListener("click", function () { img = EX.map(function (r) { return r.slice(); }); render(); });
+    document.getElementById("hd-clear").addEventListener("click", function () { img = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; render(); });
+    document.getElementById("hd-nopos").addEventListener("click", function () { withPos = false; this.classList.add("on"); document.getElementById("hd-pos").classList.remove("on"); render(); });
+    document.getElementById("hd-pos").addEventListener("click", function () { withPos = true; this.classList.add("on"); document.getElementById("hd-nopos").classList.remove("on"); render(); });
+    window.__handSet = function (r, c, v) { img[r][c] = v; render(); };
+    build(); render();
+  })();
+
+  /* ---------- 3. CLIP zero-shot ---------- */
+  (function clip() {
+    var svg = document.getElementById("cl-svg");
+    if (!svg) return;
+    var LABELS = [["a photo of a cat", [0.8, 0.6], "#b07a00"], ["a photo of a car", [0, 1], "#2e7d5b"], ["a photo of a dog", [1, 0], "#9b3b8f"]];
+    var sA = document.getElementById("cl-a"), sS = document.getElementById("cl-s");
+    function render() {
+      var deg = parseFloat(sA.value), scale = parseFloat(sS.value), th = deg * Math.PI / 180, im = [Math.cos(th), Math.sin(th)];
+      document.getElementById("cl-ao").textContent = deg + "°"; document.getElementById("cl-so").textContent = scale;
+      var cos = LABELS.map(function (l) { return im[0] * l[1][0] + im[1] * l[1][1]; });
+      var z = cos.map(function (c) { return c * scale; }), mx = Math.max.apply(null, z), e = z.map(function (v) { return Math.exp(v - mx); }), s = e.reduce(function (a, b) { return a + b; }, 0), p = e.map(function (v) { return v / s; });
+      svg.innerHTML = "";
+      var O = [40, 260], R = 210;
+      mk(svg, "line", { x1: O[0], y1: O[1], x2: O[0] + R + 20, y2: O[1], "class": "axis" }); mk(svg, "line", { x1: O[0], y1: O[1], x2: O[0], y2: O[1] - R - 20, "class": "axis" });
+      mk(svg, "path", { d: "M" + (O[0] + R) + "," + O[1] + " A" + R + "," + R + " 0 0 0 " + O[0] + "," + (O[1] - R), fill: "none", stroke: "#dfe5f3", "stroke-dasharray": "4 4" });
+      LABELS.forEach(function (l, i) {
+        var x = O[0] + l[1][0] * R, y = O[1] - l[1][1] * R;
+        mk(svg, "line", { x1: O[0], y1: O[1], x2: x, y2: y, stroke: l[2], "stroke-width": 1.5 + p[i] * 4 });
+        mk(svg, "text", { x: x + (l[1][0] > 0.9 ? -4 : 6), y: y + (l[1][1] > 0.9 ? 14 : -6), fill: l[2], "font-family": "var(--hand)", "font-size": "14", "font-weight": "700", "text-anchor": l[1][0] > 0.9 ? "end" : "start" }).textContent = l[0].replace("a photo of a ", "");
+      });
+      var ix = O[0] + im[0] * R, iy = O[1] - im[1] * R;
+      var il = mk(svg, "line", { x1: O[0], y1: O[1], x2: ix, y2: iy, stroke: "#1b2fa8", "stroke-width": 3.5 });
+      mk(svg, "circle", { cx: ix, cy: iy, r: 6, fill: "#1b2fa8" });
+      mk(svg, "text", { x: ix + 8, y: iy - 8, fill: "#1b2fa8", "font-family": "var(--hand)", "font-size": "15", "font-weight": "700" }).textContent = "image";
+      if (canAnimate) M.animate(il, { opacity: [0.4, 1] }, { duration: 0.3 });
+      var el = document.getElementById("cl-bars");
+      el.innerHTML = LABELS.map(function (l, i) { return "<span>" + l[0] + '</span><span class="bar"><i></i></span><b>' + p[i].toFixed(3) + "</b><em>cos " + cos[i].toFixed(2) + "</em>"; }).join("");
+      el.querySelectorAll(".bar > i").forEach(function (b, i) { setBar(b, p[i]); });
+      var best = p.indexOf(Math.max.apply(null, p));
+      document.getElementById("cl-status").textContent = "The image embedding is [" + im[0].toFixed(2) + ", " + im[1].toFixed(2) + "]. Prediction: “" + LABELS[best][0] + "” (" + (p[best] * 100).toFixed(0) + "%). " +
+        (scale >= 50 ? "With a large scale (real CLIP uses about 100), even small differences in cosine become near-certain predictions." : "Raise the logit scale to see how CLIP sharpens small cosine differences. At 53° and scale 10 you get 6.4’s numbers.");
+      window.__clip = { p: p, cos: cos };
+    }
+    [sA, sS].forEach(function (s) { s.addEventListener("input", render); });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

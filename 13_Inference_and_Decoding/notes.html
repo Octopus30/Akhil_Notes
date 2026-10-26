@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 13: Inference &amp; Decoding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; margin: 8px 0; font-size: 15px; }
+.sliders label { display: flex; align-items: center; gap: 8px; }
+.sliders input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #1b2fa8; }
+.sliders output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 3.4em; text-align: right; }
+.big { font-family: var(--hand); font-size: 24px; font-weight: 700; color: var(--ink); }
+svg.chart { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+/* playground */
+.pg { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto minmax(0, 0.8fr) auto; gap: 5px 10px; align-items: center; font-size: 14.5px; margin: 8px 0; }
+.pg .hd { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pg .tok { font-family: var(--mono); }
+.pg .tok.cut { color: #b0b5c6; text-decoration: line-through; }
+.pg .tok.top { font-weight: 700; color: var(--gold); }
+.bar { height: 15px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 4px; width: 0; }
+.bar.orig > i { background: #8f97b3; }
+.bar.fin > i { background: var(--ink); }
+.bar.emp > i { background: #2e7d5b; }
+.pg b { font-family: var(--mono); font-weight: 400; font-size: 12.5px; color: var(--ink); }
+.pg b.cut { color: #b0b5c6; }
+/* beam */
+.beamlegend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.sw { display: inline-block; width: 22px; height: 4px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+/* sentences */
+.sents { columns: 2; column-gap: 20px; font-family: var(--mono); font-size: 13px; padding-left: 22px; margin: 6px 0; }
+.sents li { break-inside: avoid; }
+.stat { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14.5px; margin: 6px 0; max-width: 360px; }
+.stat dt { color: var(--muted); } .stat dd { margin: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; text-align: right; }
+/* latency */
+.calc-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; font-size: 14.5px; margin: 8px 0; }
+.calc-in label { display: flex; flex-direction: column; gap: 2px; }
+.calc-in input { font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); background: #fff; }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.timeline { display: flex; height: 30px; border-radius: 8px; overflow: hidden; border: 1.5px solid #c9d2ea; margin: 8px 0 4px; }
+.timeline > span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-family: var(--mono); white-space: nowrap; overflow: hidden; min-width: 0; }
+.tl-pre { background: #b07a00; } .tl-dec { background: #1b2fa8; }
+.stream { font-family: var(--mono); font-size: 13.5px; background: #f6f7fc; border: 1px solid #dfe5f3; border-radius: 8px; padding: 6px 10px; min-height: 2.4em; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .pg { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; }
+  .pg .hide-sm { display: none; }
+  .sents { columns: 1; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .sliders, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 13</p>
+  <h1>Inference &amp; Decoding</h1>
+  <p class="lede"><strong>In one line:</strong> at each step an LLM outputs a <strong>probability for every token in its vocabulary</strong>; a <strong>decoding strategy</strong> — greedy, beam search, or sampling shaped by temperature, top-k, top-p or min-p — decides which token is actually written. The same model can sound robotic, creative or incoherent depending only on these choices.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Describe</strong> the inference loop, and the difference between the prefill and decode phases.</li>
+  <li><strong>Apply</strong> temperature to logits and explain its effect on the distribution.</li>
+  <li><strong>Apply</strong> top-k, top-p (nucleus) and min-p filtering to a distribution by hand.</li>
+  <li><strong>Run</strong> beam search on a small example and explain when it beats greedy decoding.</li>
+  <li><strong>Choose</strong> sensible decoding settings for tasks like code, chat and creative writing, and estimate response latency.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 10:</strong> autoregressive generation — one forward pass per new token, appended to the input.</li>
+  <li><strong>Section 5/12:</strong> softmax turns scores (<strong>logits</strong>) into probabilities; \(\log\)-probabilities add when probabilities multiply.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — logits</span>
+  The model's output head produces one raw score per vocabulary token, called a <strong>logit</strong> \(z_i\). Softmax turns them into probabilities \(p_i = e^{z_i}/\sum_j e^{z_j}\). Only the <em>differences</em> between logits matter: adding the same number to every logit changes nothing.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: the model doesn't pick words — you do</h2>
+<p>After reading <em>"The monsoon rain"</em>, a model might output:</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>fell</th><th>poured</th><th>stopped</th><th>began</th><th>was</th><th>danced</th></tr>
+  <tr><td>Probability</td><td>0.43</td><td>0.26</td><td>0.16</td><td>0.10</td><td>0.06</td><td>0.01</td></tr>
+</table></div>
+<p>The model has done its job: it has said how likely each continuation is. Now <em>we</em> must choose. Different choices lead to very different behaviour:</p>
+<ul>
+  <li>Always take the top token → safe, but repetitive and sometimes stuck in loops.</li>
+  <li>Sample in proportion to the probabilities → varied, but occasionally picks something odd like "danced".</li>
+  <li>Something in between → usually best.</li>
+</ul>
+<p>Decoding is how we control the trade-off between <strong>reliability</strong> and <strong>diversity</strong>.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: ordering at a restaurant</h2>
+<p>You visit a new restaurant and the waiter tells you how popular each dish is.</p>
+<ul>
+  <li><strong>Greedy:</strong> always order the most popular dish. Safe; boring after a week.</li>
+  <li><strong>Temperature:</strong> how adventurous you feel today. Low temperature → stick to favourites; high → anything goes.</li>
+  <li><strong>Top-k:</strong> "only consider the top 3 dishes".</li>
+  <li><strong>Top-p:</strong> "only consider the dishes that together make up 90% of orders" — sometimes that's 2 dishes, sometimes 6, depending on how clear the favourites are.</li>
+  <li><strong>Beam search:</strong> planning a whole three-course meal by keeping your best few <em>combinations</em> in mind, rather than choosing each course in isolation.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>A person's taste is stable; the model's distribution changes after every single token, because each new word changes the context.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The inference loop and its two phases</h3>
+<ol class="steps">
+  <li><strong>Prefill:</strong> the whole prompt is processed in <strong>one parallel pass</strong>. Its keys and values are stored (KV cache, Section 14). The time until the first token appears is the <strong>time to first token (TTFT)</strong>.</li>
+  <li><strong>Decode:</strong> then one token per forward pass: get logits → apply the decoding strategy → append the chosen token → repeat until a stop condition.</li>
+</ol>
+<p><strong>Stop conditions:</strong> an end-of-sequence token, a maximum number of new tokens, or a user-defined <strong>stop sequence</strong> (e.g. <code>"\n\nUser:"</code>).</p>
+
+<h3>5.2 Greedy decoding</h3>
+<div class="math-block">$$x_{t+1} = \arg\max_i\, p_i$$</div>
+<p>Deterministic and fast. Good for short, factual or structured outputs. Weaknesses: can <strong>repeat itself</strong> in loops, and choosing the best token <em>now</em> doesn't always lead to the best <em>sequence</em>.</p>
+
+<h3>5.3 Temperature</h3>
+<p>Divide the logits by a temperature \(T > 0\) before the softmax:</p>
+<div class="math-block">$$p_i(T) = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}$$</div>
+<div class="tw"><table>
+  <tr><th>\(T\)</th><th>Effect</th></tr>
+  <tr><td>\(T \to 0\)</td><td>all mass on the top token (same as greedy)</td></tr>
+  <tr><td>\(T &lt; 1\)</td><td>sharper: likely tokens get likelier</td></tr>
+  <tr><td>\(T = 1\)</td><td>the model's own distribution</td></tr>
+  <tr><td>\(T &gt; 1\)</td><td>flatter: unlikely tokens get a bigger share</td></tr>
+</table></div>
+<p>Temperature never changes the <strong>ranking</strong> of tokens, only how peaked the distribution is. (It's the same "divide the scores" idea as \(\sqrt{d_k}\) in Section 5.)</p>
+
+<h3>5.4 Truncation: top-k, top-p, min-p</h3>
+<p>Sampling from the <em>full</em> distribution occasionally picks a token from the long tail of thousands of unlikely tokens — and one bad token can derail a whole answer. Truncation removes the tail, then <strong>renormalizes</strong> what's left so it sums to 1.</p>
+<ul>
+  <li><strong>Top-k:</strong> keep the \(k\) most likely tokens.</li>
+  <li><strong>Top-p (nucleus):</strong> sort tokens by probability and keep the smallest set whose cumulative probability reaches \(p\) (e.g. 0.9). The set size <strong>adapts</strong>: few tokens when the model is confident, many when it's unsure.</li>
+  <li><strong>Min-p:</strong> keep every token whose probability is at least \(\text{min\_p} \times p_{\max}\). Also adaptive, and it behaves well at high temperatures.</li>
+</ul>
+<p>A common order of operations: <strong>logits → penalties → temperature → truncation → renormalize → sample</strong>.</p>
+
+<div class="demo" id="play">
+  <p class="demo-title">Try it: the decoding playground — "The monsoon rain …"</p>
+  <div class="sliders">
+    <label>temperature <input type="range" id="pg-t" min="0.05" max="3" step="0.05" value="1"><output id="pg-to"></output></label>
+    <label>top-k <input type="range" id="pg-k" min="1" max="6" step="1" value="6"><output id="pg-ko"></output></label>
+    <label>top-p <input type="range" id="pg-p" min="0.1" max="1" step="0.01" value="1"><output id="pg-po"></output></label>
+    <label>min-p <input type="range" id="pg-m" min="0" max="0.5" step="0.01" value="0"><output id="pg-mo"></output></label>
+  </div>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="pg-sample">Sample 1,000 times</button>
+    <button class="btn" type="button" id="pg-reset">Reset (T = 1, no truncation)</button>
+    <button class="btn" type="button" data-pg="0.5,6,1,0">T = 0.5</button>
+    <button class="btn" type="button" data-pg="1,3,1,0">top-k = 3</button>
+    <button class="btn" type="button" data-pg="1,6,0.9,0">top-p = 0.9</button>
+    <button class="btn" type="button" data-pg="1,6,1,0.1">min-p = 0.1</button>
+  </div>
+  <div class="pg" id="pg-table"></div>
+  <p class="demo-status" id="pg-status" aria-live="polite"></p>
+</div>
+
+<h3>5.5 Beam search</h3>
+<p>Instead of committing to one token at a time, keep the <strong>\(B\) best partial sequences</strong> ("beams"), scored by their total log-probability:</p>
+<ol class="steps">
+  <li>Start with \(B\) copies of the prompt.</li>
+  <li>Extend every beam by every possible next token.</li>
+  <li>Keep the \(B\) highest-scoring extensions.</li>
+  <li>Repeat until all beams finish; return the best.</li>
+</ol>
+<p>Beam search finds higher-probability sequences than greedy. It is standard for <strong>translation</strong> and <strong>speech recognition</strong>, where there's roughly one right answer. For open-ended chat it tends to produce bland, generic, repetitive text — the most <em>probable</em> text isn't the most <em>interesting</em> — so sampling is preferred there.</p>
+<p>Because adding more tokens can only add negative log-probabilities, beam search favours short outputs; implementations usually apply a <strong>length penalty</strong> (divide the score by length\(^{\alpha}\)).</p>
+
+<h3>5.6 Penalties against repetition</h3>
+<ul>
+  <li><strong>Presence penalty:</strong> subtract a fixed amount from the logit of any token that has already appeared.</li>
+  <li><strong>Frequency penalty:</strong> subtract an amount proportional to how many times it has appeared.</li>
+  <li><strong>Repetition penalty:</strong> divide positive logits (multiply negative ones) of already-seen tokens by a factor such as 1.1–1.3.</li>
+</ul>
+<p>They discourage loops but, if too strong, stop the model from repeating words it legitimately needs (names, code variables).</p>
+
+<h3>5.7 Constrained (structured) decoding</h3>
+<p>To guarantee valid output — e.g. JSON matching a schema, or one of a fixed set of labels — set the logits of every token that would break the format to \(-\infty\) at each step (a mask again!). The model can only ever choose tokens that keep the output valid.</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Temperature on "The monsoon rain…"</h3>
+<p>Logits: fell 3.0, poured 2.5, stopped 2.0, began 1.5, was 1.0, danced −1.0.</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>logit</th><th>\(T = 0.5\)</th><th>\(T = 1\)</th><th>\(T = 2\)</th></tr>
+  <tr><td>fell</td><td>3.0</td><td><strong>0.636</strong></td><td>0.425</td><td>0.298</td></tr>
+  <tr><td>poured</td><td>2.5</td><td>0.234</td><td>0.258</td><td>0.232</td></tr>
+  <tr><td>stopped</td><td>2.0</td><td>0.086</td><td>0.156</td><td>0.180</td></tr>
+  <tr><td>began</td><td>1.5</td><td>0.032</td><td>0.095</td><td>0.141</td></tr>
+  <tr><td>was</td><td>1.0</td><td>0.012</td><td>0.058</td><td>0.109</td></tr>
+  <tr><td>danced</td><td>−1.0</td><td>0.000</td><td>0.008</td><td><strong>0.040</strong></td></tr>
+</table></div>
+<p><strong>How to compute</strong> (for \(T = 1\)): \(e^{3.0} = 20.09\), \(e^{2.5} = 12.18\), \(e^{2.0} = 7.39\), \(e^{1.5} = 4.48\), \(e^{1.0} = 2.72\), \(e^{-1} = 0.37\); total \(47.23\); "fell" \(= 20.09/47.23 = 0.425\).</p>
+<p>At \(T = 0.5\) "fell" dominates; at \(T = 2\) even "danced" gets 4%. The ranking never changes.</p>
+
+<h3>6.2 Top-k, top-p and min-p (at \(T = 1\))</h3>
+<p><strong>Top-k, \(k = 3\):</strong> keep fell, poured, stopped (total 0.84) and renormalize: \(0.425/0.84 = 0.51\), \(0.258/0.84 = 0.31\), \(0.156/0.84 = 0.19\).</p>
+<p><strong>Top-p, \(p = 0.9\):</strong> add up in order: fell 0.425 → +poured 0.683 → +stopped 0.839 → +began <strong>0.935</strong> ≥ 0.9, stop. Keep <strong>4</strong> tokens; renormalize by 0.935: fell 0.45, poured 0.28, stopped 0.17, began 0.10.</p>
+<p><strong>Min-p, 0.1:</strong> threshold \(= 0.1 \times 0.425 = 0.0425\). Keep every token with \(p \ge 0.0425\) — fell, poured, stopped, began, <strong>was</strong> (0.058) — and drop only "danced" (0.008).</p>
+<p>All three remove "danced"; they differ in how much of the middle they keep.</p>
+
+<h3>6.3 Beam search beats greedy</h3>
+<p>A two-step toy problem. First-word probabilities: <strong>the 0.5</strong>, a 0.4, my 0.1. Second-word probabilities depend on the first:</p>
+<div class="tw"><table>
+  <tr><th>After…</th><th>cat</th><th>dog</th><th>end</th></tr>
+  <tr><td>the</td><td>0.4</td><td>0.3</td><td>0.3</td></tr>
+  <tr><td>a</td><td><strong>0.9</strong></td><td>0.05</td><td>0.05</td></tr>
+  <tr><td>my</td><td>0.5</td><td>0.5</td><td>—</td></tr>
+</table></div>
+<p><strong>Greedy:</strong> step 1 picks "the" (0.5); step 2 picks "cat" (0.4) → "the cat" with probability \(0.5 \times 0.4 = 0.20\).</p>
+<p><strong>Beam search, \(B = 2\):</strong></p>
+<ul>
+  <li>Step 1: keep the two best: "the" (0.5) and "a" (0.4).</li>
+  <li>Step 2: extend both: the cat 0.20, the dog 0.15, the end 0.15, <strong>a cat 0.36</strong>, a dog 0.02, a end 0.02.</li>
+  <li>Keep the best two: <strong>"a cat" (0.36)</strong> and "the cat" (0.20).</li>
+</ul>
+<p>Beam search finds "a cat", nearly twice as probable as greedy's answer. Greedy was misled by a slightly better first word that led to weaker continuations. In log-probabilities: \(\ln 0.36 = -1.02\) beats \(\ln 0.20 = -1.61\).</p>
+
+<div class="demo" id="beam">
+  <p class="demo-title">Try it: beam search vs greedy</p>
+  <div class="sliders" style="max-width:360px">
+    <label>beam width B <input type="range" id="bm-b" min="1" max="3" step="1" value="2"><output id="bm-bo"></output></label>
+  </div>
+  <svg class="chart" id="bm-svg" viewBox="0 0 440 300" role="img" aria-label="Search tree: three first words, each with possible second words, showing which branches beam search keeps."></svg>
+  <div class="beamlegend"><span><i class="sw" style="background:#b07a00"></i>beams kept</span><span><i class="sw" style="background:#c0472f"></i>greedy path</span><span><i class="sw" style="background:#dfe5f3"></i>pruned</span></div>
+  <p class="demo-status" id="bm-status" aria-live="polite"></p>
+</div>
+
+<h3>6.4 A presence penalty</h3>
+<p>Suppose "fell" has already been written once and the presence penalty is 0.5. Its logit becomes \(3.0 - 0.5 = 2.5\), tying with "poured". New probabilities at \(T = 1\): fell 0.31, poured 0.31, stopped 0.19, began 0.11, was 0.07, danced 0.01. The model is now less likely to repeat itself.</p>
+
+<div class="demo" id="temp">
+  <p class="demo-title">Try it: temperature over whole sentences</p>
+  <p class="cap" style="margin:2px 0 6px">The toy next-word model from Section 10 (after "the": bat 0.40, ball 0.30, …), generating 20 sentences from &lt;bos&gt; by sampling.</p>
+  <div class="sliders" style="max-width:420px">
+    <label>temperature <input type="range" id="tp-t" min="0.05" max="3" step="0.05" value="1"><output id="tp-to"></output></label>
+  </div>
+  <div class="demo-bar"><button class="btn" type="button" id="tp-roll">Sample 20 new sentences</button></div>
+  <ol class="sents" id="tp-list"></ol>
+  <dl class="stat" id="tp-stats"></dl>
+  <p class="demo-status" id="tp-status" aria-live="polite"></p>
+</div>
+
+<h3>6.5 How long will the answer take?</h3>
+<p>A 500-token prompt and a 200-token answer, on a server that prefills 5,000 tokens/s and decodes at 30 ms per token:</p>
+<ul>
+  <li><strong>TTFT:</strong> \(500 / 5{,}000 = 0.1\) s</li>
+  <li><strong>Decode:</strong> \(200 \times 0.03 = 6.0\) s</li>
+  <li><strong>Total:</strong> about <strong>6.1 s</strong> — almost all of it spent generating, one token at a time.</li>
+</ul>
+<p>That's why answers are <strong>streamed</strong>: users start reading after 0.1 s instead of waiting 6 s.</p>
+
+<div class="demo" id="lat">
+  <p class="demo-title">Try it: where does the time go?</p>
+  <div class="calc-in">
+    <label>prompt tokens<input id="lt-in" type="number" min="1" value="500"></label>
+    <label>answer tokens<input id="lt-out" type="number" min="1" value="200"></label>
+    <label>prefill speed (tokens/s)<input id="lt-pf" type="number" min="1" value="5000"></label>
+    <label>decode time (ms/token)<input id="lt-dc" type="number" min="1" value="30"></label>
+  </div>
+  <div class="timeline" id="lt-bar"></div>
+  <p class="big" id="lt-out-txt"></p>
+  <div class="demo-bar"><button class="btn" type="button" id="lt-play">Stream a sample answer at this speed</button></div>
+  <div class="stream" id="lt-stream" aria-live="polite"></div>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    P["Prompt"] --> PF["Prefill<br/>(one parallel pass)"]
+    PF --> L["Logits for next token"]
+    L --> PEN["Penalties<br/>(presence / frequency)"]
+    PEN --> TMP["÷ temperature"]
+    TMP --> TR["Truncate<br/>top-k / top-p / min-p"]
+    TR --> S["Sample (or argmax)"]
+    S --> APP["Append token"]
+    APP -->|"not finished"| L
+    APP -->|"eos / stop / max tokens"| OUT["Answer"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Task</th><th>Typical settings</th><th>Why</th></tr>
+  <tr><td>Code, maths, extraction, classification</td><td>temperature 0–0.2 (near greedy)</td><td>one correct answer; consistency matters</td></tr>
+  <tr><td>General chat</td><td>temperature 0.6–0.8, top-p 0.9–0.95</td><td>natural, varied but focused</td></tr>
+  <tr><td>Brainstorming, stories</td><td>temperature 0.9–1.2, top-p 0.95 or min-p 0.05</td><td>more diversity</td></tr>
+  <tr><td>Translation, speech-to-text</td><td>beam search, \(B\) = 4–5</td><td>find the single most likely output</td></tr>
+</table></div>
+<ul>
+  <li><strong>Determinism:</strong> temperature 0 (or a fixed random seed) gives repeatable outputs in principle, but GPU arithmetic and batching can still cause tiny differences between runs.</li>
+  <li><strong>Speculative decoding:</strong> a small fast "draft" model proposes several tokens; the big model checks them all in one pass and keeps the ones it agrees with. Same output distribution, often 2–3× faster (Section 17).</li>
+  <li><strong>Sampling several answers</strong> and picking the most common final answer ("self-consistency") improves accuracy on reasoning problems, at extra cost.</li>
+  <li><strong>Latency metrics:</strong> TTFT (time to first token) and time per output token / tokens per second are the numbers serving systems optimize (Section 18).</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Temperature 0 makes the model more accurate."</strong> It makes it more <em>consistent</em>. If the most likely token is wrong, greedy decoding is consistently wrong.</li>
+  <li class="mistake"><strong>"Higher temperature makes the model more creative."</strong> It makes it more <em>random</em>. Past a point, output becomes incoherent rather than creative.</li>
+  <li class="mistake"><strong>"Top-k and top-p remove bad tokens and keep the probabilities as they were."</strong> The survivors are <strong>renormalized</strong> to sum to 1, so each one's probability goes up.</li>
+  <li class="mistake"><strong>"Beam search is always better than sampling."</strong> Beam search maximizes probability, which suits translation; for open-ended text it produces bland, repetitive output.</li>
+  <li class="mistake"><strong>"The model chooses its words."</strong> The model only outputs a distribution. The decoding strategy — set by the developer — makes the choice.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Each decode step turns <strong>logits</strong> into a choice: penalties → <strong>temperature</strong> → <strong>truncation</strong> (top-k / top-p / min-p) → renormalize → sample (or argmax).</li>
+  <li><strong>Temperature</strong> reshapes the distribution (sharper below 1, flatter above 1) without changing the ranking.</li>
+  <li><strong>Top-k</strong> keeps a fixed number of tokens; <strong>top-p</strong> and <strong>min-p</strong> keep an adaptive set based on probability.</li>
+  <li><strong>Beam search</strong> tracks the \(B\) best partial sequences and can beat greedy (0.36 vs 0.20 in our example); great for translation, bland for chat.</li>
+  <li>Inference = <strong>prefill</strong> (parallel, sets TTFT) + <strong>decode</strong> (one token per pass, dominates total time); responses are streamed.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>Using the \(T = 1\) probabilities in 6.1, which tokens are kept by top-p with \(p = 0.7\)? What are their renormalized probabilities?</li>
+  <li>Two logits are 4.0 and 2.0. Compute their probabilities at \(T = 1\) and at \(T = 2\) (consider only these two tokens).</li>
+  <li>In 6.3, what would beam search with \(B = 1\) return? With \(B = 3\)?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>fell 0.425 → +poured 0.683 (&lt; 0.7) → +stopped 0.839 ≥ 0.7. Keep <strong>fell, poured, stopped</strong>; renormalized by 0.839: <strong>0.51, 0.31, 0.19</strong>. (Set top-p = 0.70 in the playground.)</li>
+    <li>\(T = 1\): \(e^4 / (e^4 + e^2) = 1/(1 + e^{-2}) = \mathbf{0.88}\) and \(\mathbf{0.12}\). \(T = 2\): logits become 2.0 and 1.0 → \(1/(1 + e^{-1}) = \mathbf{0.73}\) and \(\mathbf{0.27}\).</li>
+    <li>\(B = 1\) is exactly greedy: <strong>"the cat" (0.20)</strong>. \(B = 3\) keeps the, a, my after step 1 and still finds <strong>"a cat" (0.36)</strong>. (Slide B in the beam demo.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Holtzman, A. et al. (2020). <strong>"The Curious Case of Neural Text Degeneration."</strong> <em>ICLR 2020.</em> <a href="https://arxiv.org/abs/1904.09751" target="_blank" rel="noopener">arXiv:1904.09751</a> — introduces nucleus (top-p) sampling and explains why beam search degenerates for open-ended text.</li>
+  <li>Fan, A., Lewis, M., &amp; Dauphin, Y. (2018). <strong>"Hierarchical Neural Story Generation."</strong> <a href="https://arxiv.org/abs/1805.04833" target="_blank" rel="noopener">arXiv:1805.04833</a> — popularized top-k sampling.</li>
+  <li>Keskar, N. S. et al. (2019). <strong>"CTRL: A Conditional Transformer Language Model for Controllable Generation."</strong> <a href="https://arxiv.org/abs/1909.05858" target="_blank" rel="noopener">arXiv:1909.05858</a> — the repetition penalty.</li>
+  <li>Leviathan, Y., Kalman, M., &amp; Matias, Y. (2023). <strong>"Fast Inference from Transformers via Speculative Decoding."</strong> <a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">arXiv:2211.17192</a>.</li>
+  <li>Wang, X. et al. (2023). <strong>"Self-Consistency Improves Chain of Thought Reasoning in Language Models."</strong> <a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">arXiv:2203.11171</a>.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function softmaxT(z, T) { var s = z.map(function (v) { return v / T; }), m = Math.max.apply(null, s), e = s.map(function (v) { return Math.exp(v - m); }), t = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / t; }); }
+  function setBar(el, frac) { var pct = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(el, { width: pct }, { duration: 0.35 }); else el.style.width = pct; }
+  function pickFrom(p, r) { var u = r(), acc = 0; for (var i = 0; i < p.length; i++) { acc += p[i]; if (u <= acc) return i; } return p.length - 1; }
+
+  /* ---------- 1. Decoding playground ---------- */
+  (function play() {
+    var table = document.getElementById("pg-table");
+    if (!table) return;
+    var W = ["fell", "poured", "stopped", "began", "was", "danced"], Z = [3.0, 2.5, 2.0, 1.5, 1.0, -1.0];
+    var sT = document.getElementById("pg-t"), sK = document.getElementById("pg-k"), sP = document.getElementById("pg-p"), sM = document.getElementById("pg-m");
+    var emp = null, seed = 5;
+    function compute() {
+      var T = parseFloat(sT.value), K = parseInt(sK.value, 10), P = parseFloat(sP.value), MP = parseFloat(sM.value);
+      var p = softmaxT(Z, T), order = p.map(function (_, i) { return i; }).sort(function (a, b) { return p[b] - p[a]; });
+      var keep = {}; order.forEach(function (i) { keep[i] = true; });
+      // top-k
+      order.forEach(function (i, rank) { if (rank >= K) keep[i] = false; });
+      // top-p (on the original sorted order, among tokens still kept)
+      var cum = 0, reached = false;
+      order.forEach(function (i) { if (!keep[i]) return; if (reached) { keep[i] = false; return; } cum += p[i]; if (cum >= P - 1e-12) reached = true; });
+      // min-p
+      var pmax = p[order[0]];
+      order.forEach(function (i) { if (p[i] < MP * pmax) keep[i] = false; });
+      var mass = order.reduce(function (a, i) { return a + (keep[i] ? p[i] : 0); }, 0);
+      var fin = p.map(function (v, i) { return keep[i] ? v / mass : 0; });
+      return { T: T, K: K, P: P, MP: MP, p: p, fin: fin, keep: keep, mass: mass, order: order };
+    }
+    function render() {
+      var c = compute();
+      document.getElementById("pg-to").textContent = c.T.toFixed(2); document.getElementById("pg-ko").textContent = c.K === 6 ? "off" : c.K;
+      document.getElementById("pg-po").textContent = c.P >= 1 ? "off" : c.P.toFixed(2); document.getElementById("pg-mo").textContent = c.MP === 0 ? "off" : c.MP.toFixed(2);
+      var top = c.order[0];
+      table.innerHTML = '<span class="hd">token</span><span class="hd">after temperature</span><span class="hd"></span><span class="hd hide-sm">kept?</span><span class="hd">final (renormalized)</span><span class="hd"></span>' +
+        W.map(function (w, i) {
+          var cut = !c.keep[i];
+          return '<span class="tok' + (cut ? " cut" : i === top ? " top" : "") + '">' + w + '</span><span class="bar orig"><i></i></span><b>' + c.p[i].toFixed(3) + '</b><span class="hide-sm">' + (cut ? "✗" : "✓") + '</span><span class="bar fin"><i></i></span><b' + (cut ? ' class="cut"' : "") + ">" + c.fin[i].toFixed(3) + (emp ? " · " + (emp[i] / 1000).toFixed(3) : "") + "</b>";
+        }).join("");
+      var origBars = table.querySelectorAll(".bar.orig > i"), finBars = table.querySelectorAll(".bar.fin > i");
+      W.forEach(function (_, i) { setBar(origBars[i], c.p[i]); setBar(finBars[i], c.fin[i]); });
+      var kept = W.filter(function (_, i) { return c.keep[i]; });
+      document.getElementById("pg-status").textContent = "Kept " + kept.length + " token" + (kept.length > 1 ? "s" : "") + " (" + kept.join(", ") + "), holding " + (c.mass * 100).toFixed(1) + "% of the probability before renormalizing. Greedy would always write “" + W[top] + "”." +
+        (emp ? " Second number in each row = share of 1,000 actual samples — it matches the final probability." : " Press “Sample 1,000 times” to check the final column against real samples.");
+      window.__pg = { fin: c.fin, kept: kept.length, mass: c.mass };
+    }
+    function reset(vals) { sT.value = vals[0]; sK.value = vals[1]; sP.value = vals[2]; sM.value = vals[3]; emp = null; render(); }
+    [sT, sK, sP, sM].forEach(function (s) { s.addEventListener("input", function () { emp = null; render(); }); });
+    document.getElementById("pg-reset").addEventListener("click", function () { reset([1, 6, 1, 0]); });
+    document.querySelectorAll("#play [data-pg]").forEach(function (b) { b.addEventListener("click", function () { reset(b.dataset.pg.split(",").map(Number)); }); });
+    document.getElementById("pg-sample").addEventListener("click", function () {
+      var c = compute(), r = rng(seed++); emp = W.map(function () { return 0; });
+      for (var k = 0; k < 1000; k++) emp[pickFrom(c.fin, r)]++;
+      render(); window.__pgEmp = emp.slice();
+    });
+    render();
+  })();
+
+  /* ---------- 2. Beam search vs greedy ---------- */
+  (function beam() {
+    var svg = document.getElementById("bm-svg");
+    if (!svg) return;
+    var FIRST = [["the", 0.5], ["a", 0.4], ["my", 0.1]];
+    var SECOND = { the: [["cat", 0.4], ["dog", 0.3], ["end", 0.3]], a: [["cat", 0.9], ["dog", 0.05], ["end", 0.05]], my: [["cat", 0.5], ["dog", 0.5]] };
+    var slider = document.getElementById("bm-b");
+    function run(B) {
+      var step1 = FIRST.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, B).map(function (f) { return f[0]; });
+      var cands = [];
+      step1.forEach(function (w) { var p1 = FIRST.filter(function (f) { return f[0] === w; })[0][1]; SECOND[w].forEach(function (s) { cands.push({ seq: [w, s[0]], p: p1 * s[1] }); }); });
+      cands.sort(function (a, b) { return b.p - a.p; });
+      return { step1: step1, kept: cands.slice(0, B), best: cands[0] };
+    }
+    function render() {
+      var B = parseInt(slider.value, 10); document.getElementById("bm-bo").textContent = B;
+      var r = run(B), greedy = run(1).best;
+      svg.innerHTML = "";
+      var rootX = 40, rootY = 150, l1X = 160, l2X = 330, l1Y = { the: 60, a: 160, my: 250 };
+      var l2Pos = {}, y = 18;
+      FIRST.forEach(function (f) { SECOND[f[0]].forEach(function (s) { l2Pos[f[0] + " " + s[0]] = y; y += 34; }); });
+      function edge(x1, y1, x2, y2, color, w) { mk(svg, "line", { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, "stroke-width": w, "stroke-linecap": "round" }); }
+      function inKept(seqKey) { return r.kept.some(function (k) { return k.seq.join(" ") === seqKey; }); }
+      FIRST.forEach(function (f) {
+        var on = r.step1.indexOf(f[0]) >= 0, g = greedy.seq[0] === f[0];
+        edge(rootX + 30, rootY, l1X - 26, l1Y[f[0]], on ? "#b07a00" : "#dfe5f3", on ? 4 : 2);
+        if (g) edge(rootX + 30, rootY + 4, l1X - 26, l1Y[f[0]] + 4, "#c0472f", 2);
+        SECOND[f[0]].forEach(function (s) {
+          var key = f[0] + " " + s[0], kept = inKept(key), expanded = on, gg = greedy.seq.join(" ") === key;
+          edge(l1X + 26, l1Y[f[0]], l2X - 34, l2Pos[key], kept ? "#b07a00" : expanded ? "#c9d2ea" : "#eef0f6", kept ? 4 : 1.5);
+          if (gg) edge(l1X + 26, l1Y[f[0]] + 4, l2X - 34, l2Pos[key] + 4, "#c0472f", 2);
+          var p = f[1] * s[1];
+          mk(svg, "text", { x: l2X - 28, y: l2Pos[key] + 4, "class": "lbl", style: "font-family:var(--mono);font-size:12px;fill:" + (expanded ? "#1f2433" : "#b0b5c6") + (key === r.best.seq.join(" ") ? ";font-weight:700" : "") }).textContent = s[0] + "  " + p.toFixed(2) + (expanded ? "" : "  (never explored)");
+        });
+        mk(svg, "rect", { x: l1X - 26, y: l1Y[f[0]] - 13, width: 52, height: 26, rx: 6, fill: on ? "#ffe9a8" : "#fff", stroke: on ? "#b07a00" : "#c9d2ea", "stroke-width": 2 });
+        mk(svg, "text", { x: l1X, y: l1Y[f[0]] + 5, "text-anchor": "middle", style: "font-family:var(--mono);font-size:13px;fill:#1b2fa8" }).textContent = f[0] + " " + f[1];
+      });
+      mk(svg, "rect", { x: rootX - 30, y: rootY - 13, width: 60, height: 26, rx: 6, fill: "#fff", stroke: "#1b2fa8", "stroke-width": 2 });
+      mk(svg, "text", { x: rootX, y: rootY + 5, "text-anchor": "middle", style: "font-family:var(--mono);font-size:12px;fill:#1b2fa8" }).textContent = "<bos>";
+      if (canAnimate) M.animate(svg.querySelectorAll("line"), { opacity: [0.2, 1] }, { duration: 0.35 });
+      var bestTxt = "“" + r.best.seq.join(" ") + "” (" + r.best.p.toFixed(2) + ", log-prob " + Math.log(r.best.p).toFixed(2) + ")";
+      document.getElementById("bm-status").textContent = (B === 1 ? "B = 1 is greedy: it commits to “the” and never sees that “a” leads to a much better continuation. Result: " :
+        "B = " + B + ": after step 1 it keeps " + r.step1.join(" + ") + ", expands all of them, and keeps the best " + B + ". Result: ") + bestTxt + ". Greedy’s answer: “" + greedy.seq.join(" ") + "” (" + greedy.p.toFixed(2) + ").";
+      window.__beam = { B: B, best: r.best.seq.join(" "), p: r.best.p };
+    }
+    slider.addEventListener("input", render);
+    render();
+  })();
+
+  /* ---------- 3. Temperature over whole sentences ---------- */
+  (function temp() {
+    var list = document.getElementById("tp-list");
+    if (!list) return;
+    var T = {
+      "<bos>": { the: .5, a: .3, bat: .05, ball: .05, flew: .03, hit: .02, "<eos>": .05 },
+      the:   { bat: .4, ball: .3, a: .02, the: .02, flew: .1, hit: .1, "<eos>": .06 },
+      a:     { bat: .35, ball: .45, the: .02, a: .02, flew: .06, hit: .05, "<eos>": .05 },
+      bat:   { flew: .6, hit: .25, the: .03, a: .02, bat: .02, ball: .03, "<eos>": .05 },
+      ball:  { flew: .2, hit: .1, the: .05, a: .05, bat: .05, ball: .02, "<eos>": .53 },
+      flew:  { "<eos>": .7, the: .1, a: .05, bat: .03, ball: .02, flew: .05, hit: .05 },
+      hit:   { the: .45, a: .2, ball: .15, bat: .05, flew: .02, hit: .03, "<eos>": .1 }
+    };
+    var s = document.getElementById("tp-t"), seed = 21;
+    function render() {
+      var temp = parseFloat(s.value); document.getElementById("tp-to").textContent = temp.toFixed(2);
+      var r = rng(seed * 977 + Math.round(temp * 100)), out = [], lp = 0, ntok = 0;
+      for (var k = 0; k < 20; k++) {
+        var cur = "<bos>", words = [];
+        for (var step = 0; step < 12; step++) {
+          var keys = Object.keys(T[cur]), base = keys.map(function (w) { return T[cur][w]; });
+          var p = softmaxT(base.map(Math.log), temp), j = pickFrom(p, r);
+          lp += Math.log(base[j]); ntok++;                      // log-prob under the model itself (T = 1)
+          cur = keys[j]; if (cur === "<eos>") break; words.push(cur);
+        }
+        out.push(words.join(" ") || "(empty)");
+      }
+      var uniq = {}; out.forEach(function (x) { uniq[x] = (uniq[x] || 0) + 1; });
+      list.innerHTML = out.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("");
+      document.getElementById("tp-stats").innerHTML = "<dt>different sentences</dt><dd>" + Object.keys(uniq).length + " / 20</dd><dt>average log-prob per token (under the model)</dt><dd>" + (lp / ntok).toFixed(2) + "</dd><dt>most common</dt><dd>" + esc(Object.keys(uniq).sort(function (a, b) { return uniq[b] - uniq[a]; })[0]) + "</dd>";
+      if (canAnimate) M.animate(list.querySelectorAll("li"), { opacity: [0, 1] }, { duration: 0.25, delay: M.stagger(0.015) });
+      document.getElementById("tp-status").textContent = temp <= 0.3 ? "Low temperature: almost every sentence is the single most likely one (“the bat flew”). Reliable, but no variety."
+        : temp >= 2 ? "High temperature: lots of variety, but many sentences are ungrammatical, and the average log-prob drops — the model itself finds them unlikely."
+        : "Moderate temperature: a mix of the common sentence and plausible variations.";
+      window.__temp = { T: temp, unique: Object.keys(uniq).length, avgLogProb: lp / ntok };
+    }
+    s.addEventListener("input", render);
+    document.getElementById("tp-roll").addEventListener("click", function () { seed++; render(); });
+    render();
+  })();
+
+  /* ---------- 4. Latency ---------- */
+  (function lat() {
+    var bar = document.getElementById("lt-bar");
+    if (!bar) return;
+    var ids = ["lt-in", "lt-out", "lt-pf", "lt-dc"], timer = null;
+    var SAMPLE = "The monsoon rain fell steadily over Hyderabad all evening, filling the streets with water while students waited under the bus stop, talking about tomorrow's exam and hoping the power would stay on long enough to finish revising the last chapter of their notes.".split(" ");
+    function vals() { return ids.map(function (id) { return parseFloat(document.getElementById(id).value); }); }
+    function render() {
+      var v = vals(); if (!v.every(function (x) { return x > 0; })) return;
+      var ttft = v[0] / v[2], dec = v[1] * v[3] / 1000, tot = ttft + dec;
+      bar.innerHTML = '<span class="tl-pre" style="width:' + Math.max(2, 100 * ttft / tot).toFixed(1) + '%">prefill ' + ttft.toFixed(2) + ' s</span><span class="tl-dec" style="width:' + (100 * dec / tot).toFixed(1) + '%">decode ' + dec.toFixed(1) + " s</span>";
+      document.getElementById("lt-out-txt").textContent = "first token after " + ttft.toFixed(2) + " s · full answer after " + tot.toFixed(1) + " s · " + (1000 / v[3]).toFixed(0) + " tokens/s";
+      window.__lat = { ttft: ttft, total: tot };
+    }
+    ids.forEach(function (id) { document.getElementById(id).addEventListener("input", render); });
+    document.getElementById("lt-play").addEventListener("click", function () {
+      var v = vals(), el = document.getElementById("lt-stream"), i = 0; if (timer) clearInterval(timer);
+      el.textContent = "(prefilling " + v[0] + " prompt tokens…)";
+      var ms = Math.max(5, v[3]);
+      setTimeout(function () {
+        el.textContent = "";
+        timer = setInterval(function () { if (i >= SAMPLE.length) { clearInterval(timer); return; } el.textContent += (i ? " " : "") + SAMPLE[i++]; }, canAnimate ? ms : 0);
+      }, canAnimate ? Math.min(3000, v[0] / v[2] * 1000) : 0);
+    });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

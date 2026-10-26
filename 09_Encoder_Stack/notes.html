@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 9: The Encoder Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* shared */
+.toggle { display: inline-flex; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.toggle button { font-family: var(--hand); font-weight: 700; font-size: 15px; border: 0; background: #fff; color: var(--ink); padding: 1px 12px; cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; margin: 6px 0; }
+.slider input[type=range] { width: 180px; accent-color: #1b2fa8; }
+.slider output { font-family: var(--mono); color: var(--ink); font-weight: 700; min-width: 2em; }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 12.5px; }
+table.mat td, table.mat th { border: 0; padding: 3px 7px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 48px; box-shadow: inset 0 0 0 1px #c9d2ea; background: #fff; }
+table.mat th { background: none; font-family: var(--hand); font-size: 14px; color: var(--ink); font-weight: 700; }
+/* layers demo */
+.lay { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+.laycard { border: 1.5px dashed var(--ink); border-radius: 10px; padding: 8px 10px; background: #fff; min-width: 0; }
+.laycard .ttl { font-family: var(--hand); font-weight: 700; font-size: 17px; color: var(--ink); margin: 0 0 4px; }
+.laycard svg { width: 100%; height: auto; display: block; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.ring { fill: none; stroke: #dfe5f3; stroke-dasharray: 3 4; }
+.axlbl { font-family: var(--body); font-size: 11px; fill: var(--muted); }
+.tl { font-family: var(--hand); font-size: 14px; font-weight: 700; }
+.cosrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.cosrow > div { border: 2px solid #c9d2ea; border-radius: 8px; text-align: center; padding: 4px; font-size: 13px; background: #fff; }
+.cosrow > div.on { border-color: var(--gold); background: var(--gold-fill); }
+.cosrow b { display: block; font-family: var(--hand); font-size: 22px; color: var(--ink); }
+/* visibility */
+.vis td { width: 30px; height: 26px; min-width: 30px; text-align: center; font-size: 13px; }
+.vis td.ok { background: rgba(27,47,168,.18); }
+.vis td.ok.focus { background: var(--ink); color: #fff; }
+.vis td.no { background: repeating-linear-gradient(135deg, #f3f0e8 0 5px, #e8e2d4 5px 10px); color: #8a4b00; }
+.vis th.rowh { cursor: pointer; text-align: right; }
+.vis th.rowh.on { color: var(--gold); text-decoration: underline; }
+.vis th.colh { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; height: 64px; vertical-align: bottom; }
+/* MLM */
+.mlm-sent { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tok { font-family: var(--mono); font-size: 14px; border: 2px solid #c9d2ea; border-radius: 6px; padding: 1px 7px; background: #fff; position: relative; }
+.tok .orig { display: block; font-size: 10.5px; color: var(--muted); text-align: center; }
+.tok.mask { border-color: var(--ink); background: var(--ink); color: #fff; }
+.tok.mask .orig { color: #dfe5ff; }
+.tok.rand { border-color: #c0472f; background: #fde7e2; }
+.tok.keep { border-color: #2e7d5b; background: #e3f4ea; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 2px solid; }
+.preds { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px 12px; align-items: center; font-size: 14.5px; margin: 8px 0; }
+.preds input[type=range] { width: 100%; accent-color: #1b2fa8; }
+.preds output, .preds b { font-family: var(--mono); font-weight: 400; font-size: 13px; color: var(--ink); }
+.big { font-family: var(--hand); font-size: 26px; color: var(--ink); font-weight: 700; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .lay { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .slider { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 9</p>
+  <h1>The Encoder Stack</h1>
+  <p class="lede"><strong>In one line:</strong> an <strong>encoder</strong> is a stack of \(N\) identical Transformer blocks with <strong>bidirectional</strong> self-attention (every token sees every other token). It turns a sequence of token embeddings into a sequence of <strong>contextual vectors</strong> — one per token — that downstream tasks like classification, tagging and search are built on.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Describe</strong> the encoder's input, its stack of blocks, and its output (shapes included).</li>
+  <li><strong>Explain</strong> what "bidirectional" means and how it differs from the causal attention of decoders.</li>
+  <li><strong>Trace</strong> how a token's vector changes layer by layer, using a small worked example.</li>
+  <li><strong>Explain</strong> masked language modelling (MLM) — including the 15% and 80/10/10 rules — and compute its loss.</li>
+  <li><strong>Choose</strong> how to use encoder outputs for sentence classification, token tagging and sentence embeddings.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 8:</strong> a pre-norm block \(X' = A + \text{FFN}(\text{LN}(A))\) with \(A = X + \text{MHA}(\text{LN}(X))\); each block maps \(n \times d_{model} \to n \times d_{model}\).</li>
+  <li><strong>Section 5:</strong> masks — padding masks hide filler tokens; causal masks hide future tokens.</li>
+  <li><strong>Section 2:</strong> cosine similarity between vectors.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher — cross-entropy loss</span>
+  If a model gives the correct answer probability \(p\), its loss is \(-\log p\). Confident and right (\(p = 0.9\)) → small loss \(0.105\); unsure (\(p = 0.2\)) → larger loss \(1.609\). Training minimizes the average loss.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: understanding needs both sides</h2>
+<p>Consider:</p>
+<div class="callout" style="border-style:solid">
+  <em>I went to the <strong>bank</strong> to deposit my salary.</em><br>
+  <em>I sat on the <strong>bank</strong> and watched the river.</em>
+</div>
+<p>The words that disambiguate "bank" ("deposit", "river") come <strong>after</strong> it. A model that reads only left-to-right — like a text generator — must decide what "bank" means before seeing those clues.</p>
+<p>For <strong>understanding</strong> tasks — "is this review positive?", "which words are names?", "which document answers this question?" — the whole text is available at once. There is no reason to hide the future. So we want a model where every token can look <strong>both left and right</strong>: an <strong>encoder</strong>.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: a committee drafting a report in rounds</h2>
+<p>A committee of 12 people is writing a joint report. Each member holds one paragraph.</p>
+<ul>
+  <li><strong>Round 1:</strong> everyone reads everyone else's paragraph and updates their own to fit the whole report.</li>
+  <li><strong>Round 2:</strong> they read the <em>updated</em> paragraphs and refine again — now each paragraph reflects not only the others, but the others' first-round understanding.</li>
+  <li>After <strong>many rounds</strong>, every paragraph is consistent with — and informed by — the entire report.</li>
+</ul>
+<p>That is an encoder:</p>
+<ul>
+  <li>Each <strong>member/paragraph</strong> = one token's vector.</li>
+  <li>Each <strong>round</strong> = one Transformer block (layer).</li>
+  <li><strong>Reading everyone's paragraph</strong> = bidirectional self-attention.</li>
+  <li><strong>Updating your own</strong> = the residual + FFN.</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>Committee members could choose to read only some paragraphs. In an encoder, <em>every</em> token attends to <em>every</em> token in every layer (except padding) — the only choice is how much weight to give each one.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 The pipeline</h3>
+<div class="math-block">$$
+\begin{aligned}
+X^{(0)} &= \text{Embed}(\text{tokens}) + \text{Positions} && (n \times d_{model}) \\
+X^{(\ell)} &= \text{Block}_\ell\!\left(X^{(\ell-1)}\right), \quad \ell = 1, \dots, N && (n \times d_{model}) \\
+H &= \text{LN}_{\text{final}}\!\left(X^{(N)}\right) && (n \times d_{model})
+\end{aligned}
+$$</div>
+<p>\(H\) holds one <strong>contextual vector</strong> per input token — the encoder's output.</p>
+
+<h3>5.2 "Bidirectional" = no causal mask</h3>
+<p>In each block, self-attention uses only a <strong>padding mask</strong> (Section 5). So token \(i\) can attend to every real token \(j\), before or after it:</p>
+<div class="tw"><table>
+  <tr><th></th><th>Encoder (bidirectional)</th><th>Decoder (causal)</th></tr>
+  <tr><td>Token \(i\) sees</td><td>all tokens \(1 \dots n\)</td><td>only tokens \(1 \dots i\)</td></tr>
+  <tr><td>Attention matrix</td><td>full</td><td>lower-triangular</td></tr>
+  <tr><td>Good for</td><td>understanding the whole input</td><td>generating text left-to-right</td></tr>
+</table></div>
+<p>"Bidirectional" does <strong>not</strong> mean reading the text twice (once each way). All tokens see all others <strong>simultaneously</strong>, in one attention step.</p>
+
+<div class="demo" id="vis">
+  <p class="demo-title">Try it: who can see whom?</p>
+  <div class="demo-bar">
+    <span class="toggle" role="group" aria-label="Attention type">
+      <button type="button" id="vis-enc" class="on">encoder (bidirectional)</button>
+      <button type="button" id="vis-dec">decoder (causal)</button>
+    </span>
+    <span class="cap">Click a word on the left to see what it can attend to.</span>
+  </div>
+  <div class="mat-scroll"><table class="mat vis" id="vis-grid"></table></div>
+  <p class="demo-status" id="vis-status" aria-live="polite"></p>
+</div>
+
+<h3>5.3 What the layers learn</h3>
+<p>Studies of trained encoders (e.g. BERT) find a rough progression:</p>
+<ul>
+  <li><strong>Lower layers:</strong> surface features — word identity, part of speech, nearby words.</li>
+  <li><strong>Middle layers:</strong> syntax — phrase structure, which word modifies which.</li>
+  <li><strong>Upper layers:</strong> meaning in context — word sense, coreference, task-specific features.</li>
+</ul>
+<p>Each layer refines the previous one, like the committee's rounds.</p>
+
+<h3>5.4 Pre-training with masked language modelling (MLM)</h3>
+<p>You can't train a bidirectional encoder with "predict the next word" — each token can already <em>see</em> the next word, so it would just copy it. Instead, BERT-style encoders <strong>hide some words and ask the model to fill them in</strong>:</p>
+<ol class="steps">
+  <li>Pick <strong>15%</strong> of the tokens at random.</li>
+  <li>Of those picked: <strong>80%</strong> are replaced with <code>[MASK]</code>, <strong>10%</strong> with a <strong>random</strong> token, <strong>10%</strong> are left <strong>unchanged</strong>.</li>
+  <li>The model predicts the <strong>original</strong> token at each picked position.</li>
+  <li>The loss is cross-entropy <strong>only at the picked positions</strong>.</li>
+</ol>
+<div class="math-block">$$\mathcal{L}_{\text{MLM}} = -\frac{1}{|\mathcal{M}|}\sum_{i \in \mathcal{M}} \log P(\text{original token}_i \mid \text{corrupted text})$$</div>
+<p>where \(\mathcal{M}\) is the set of picked positions.</p>
+<p><strong>Why the 80/10/10 split?</strong> At fine-tuning and test time, real text contains no <code>[MASK]</code> tokens. If the model only ever saw <code>[MASK]</code> at prediction positions, it might learn to make good representations <em>only</em> there. The random and unchanged cases force it to build a good representation for <strong>every</strong> token.</p>
+<p>Other encoder objectives you'll meet:</p>
+<ul>
+  <li><strong>NSP (next sentence prediction):</strong> "does sentence B follow sentence A?" — used by BERT, later dropped (RoBERTa showed it wasn't helping).</li>
+  <li><strong>Replaced token detection (ELECTRA):</strong> a small generator swaps some tokens; the encoder classifies <em>every</em> token as original or replaced — learning from all positions, not just 15%.</li>
+  <li><strong>Contrastive training</strong> (sentence-embedding models): pull vectors of matching sentence pairs together and push non-matching pairs apart.</li>
+</ul>
+
+<h3>5.5 Using the encoder's output</h3>
+<div class="tw"><table>
+  <tr><th>Task</th><th>What you take from \(H\)</th><th>Head on top</th></tr>
+  <tr><td>Sentence classification (sentiment, spam)</td><td>vector of the special <code>[CLS]</code> token (or mean of all tokens)</td><td>linear layer → classes</td></tr>
+  <tr><td>Token tagging (names, parts of speech)</td><td><strong>every</strong> token's vector</td><td>linear layer per token → tags</td></tr>
+  <tr><td>Extractive QA ("find the answer span")</td><td>every token's vector</td><td>two scores per token: "answer starts here" / "ends here"</td></tr>
+  <tr><td>Sentence embeddings (search, RAG)</td><td><strong>mean pooling</strong> of all token vectors, usually normalized</td><td>none — compare with cosine similarity</td></tr>
+</table></div>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Two layers of a tiny encoder</h3>
+<p>We use our toy 2-D vectors and a <strong>simplified block</strong>: one attention head with identity projections and scaling (\(\sqrt{2}\)), plus the residual — LayerNorm and FFN left out so the arithmetic stays visible:</p>
+<div class="math-block">$$X^{(\ell)} = X^{(\ell-1)} + \text{softmax}\!\left(\frac{X^{(\ell-1)} X^{(\ell-1)\top}}{\sqrt{2}}\right) X^{(\ell-1)}$$</div>
+<p><strong>Sentence A: "the bat flew"</strong>, \(X^{(0)} = [\,0.2, 0.2\,;\; 1, 1\,;\; 2, 0\,]\).</p>
+<p><strong>Layer 1 — attention weights</strong> (each row sums to 1; every token sees all three):</p>
+<div class="tw"><table>
+  <tr><th></th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.29</td><td>0.36</td><td>0.36</td></tr>
+  <tr><th>bat</th><td>0.14</td><td>0.43</td><td>0.43</td></tr>
+  <tr><th>flew</th><td>0.06</td><td>0.18</td><td>0.76</td></tr>
+</table></div>
+<p><strong>bat's new vector</strong> \(= [1, 1] + (0.14[0.2, 0.2] + 0.43[1, 1] + 0.43[2, 0]) = [1, 1] + [1.32, 0.46] = [2.32, 1.46]\).</p>
+<p>The full outputs:</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>Layer 0</th><th>Layer 1</th><th>Layer 2</th></tr>
+  <tr><td>the</td><td>[0.20, 0.20]</td><td>[1.33, 0.61]</td><td>[4.44, 1.21]</td></tr>
+  <tr><td>bat</td><td>[1.00, 1.00]</td><td>[2.32, 1.46]</td><td>[5.61, 2.00]</td></tr>
+  <tr><td>flew</td><td>[2.00, 0.00]</td><td>[3.71, 0.20]</td><td>[7.37, 0.43]</td></tr>
+</table></div>
+<p><strong>Sentence B: "the bat hit"</strong> gives the mirror image (the two axes swap): bat → \([1.46, 2.32]\) after layer 1, \([2.00, 5.61]\) after layer 2.</p>
+<p><strong>How similar is "bat" in the two sentences?</strong> (cosine similarity)</p>
+<div class="tw"><table>
+  <tr><th>Layer</th><th>0</th><th>1</th><th>2</th><th>3</th></tr>
+  <tr><td>cos(bat in A, bat in B)</td><td><strong>1.00</strong></td><td>0.90</td><td>0.63</td><td>0.36</td></tr>
+</table></div>
+<p>At layer 0, "bat" is the <em>same</em> vector in both sentences (it's just the embedding). Each layer pulls it further toward its own sentence's meaning, so the two "bat"s <strong>diverge</strong> — animal-bat and cricket-bat become different representations. This is exactly what "contextual vectors" means.</p>
+<p class="cap">(Notice the numbers also grow each layer. That's because we left out LayerNorm; real encoders normalize, which keeps the scale steady while preserving these directions.)</p>
+
+<div class="demo" id="layers">
+  <p class="demo-title">Try it: watch "bat" diverge, layer by layer</p>
+  <div class="slider">
+    <label for="ly-l">after layer</label>
+    <input id="ly-l" type="range" min="0" max="3" step="1" value="0">
+    <output id="ly-lo" for="ly-l">0</output>
+    <button class="btn" type="button" id="ly-play">Play 0 → 3</button>
+  </div>
+  <p class="cap" style="margin:2px 0 6px">Arrows show each token's <strong>direction</strong> (scaled to the same length, as LayerNorm would keep them comparable). Faint dots trace bat's earlier layers.</p>
+  <div class="lay">
+    <div class="laycard"><p class="ttl">"the bat flew"</p><svg id="ly-a" viewBox="0 0 240 240" role="img" aria-label="Token directions for the bat flew"></svg><div class="mat-scroll" id="ly-a-att"></div></div>
+    <div class="laycard"><p class="ttl">"the bat hit"</p><svg id="ly-b" viewBox="0 0 240 240" role="img" aria-label="Token directions for the bat hit"></svg><div class="mat-scroll" id="ly-b-att"></div></div>
+  </div>
+  <div class="cosrow" id="ly-cos"></div>
+  <p class="demo-status" id="ly-status" aria-live="polite"></p>
+</div>
+
+<h3>6.2 The MLM recipe on a 20-token sentence</h3>
+<p>Expected numbers for one 20-token sentence:</p>
+<ul>
+  <li>Picked: \(15\% \times 20 = 3\) tokens.</li>
+  <li>Of these, on average: \(0.8 \times 3 = 2.4\) become <code>[MASK]</code>, \(0.3\) become a random token, \(0.3\) stay unchanged.</li>
+</ul>
+<p>Suppose the model gives the correct original tokens probabilities \(0.6\), \(0.2\) and \(0.9\) at the three picked positions:</p>
+<div class="math-block">$$\mathcal{L} = \tfrac{1}{3}\big(-\log 0.6 - \log 0.2 - \log 0.9\big) = \tfrac{1}{3}(0.511 + 1.609 + 0.105) = \mathbf{0.742}$$</div>
+<p>The other 17 positions contribute <strong>nothing</strong> to the loss — one reason MLM learns less per sentence than next-token prediction (and why ELECTRA's "every token" objective is more sample-efficient).</p>
+
+<div class="demo" id="mlm">
+  <p class="demo-title">Try it: corrupt a sentence the BERT way</p>
+  <div class="demo-bar">
+    <button class="btn" type="button" id="mlm-go">Pick 15% again</button>
+    <span class="cap">Each picked token is then turned into [MASK] (80%), a random word (10%) or left as is (10%).</span>
+  </div>
+  <div class="mlm-sent" id="mlm-sent"></div>
+  <div class="legend"><span><i class="sw" style="background:#1b2fa8;border-color:#1b2fa8"></i>[MASK]</span><span><i class="sw" style="background:#fde7e2;border-color:#c0472f"></i>random word</span><span><i class="sw" style="background:#e3f4ea;border-color:#2e7d5b"></i>picked but unchanged</span><span><i class="sw" style="background:#fff;border-color:#c9d2ea"></i>not picked (no loss)</span></div>
+  <p class="sub-cap">How confident is the model about each original word?</p>
+  <div class="preds" id="mlm-preds"></div>
+  <p><span class="big" id="mlm-loss">loss = –</span></p>
+  <p class="demo-status" id="mlm-status" aria-live="polite"></p>
+</div>
+
+<h3>6.3 BERT-base, every parameter accounted for</h3>
+<p>BERT-base: \(d = 768\), 12 layers, 12 heads, \(d_{ff} = 3072\), vocabulary 30,522, 512 positions, 2 segment types, post-norm LayerNorm with biases.</p>
+<div class="tw"><table>
+  <tr><th>Part</th><th>Formula</th><th>Parameters</th></tr>
+  <tr><td>Token + position + segment embeddings, embedding LayerNorm</td><td>\((30{,}522 + 512 + 2) \times 768 + 2 \times 768\)</td><td>23,837,184</td></tr>
+  <tr><td>One layer: attention (\(4d^2 + 4d\)) + FFN (\(2d \cdot d_{ff} + d_{ff} + d\)) + 2 LayerNorms (\(4d\))</td><td></td><td>7,087,872</td></tr>
+  <tr><td>12 layers</td><td>\(12 \times 7{,}087{,}872\)</td><td>85,054,464</td></tr>
+  <tr><td>Pooler (a \(d \times d\) layer on <code>[CLS]</code>)</td><td>\(768^2 + 768\)</td><td>590,592</td></tr>
+  <tr><td><strong>Total</strong></td><td></td><td><strong>109,482,240</strong></td></tr>
+</table></div>
+<p>That's BERT-base's "110M". The same recipe with \(d = 1024\), 24 layers, \(d_{ff} = 4096\) gives BERT-large's <strong>335M</strong>.</p>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart BT
+    T["Input tokens<br/>[CLS] the bat flew [SEP]"] --> E["Token + position embeddings<br/>n × d_model"]
+    E --> B1["Block 1<br/>bidirectional self-attention + FFN"]
+    B1 --> B2["Block 2"]
+    B2 --> BN["… Block N"]
+    BN --> H["Contextual vectors H<br/>n × d_model"]
+    H --> C["[CLS] vector → classifier"]
+    H --> TAG["each token → tag (NER)"]
+    H --> POOL["mean pool → sentence embedding"]
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<div class="tw"><table>
+  <tr><th>Model</th><th>Year</th><th>Layers / \(d_{model}\)</th><th>Pre-training</th><th>Notes</th></tr>
+  <tr><td>BERT-base / large</td><td>2018</td><td>12 / 768, 24 / 1024</td><td>MLM + NSP</td><td>the classic encoder</td></tr>
+  <tr><td>RoBERTa</td><td>2019</td><td>same as BERT</td><td>MLM only, more data, longer training</td><td>drops NSP</td></tr>
+  <tr><td>ELECTRA</td><td>2020</td><td>various</td><td>replaced token detection</td><td>learns from every token</td></tr>
+  <tr><td>DeBERTa</td><td>2020</td><td>various</td><td>MLM</td><td>separates content and position in attention</td></tr>
+  <tr><td>Sentence-embedding models (e.g. E5, BGE)</td><td>2022+</td><td>BERT-sized</td><td>contrastive</td><td>power semantic search and RAG</td></tr>
+  <tr><td>ModernBERT</td><td>2024</td><td>22 / 768 (base)</td><td>MLM</td><td>RoPE, 8,192-token context</td></tr>
+</table></div>
+<ul>
+  <li><strong>Encoders are still everywhere</strong> even in the LLM era: search engines, spam filters, recommendation, and the <strong>retrieval step of RAG</strong> (Section 18) mostly run on encoders because they are small, fast and excellent at "understanding" tasks.</li>
+  <li><strong>Fine-tuning</strong> an encoder for classification usually means adding one linear layer and training the whole thing for a few epochs on labelled data.</li>
+  <li><strong>Cross-encoders vs bi-encoders:</strong> a <em>bi-encoder</em> embeds query and document separately (fast, used for search over millions of documents); a <em>cross-encoder</em> feeds both into one encoder together (slower, more accurate, used to <strong>re-rank</strong> the top results).</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"An encoder can write text like GPT."</strong> Encoders produce vectors for the input they're given; they aren't trained to generate text token by token.</li>
+  <li class="mistake"><strong>"Bidirectional means it reads left-to-right, then right-to-left."</strong> All tokens attend to all others <strong>at once</strong>, in every layer.</li>
+  <li class="mistake"><strong>"The <code>[CLS]</code> vector magically summarizes the sentence."</strong> It only becomes a useful summary through training (pre-training objectives and fine-tuning). For raw sentence similarity, mean pooling from a model trained for embeddings usually works much better.</li>
+  <li class="mistake"><strong>"Encoders need a causal mask."</strong> No — only a padding mask. A causal mask would throw away the right-hand context that makes encoders good at understanding.</li>
+  <li class="mistake"><strong>"The last layer is always the best representation."</strong> For some tasks (e.g. syntax), middle layers carry more useful information; the top layers are shaped by the pre-training objective.</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>An <strong>encoder</strong> = embeddings + positions → \(N\) identical blocks with <strong>bidirectional</strong> self-attention → one <strong>contextual vector</strong> per token (\(n \times d_{model}\)).</li>
+  <li>Every token sees every other token in every layer; only padding is masked.</li>
+  <li>Layers refine representations progressively; the same word <strong>diverges</strong> into different vectors in different contexts (bat: cosine 1.00 → 0.36 over three toy layers).</li>
+  <li>Encoders are pre-trained with <strong>MLM</strong>: pick 15% of tokens (80% <code>[MASK]</code>, 10% random, 10% unchanged) and predict the originals; the loss counts only the picked positions.</li>
+  <li>Outputs are used via <code>[CLS]</code>/mean pooling (classification, embeddings) or per-token heads (tagging, QA). BERT-base = <strong>109,482,240</strong> parameters.</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>BERT-base has 12 layers with 12 heads each. For a 128-token input, how many attention scores (\(q \cdot k\) values) are computed in total across all heads and layers?</li>
+  <li>A 40-token sentence goes through the MLM recipe. How many tokens are picked, and how many of them are expected to become <code>[MASK]</code>, random, and unchanged?</li>
+  <li>Why can't a bidirectional encoder be trained with ordinary next-token prediction? What would it learn?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>Per head per layer: \(128^2 = 16{,}384\). Total: \(16{,}384 \times 12 \times 12 = \mathbf{2{,}359{,}296}\).</li>
+    <li>\(15\% \times 40 = \mathbf{6}\) picked; expected \(\mathbf{4.8}\) <code>[MASK]</code>, \(\mathbf{0.6}\) random, \(\mathbf{0.6}\) unchanged.</li>
+    <li>With no causal mask, the token at position \(i\) can attend directly to position \(i+1\) — the very word it's asked to predict. The model would learn to <strong>copy</strong> the next token through attention, reaching near-zero loss while learning nothing useful about language. (In the "who can see whom" demo, switch to encoder mode: every word can see the word after it.)</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Devlin, J., Chang, M.-W., Lee, K., &amp; Toutanova, K. (2019). <strong>"BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding."</strong> <em>NAACL 2019.</em> <a href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener">arXiv:1810.04805</a> — MLM, the 80/10/10 rule, <code>[CLS]</code>.</li>
+  <li>Liu, Y. et al. (2019). <strong>"RoBERTa: A Robustly Optimized BERT Pretraining Approach."</strong> <a href="https://arxiv.org/abs/1907.11692" target="_blank" rel="noopener">arXiv:1907.11692</a>.</li>
+  <li>Clark, K., Luong, M.-T., Le, Q. V., &amp; Manning, C. D. (2020). <strong>"ELECTRA: Pre-training Text Encoders as Discriminators Rather Than Generators."</strong> <a href="https://arxiv.org/abs/2003.10555" target="_blank" rel="noopener">arXiv:2003.10555</a>.</li>
+  <li>Tenney, I., Das, D., &amp; Pavlick, E. (2019). <strong>"BERT Rediscovers the Classical NLP Pipeline."</strong> <a href="https://arxiv.org/abs/1905.05950" target="_blank" rel="noopener">arXiv:1905.05950</a> — what different layers encode.</li>
+  <li>Reimers, N., &amp; Gurevych, I. (2019). <strong>"Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks."</strong> <a href="https://arxiv.org/abs/1908.10084" target="_blank" rel="noopener">arXiv:1908.10084</a> — bi-encoders for semantic search.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function fmt(v, d) { d = d === undefined ? 2 : d; var r = Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(d); }
+  function vfmt(v) { return "[" + v.map(function (x) { return fmt(x); }).join(", ") + "]"; }
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  function mk(svg, n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  function cos(a, b) { return (a[0] * b[0] + a[1] * b[1]) / Math.hypot(a[0], a[1]) / Math.hypot(b[0], b[1]); }
+
+  /* ---------- 1. Who can see whom ---------- */
+  (function vis() {
+    var grid = document.getElementById("vis-grid");
+    if (!grid) return;
+    var W = ["I", "sat", "on", "the", "bank", "and", "watched", "the", "river"], causal = false, focus = 4;
+    function render() {
+      document.getElementById("vis-enc").classList.toggle("on", !causal);
+      document.getElementById("vis-dec").classList.toggle("on", causal);
+      var h = "<tr><th></th>" + W.map(function (w) { return '<th class="colh">' + w + "</th>"; }).join("") + "</tr>";
+      W.forEach(function (w, i) {
+        h += '<tr><th class="rowh' + (i === focus ? " on" : "") + '" data-i="' + i + '" tabindex="0">' + w + "</th>" + W.map(function (_, j) {
+          var ok = !causal || j <= i;
+          return '<td class="' + (ok ? "ok" : "no") + (ok && i === focus ? " focus" : "") + '">' + (ok ? "✓" : "") + "</td>";
+        }).join("") + "</tr>";
+      });
+      grid.innerHTML = h;
+      grid.querySelectorAll("th.rowh").forEach(function (th) {
+        function pick() { focus = parseInt(th.dataset.i, 10); render(); }
+        th.addEventListener("click", pick);
+        th.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      });
+      if (canAnimate) M.animate(grid.querySelectorAll("td.focus"), { scale: [0.7, 1] }, { duration: 0.25, delay: M.stagger(0.02) });
+      var seen = W.filter(function (_, j) { return !causal || j <= focus; });
+      var allowed = W.length * W.length - (causal ? W.length * (W.length - 1) / 2 : 0);
+      document.getElementById("vis-status").textContent = "“" + W[focus] + "” can attend to " + seen.length + " of " + W.length + " words. " +
+        (causal ? (focus < 8 ? "In the decoder it cannot see “river”, the word that tells us this is a river bank. " : "") + allowed + " of 81 pairs allowed (lower triangle)."
+                : "In the encoder every word sees the whole sentence, including the clue “river”. All 81 pairs allowed.");
+      window.__vis = { causal: causal, focus: focus, seen: seen.length, allowed: allowed };
+    }
+    document.getElementById("vis-enc").addEventListener("click", function () { causal = false; render(); });
+    document.getElementById("vis-dec").addEventListener("click", function () { causal = true; render(); });
+    render();
+  })();
+
+  /* ---------- 2. Layer-by-layer divergence ---------- */
+  (function layers() {
+    var slider = document.getElementById("ly-l");
+    if (!slider) return;
+    var TOK = ["the", "bat", "flew"], TOKB = ["the", "bat", "hit"];
+    var XA = [[0.2, 0.2], [1, 1], [2, 0]], XB = [[0.2, 0.2], [1, 1], [0, 2]];
+    function block(X) {
+      var A = X.map(function (a) { return softmax(X.map(function (b) { return (a[0] * b[0] + a[1] * b[1]) / Math.SQRT2; })); });
+      var Y = X.map(function (x, i) { return [0, 1].map(function (d) { return x[d] + A[i].reduce(function (s, w, j) { return s + w * X[j][d]; }, 0); }); });
+      return { A: A, Y: Y };
+    }
+    function run(X0) { var Hs = [X0], As = [null], X = X0; for (var l = 0; l < 3; l++) { var r = block(X); As.push(r.A); X = r.Y; Hs.push(X); } return { H: Hs, A: As }; }
+    var RA = run(XA), RB = run(XB);
+    var COL = { the: "#8f97b3", bat: "#b07a00", flew: "#1b2fa8", hit: "#2e7d5b" };
+    function draw(svgId, R, toks, L) {
+      var svg = document.getElementById(svgId); svg.innerHTML = "";
+      var C = 120, S = 95;
+      var defs = mk(svg, "defs", {});
+      Object.keys(COL).forEach(function (k) { var mr = mk(svg, "marker", { id: svgId + "-" + k, viewBox: "0 0 10 10", refX: "8", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }, defs); mk(svg, "path", { d: "M0,0 L10,5 L0,10 z", fill: COL[k] }, mr); });
+      mk(svg, "line", { x1: 10, y1: C, x2: 230, y2: C, "class": "axis" }); mk(svg, "line", { x1: C, y1: 10, x2: C, y2: 230, "class": "axis" });
+      mk(svg, "circle", { cx: C, cy: C, r: S, "class": "ring" });
+      mk(svg, "text", { x: 228, y: C - 5, "class": "axlbl", "text-anchor": "end" }).textContent = "animal";
+      mk(svg, "text", { x: C + 5, y: 18, "class": "axlbl" }).textContent = "sport";
+      // trail of bat's earlier directions
+      for (var l = 0; l < L; l++) { var v = R.H[l][1], nn = Math.hypot(v[0], v[1]); mk(svg, "circle", { cx: C + v[0] / nn * S, cy: C - v[1] / nn * S, r: 3.5, fill: "#b07a00", opacity: 0.25 + 0.15 * l }); }
+      R.H[L].forEach(function (v, i) {
+        var nn = Math.hypot(v[0], v[1]), x = C + v[0] / nn * S, y = C - v[1] / nn * S, t = toks[i];
+        var ln = mk(svg, "line", { x1: C, y1: C, x2: x, y2: y, stroke: COL[t], "stroke-width": t === "bat" ? 3.5 : 2, "marker-end": "url(#" + svgId + "-" + t + ")" });
+        mk(svg, "text", { x: x + (v[0] / nn) * 10 - (t === "the" ? 8 : 0), y: y - (v[1] / nn) * 10 + 4, "class": "tl", fill: COL[t], "text-anchor": v[0] < 0.3 * nn ? "middle" : "start" }).textContent = t;
+        if (t === "bat" && canAnimate) M.animate(ln, { opacity: [0.2, 1] }, { duration: 0.4 });
+      });
+    }
+    function attTable(elId, A, toks) {
+      var el = document.getElementById(elId);
+      if (!A) { el.innerHTML = '<p class="cap" style="margin:4px 0 0">Layer 0 is just the embeddings — no attention yet.</p>'; return; }
+      var h = '<table class="mat"><tr><th></th>' + toks.map(function (t) { return "<th>" + t + "</th>"; }).join("") + "</tr>";
+      A.forEach(function (r, i) { h += "<tr><th>" + toks[i] + "</th>" + r.map(function (v) { return '<td style="background:rgba(27,47,168,' + (v * 0.85).toFixed(3) + ");color:" + (v > 0.53 ? "#fff" : "#1f2433") + '">' + v.toFixed(2) + "</td>"; }).join("") + "</tr>"; });
+      el.innerHTML = '<p class="cap" style="margin:6px 0 2px">attention in layer ' + "</p>" + h + "</table>";
+    }
+    function render(L) {
+      slider.value = L; document.getElementById("ly-lo").textContent = L;
+      draw("ly-a", RA, TOK, L); draw("ly-b", RB, TOKB, L);
+      attTable("ly-a-att", RA.A[L], TOK); attTable("ly-b-att", RB.A[L], TOKB);
+      if (L) { document.querySelector("#ly-a-att .cap").textContent = "attention used in layer " + L; document.querySelector("#ly-b-att .cap").textContent = "attention used in layer " + L; }
+      var cs = [0, 1, 2, 3].map(function (l) { return cos(RA.H[l][1], RB.H[l][1]); });
+      document.getElementById("ly-cos").innerHTML = cs.map(function (c, l) { return '<div class="' + (l === L ? "on" : "") + '">layer ' + l + "<b>" + c.toFixed(2) + "</b>cos(bat, bat)</div>"; }).join("");
+      document.getElementById("ly-status").textContent = L === 0
+        ? "Layer 0: “bat” is the same embedding [1, 1] in both sentences, so cosine similarity is 1.00. Move the slider up."
+        : "After layer " + L + ", bat is " + vfmt(RA.H[L][1]) + " in sentence A and " + vfmt(RB.H[L][1]) + " in sentence B. Their cosine similarity has dropped to " + cs[L].toFixed(2) + ": the encoder is pulling the two meanings apart.";
+      window.__layers = { L: L, cos: cs, batA: RA.H[L][1], batB: RB.H[L][1] };
+    }
+    slider.addEventListener("input", function () { render(parseInt(slider.value, 10)); });
+    document.getElementById("ly-play").addEventListener("click", function () {
+      var l = 0; render(0);
+      if (!canAnimate) { render(3); return; }
+      var t = setInterval(function () { l++; render(l); if (l >= 3) clearInterval(t); }, 900);
+    });
+    render(0);
+  })();
+
+  /* ---------- 3. MLM corruption simulator ---------- */
+  (function mlm() {
+    var sentEl = document.getElementById("mlm-sent");
+    if (!sentEl) return;
+    var SENT = ["students", "in", "hyderabad", "often", "study", "late", "at", "night", "before", "the", "final", "exams", "because", "the", "syllabus", "is", "long", "and", "difficult", "."];
+    var RANDOM_POOL = ["river", "purple", "eleven", "quickly", "table", "sang", "cloud", "mango", "seven", "under"];
+    var seed = 7, picks = [];
+    function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function corrupt() {
+      var r = rng(seed), idx = SENT.map(function (_, i) { return i; });
+      for (var i = idx.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+      var k = Math.round(0.15 * SENT.length);                  // 3 of 20
+      picks = idx.slice(0, k).sort(function (a, b) { return a - b; }).map(function (pos) {
+        var u = r(), kind = u < 0.8 ? "mask" : u < 0.9 ? "rand" : "keep";
+        return { pos: pos, kind: kind, shown: kind === "mask" ? "[MASK]" : kind === "rand" ? RANDOM_POOL[Math.floor(r() * RANDOM_POOL.length)] : SENT[pos], p: 0.5 };
+      });
+      render(true);
+    }
+    function render(anim) {
+      var byPos = {}; picks.forEach(function (p) { byPos[p.pos] = p; });
+      sentEl.innerHTML = SENT.map(function (w, i) {
+        var p = byPos[i];
+        if (!p) return '<span class="tok">' + w + "</span>";
+        return '<span class="tok ' + p.kind + '">' + p.shown.replace("<", "&lt;") + '<span class="orig">was: ' + w + "</span></span>";
+      }).join("");
+      if (anim && canAnimate) M.animate(sentEl.querySelectorAll(".tok.mask, .tok.rand, .tok.keep"), { scale: [0.6, 1] }, { duration: 0.35, delay: M.stagger(0.08) });
+      var predEl = document.getElementById("mlm-preds");
+      predEl.innerHTML = picks.map(function (p, i) {
+        return "<span>pos " + p.pos + ' (“' + SENT[p.pos] + '”)</span><input type="range" min="0.01" max="0.99" step="0.01" value="' + p.p + '" data-i="' + i + '" aria-label="probability of the original word at position ' + p.pos + '"><output>p = ' + p.p.toFixed(2) + "</output><b>−log p = " + (-Math.log(p.p)).toFixed(3) + "</b>";
+      }).join("");
+      predEl.querySelectorAll("input").forEach(function (inp) {
+        inp.addEventListener("input", function () { picks[parseInt(inp.dataset.i, 10)].p = parseFloat(inp.value); render(false); });
+      });
+      var loss = picks.reduce(function (s, p) { return s - Math.log(p.p); }, 0) / picks.length;
+      document.getElementById("mlm-loss").textContent = "loss = (" + picks.map(function (p) { return (-Math.log(p.p)).toFixed(3); }).join(" + ") + ") / " + picks.length + " = " + loss.toFixed(3);
+      var counts = { mask: 0, rand: 0, keep: 0 }; picks.forEach(function (p) { counts[p.kind]++; });
+      document.getElementById("mlm-status").textContent = picks.length + " of " + SENT.length + " tokens picked (15%): " + counts.mask + " masked, " + counts.rand + " random, " + counts.keep + " unchanged. The model must predict the original word at every picked position — even where the word looks normal. The other " + (SENT.length - picks.length) + " positions add nothing to the loss. Set the sliders to 0.6, 0.2 and 0.9 to reproduce 6.2.";
+      window.__mlm = { picks: picks.map(function (p) { return [p.pos, p.kind]; }), loss: loss };
+    }
+    document.getElementById("mlm-go").addEventListener("click", function () { seed++; corrupt(); });
+    corrupt();
+  })();
+})();
+</script>
+</body>
+</html>

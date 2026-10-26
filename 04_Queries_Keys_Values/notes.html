@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Section 4: Queries, Keys &amp; Values</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Lecture-notes page: ruled-paper sheet, handwritten headings in blue ink, a readable sans body. Single light theme (paper). */
+:root {
+  --desk: #e4e0d7;
+  --paper: #fdfdfb;
+  --rule: #dfe6f3;
+  --margin: #e88aab;
+  --ink: #1b2fa8;
+  --text: #1f2433;
+  --muted: #5a6075;
+  --tint: #eef1fb;
+  --warn: #fff5e0;
+  --warn-edge: #d9a33b;
+  --gold: #b07a00;
+  --gold-fill: #ffe9a8;
+  --hand: "Kalam", "Segoe Print", cursive;
+  --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--desk); }
+body {
+  margin: 0; background: var(--desk); color: var(--text);
+  font-family: var(--body); font-size: 17px; line-height: 1.7;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  position: relative; max-width: 880px; margin: 0 auto;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--rule) 33px 34px);
+  padding: 40px 48px 56px 96px;
+  box-shadow: 0 1px 2px rgba(40,30,10,.15), 0 12px 30px rgba(40,30,10,.12);
+  border-radius: 3px;
+}
+.sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 70px; border-left: 2px solid var(--margin); }
+.eyebrow { font-family: var(--hand); color: var(--ink); font-size: 20px; margin: 0; }
+h1, h2, h3 { font-family: var(--hand); color: var(--ink); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(34px, 6vw, 48px); margin: 4px 0 12px; }
+h2 { font-size: 30px; margin: 48px 0 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink); }
+h2 .num { display: inline-block; min-width: 1.6em; }
+h3 { font-size: 22px; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #10197a; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: 1px 5px; border-radius: 4px; }
+.lede { font-size: 19px; border-left: 4px solid var(--ink); background: var(--tint); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 12px 0 8px; }
+.callout { border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px; margin: 18px 0; background: rgba(255,255,255,.7); }
+.callout .label { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 19px; display: block; }
+.mistake { background: var(--warn); border-left: 4px solid var(--warn-edge); padding: 8px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; list-style: none; }
+ul.mistakes { padding-left: 0; }
+.tw { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15.5px; background: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid #b9c3e0; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); color: var(--ink); }
+.math-block { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.mermaid { background: rgba(255,255,255,.9); border: 1px solid #c9d2ea; border-radius: 10px; padding: 14px; margin: 16px 0; text-align: center; overflow-x: auto; }
+.cap { font-size: 14px; color: var(--muted); }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border: 2px solid var(--ink); border-radius: 50%; text-align: center; line-height: 24px; font-family: var(--hand); font-weight: 700; color: var(--ink); }
+details { border: 2px solid var(--ink); border-radius: 10px; padding: 8px 16px; margin: 14px 0; background: rgba(255,255,255,.8); }
+summary { cursor: pointer; font-family: var(--hand); font-weight: 700; color: var(--ink); font-size: 19px; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+a { color: var(--ink); }
+.toc { columns: 2; column-gap: 32px; font-size: 15.5px; border: 2px dashed var(--ink); border-radius: 10px; padding: 12px 18px 12px 36px; margin: 20px 0; background: rgba(255,255,255,.7); }
+.toc li { break-inside: avoid; }
+.sign { font-family: var(--hand); color: var(--ink); text-align: right; font-size: 22px; margin-top: 40px; }
+/* interactive demos: each shows a real computation, not decoration */
+.demo { border: 2px solid var(--ink); border-radius: 12px; background: rgba(255,255,255,.95); padding: 14px 16px; margin: 20px 0; }
+.demo-title { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 20px; margin: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.btn { font-family: var(--hand); font-weight: 700; font-size: 16px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 8px 10px 7px 9px; padding: 2px 14px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn:focus-visible, .inp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.on { background: var(--ink); color: #fff; }
+.demo-status { font-size: 15px; color: var(--text); min-height: 3em; margin: 8px 0 0; }
+.inp { font-family: var(--mono); font-size: 15px; border: 2px solid var(--ink); border-radius: 7px; padding: 2px 8px; width: 9em; color: var(--ink); background: #fff; }
+.sub-cap { font-family: var(--hand); color: var(--ink); font-weight: 700; font-size: 17px; margin: 10px 0 4px; }
+/* Q/K/V explorer */
+.wedit { display: flex; flex-wrap: wrap; gap: 12px 22px; margin: 8px 0; }
+.wedit > div { min-width: 0; }
+.wgrid { display: inline-grid; grid-template-columns: repeat(2, 58px); gap: 4px; padding: 3px 8px; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); border-radius: 7px; }
+.wgrid input { width: 58px; font-family: var(--mono); font-size: 14px; text-align: right; border: 1.5px solid #b9c3e0; border-radius: 5px; padding: 1px 5px; color: var(--ink); background: #fff; }
+.wgrid input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.mat-row { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: flex-start; }
+.mat-row > div { min-width: 0; max-width: 100%; }
+table.mat { border-collapse: separate; border-spacing: 3px; width: auto; background: none; font-family: var(--mono); font-size: 13px; }
+table.mat td, table.mat th { border: 0; padding: 3px 8px; border-radius: 3px; }
+table.mat td { text-align: right; min-width: 54px; background: #fff; box-shadow: inset 0 0 0 1px #c9d2ea; transition: background .3s, color .3s; }
+table.mat th { background: none; font-family: var(--hand); font-size: 15px; color: var(--ink); font-weight: 700; }
+table.mat th.r { text-align: right; }
+table.mat td.diag { box-shadow: inset 0 0 0 2px var(--gold); }
+table.mat tr.focus th { color: var(--gold); }
+.mat-scroll { overflow-x: auto; max-width: 100%; }
+.qk { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 14px 22px; align-items: start; margin-top: 10px; }
+.qk svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid #c9d2ea; border-radius: 10px; }
+.axis { stroke: #b9c3e0; stroke-width: 1; }
+.axlbl { font-family: var(--body); font-size: 12px; fill: var(--muted); }
+.karrow { stroke: var(--ink); stroke-width: 2.2; }
+.qarrow { stroke: var(--gold); stroke-width: 3.2; }
+.albl { font-family: var(--hand); font-size: 15px; font-weight: 700; }
+.bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 15px; margin: 6px 0; }
+.bar { height: 16px; background: var(--tint); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--ink); border-radius: 4px; width: 0; }
+.bars b { font-family: var(--mono); font-weight: 400; font-size: 13px; color: var(--ink); }
+/* shape calculator */
+.calc-in { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; margin: 8px 0; }
+.calc-in input { width: 6em; font-family: var(--mono); font-size: 14px; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+.calc-in input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.shape-tbl td:nth-child(2), .shape-tbl td:nth-child(3) { font-family: var(--mono); font-size: 14px; }
+.warn-line { color: #8a4b00; font-size: 14px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 28px 16px 40px 40px; }
+  .sheet::before { left: 26px; }
+  .toc { columns: 1; }
+  h2 { font-size: 25px; }
+  .qk { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  html, body { background: var(--paper); padding: 0; }
+  .sheet { box-shadow: none; max-width: none; padding-left: 70px; }
+  h2, h3, table, .callout, details, .mermaid, .demo { break-inside: avoid; }
+  details { display: block; }
+  .demo-bar, .calc-in { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header>
+  <p class="eyebrow">Transformers &amp; LLMs · Section 4</p>
+  <h1>Queries, Keys &amp; Values</h1>
+  <p class="lede"><strong>In one line:</strong> instead of comparing tokens directly, each token is projected into three different vectors (a <strong>query</strong>: what it is looking for, a <strong>key</strong>: how it can be found, and a <strong>value</strong>: what it hands over), using three learned weight matrices.</p>
+</header>
+
+<ol class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#prereq">Prerequisites</a></li>
+  <li><a href="#motivation">Motivation</a></li>
+  <li><a href="#intuition">Intuition first</a></li>
+  <li><a href="#formal">The formal idea</a></li>
+  <li><a href="#example">Worked examples</a></li>
+  <li><a href="#diagram">Diagram</a></li>
+  <li><a href="#practice">In practice</a></li>
+  <li><a href="#mistakes">Common mistakes</a></li>
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#check">Check your understanding</a></li>
+  <li><a href="#reading">Further reading</a></li>
+</ol>
+
+<!-- 1 -->
+<h2 id="objectives"><span class="num">1.</span> Learning objectives</h2>
+<p>By the end of this section you should be able to:</p>
+<ol>
+  <li><strong>Explain</strong> why naive self-attention (Section 3) needs separate queries, keys and values.</li>
+  <li><strong>Compute</strong> \(Q\), \(K\) and \(V\) from an input matrix \(X\) and three weight matrices.</li>
+  <li><strong>State</strong> the shape of every matrix involved, for any \(n\), \(d_{model}\) and \(d_k\).</li>
+  <li><strong>Show</strong> that with \(W_Q \ne W_K\) attention scores become asymmetric (\(s_{ij} \ne s_{ji}\)), and explain why that is useful.</li>
+  <li><strong>Count</strong> the parameters in the Q/K/V projections for a real model.</li>
+</ol>
+
+<!-- 2 -->
+<h2 id="prereq"><span class="num">2.</span> Prerequisites</h2>
+<ul>
+  <li><strong>Section 3</strong>: self-attention as <em>score → softmax → weighted average</em>, and its weakness: in the naive version, "flew" put 86% of its attention on itself.</li>
+  <li><strong>Matrix shapes</strong>: \((m \times k)(k \times p) = (m \times p)\). A \(1 \times 2\) row vector times a \(2 \times 2\) matrix is another \(1 \times 2\) row vector.</li>
+</ul>
+<div class="callout">
+  <span class="label">Quick refresher: a linear projection</span>
+  Multiplying a vector by a matrix, \(x W\), is called a <strong>linear projection</strong>. It can rotate, stretch, shrink or mix the vector's entries, and it can change the vector's length (number of entries). Example: \([1, 2] \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = [2, 1]\) swaps the two entries.
+</div>
+
+<!-- 3 -->
+<h2 id="motivation"><span class="num">3.</span> Motivation: one vector can't play three roles</h2>
+<p>In Section 3 each token's single vector \(x_i\) did <strong>three jobs at once</strong>:</p>
+<ol>
+  <li>As the thing <strong>asking</strong> "who is relevant to me?" (\(x_i\) on the left of \(x_i \cdot x_j\))</li>
+  <li>As the thing <strong>being matched</strong> by others (\(x_j\) on the right of \(x_i \cdot x_j\))</li>
+  <li>As the <strong>content</strong> that gets mixed into the output (\(x_j\) in \(\sum_j a_{ij} x_j\))</li>
+</ol>
+<p>Using one vector for all three causes two problems:</p>
+<ul>
+  <li><strong>Self-obsession.</strong> A vector always matches itself well (\(x_i \cdot x_i = \lVert x_i\rVert^2\)), so tokens over-attend to themselves. We saw "flew" give itself 86%.</li>
+  <li><strong>Forced symmetry.</strong> \(x_i \cdot x_j = x_j \cdot x_i\), so if "it" finds "glass" relevant, "glass" must find "it" <em>equally</em> relevant. Language isn't like that: a pronoun badly needs its noun, but the noun usually doesn't need the pronoun.</li>
+</ul>
+<p>The fix is simple: give each role its <strong>own learned projection</strong>.</p>
+
+<!-- 4 -->
+<h2 id="intuition"><span class="num">4.</span> Intuition first: a job portal</h2>
+<p>Think of a job-search website.</p>
+<ul>
+  <li>A <strong>recruiter</strong> types a search: <em>"Python developer, 3 years, Hyderabad"</em>. That is the <strong>query</strong>: what they are looking for.</li>
+  <li>Every candidate has a <strong>profile headline</strong>: <em>"Backend engineer · Python · Django"</em>. That is the <strong>key</strong>: a short summary designed to be <em>matched</em>.</li>
+  <li>When the recruiter opens a profile, they get the <strong>full CV</strong>: projects, skills, experience. That is the <strong>value</strong>: the actual content handed over.</li>
+</ul>
+<p>The portal ranks candidates by how well the <strong>query matches each key</strong>, then the recruiter reads the <strong>values</strong> of the best matches, paying more attention to higher-ranked ones.</p>
+<p>Three important points:</p>
+<ul>
+  <li>What you <em>search for</em> is different from what <em>you are</em>. A recruiter isn't a Python developer.</li>
+  <li>A headline (key) is short and built for matching; the CV (value) is the rich content. They're related but not the same.</li>
+  <li>In <strong>self</strong>-attention every token plays <strong>both sides</strong>: it is a recruiter (with a query) <em>and</em> a candidate (with a key and a value).</li>
+</ul>
+<div class="callout"><span class="label">Where the analogy breaks</span>Nobody writes these queries, keys and values by hand. All three are produced by learned matrices, and the model discovers during training what is useful to search for and to advertise.</div>
+
+<!-- 5 -->
+<h2 id="formal"><span class="num">5.</span> The formal idea</h2>
+<h3>5.1 Three projections</h3>
+<p>Each token's vector \(x_i\) (a row of \(X\)) is multiplied by three <strong>learned</strong> weight matrices:</p>
+<div class="math-block">$$q_i = x_i W_Q, \qquad k_i = x_i W_K, \qquad v_i = x_i W_V$$</div>
+<p>For the whole sentence at once:</p>
+<div class="math-block">$$Q = X W_Q, \qquad K = X W_K, \qquad V = X W_V$$</div>
+<ul>
+  <li><strong>Query</strong> \(q_i\): "what token \(i\) is looking for".</li>
+  <li><strong>Key</strong> \(k_j\): "what token \(j\) offers to be matched against".</li>
+  <li><strong>Value</strong> \(v_j\): "the information token \(j\) passes on if attended to".</li>
+</ul>
+
+<h3>5.2 Attention with Q, K, V</h3>
+<p>The three steps from Section 3 stay the same, but each step now uses the right vector:</p>
+<div class="math-block">$$s_{ij} = q_i \cdot k_j \qquad a_{ij} = \text{softmax}_j(s_{ij}) \qquad y_i = \sum_j a_{ij}\, v_j$$</div>
+<p>In matrix form:</p>
+<div class="math-block">$$S = Q K^{\top}, \qquad A = \text{softmax}_{\text{rows}}(S), \qquad Y = A V$$</div>
+<p>In words: <em>match each query against every key, turn the matches into weights, and use the weights to mix the values.</em></p>
+<p class="cap">(Section 5 adds one more detail: dividing \(S\) by \(\sqrt{d_k}\). We leave it out here to keep the numbers simple.)</p>
+
+<h3>5.3 Shapes</h3>
+<div class="tw"><table>
+  <tr><th>Matrix</th><th>Shape</th><th>Notes</th></tr>
+  <tr><td>\(X\)</td><td>\(n \times d_{model}\)</td><td>one row per token</td></tr>
+  <tr><td>\(W_Q\), \(W_K\)</td><td>\(d_{model} \times d_k\)</td><td>learned, <strong>shared by every position</strong></td></tr>
+  <tr><td>\(W_V\)</td><td>\(d_{model} \times d_v\)</td><td>learned</td></tr>
+  <tr><td>\(Q\), \(K\)</td><td>\(n \times d_k\)</td><td>queries and keys must have the <strong>same width</strong> so their dot product exists</td></tr>
+  <tr><td>\(V\)</td><td>\(n \times d_v\)</td><td></td></tr>
+  <tr><td>\(S\), \(A\)</td><td>\(n \times n\)</td><td>one score per (query, key) pair</td></tr>
+  <tr><td>\(Y\)</td><td>\(n \times d_v\)</td><td></td></tr>
+</table></div>
+<p>Usually \(d_k = d_v\), and they are <strong>smaller</strong> than \(d_{model}\) because the model runs several attention "heads" side by side (Section 6). For example, BERT-base has \(d_{model} = 768\) and 12 heads, so \(d_k = 768 / 12 = 64\).</p>
+
+<h3>5.4 Why this fixes both problems</h3>
+<ul>
+  <li><strong>No forced self-attention.</strong> Token \(i\)'s self-score is now \(q_i \cdot k_i = (x_i W_Q) \cdot (x_i W_K)\). Because \(W_Q\) and \(W_K\) differ, this is no longer the squared length of anything, and it can easily be small.</li>
+  <li><strong>Asymmetry.</strong> \(s_{ij} = x_i W_Q W_K^{\top} x_j^{\top}\), while \(s_{ji} = x_j W_Q W_K^{\top} x_i^{\top}\). These are equal only if \(W_Q W_K^{\top}\) happens to be symmetric, so in general token \(i\) can find \(j\) relevant without \(j\) finding \(i\) relevant.</li>
+  <li><strong>Separate content.</strong> Values are a third projection, so what a token <em>advertises</em> (its key) can differ from what it <em>delivers</em> (its value).</li>
+</ul>
+
+<h3>5.5 What is learned and what is computed</h3>
+<div class="tw"><table>
+  <tr><th>Learned once during training (parameters)</th><th>Computed fresh for every input</th></tr>
+  <tr><td>\(W_Q\), \(W_K\), \(W_V\)</td><td>\(Q\), \(K\), \(V\), \(S\), \(A\), \(Y\)</td></tr>
+</table></div>
+<p>The <strong>same</strong> \(W_Q\) is applied to every token at every position. That's why the layer works for any sentence length \(n\).</p>
+
+<!-- 6 -->
+<h2 id="example"><span class="num">6.</span> Worked examples</h2>
+<h3>6.1 Fixing "flew" from Section 3</h3>
+<p>We reuse the toy 2-D vectors from Section 3 (\(d_{model} = 2\)) and keep \(d_k = d_v = 2\):</p>
+<div class="math-block">$$X = \begin{bmatrix} 0.2 & 0.2 \\ 1 & 1 \\ 2 & 0 \end{bmatrix} \begin{matrix} \leftarrow \text{the} \\ \leftarrow \text{bat} \\ \leftarrow \text{flew} \end{matrix}$$</div>
+<p>We choose these weight matrices (in a real model they are learned):</p>
+<div class="math-block">$$W_Q = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}, \qquad W_K = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \qquad W_V = \begin{bmatrix} 1 & 0 \\ 1 & 1 \end{bmatrix}$$</div>
+<p>\(W_Q\) <strong>swaps</strong> the two axes. Its meaning in our toy world: an action word (strong on the animal axis) goes <em>looking for</em> something on the other axis, such as an ambiguous noun like "bat".</p>
+<p><strong>Step 1: project.</strong> Each row of \(X\) times each matrix:</p>
+<div class="tw"><table>
+  <tr><th>Token</th><th>\(x\)</th><th>\(q = xW_Q\)</th><th>\(k = xW_K\)</th><th>\(v = xW_V = [x_1 + x_2,\; x_2]\)</th></tr>
+  <tr><td>the</td><td>[0.2, 0.2]</td><td>[0.2, 0.2]</td><td>[0.2, 0.2]</td><td>[0.4, 0.2]</td></tr>
+  <tr><td>bat</td><td>[1, 1]</td><td>[1, 1]</td><td>[1, 1]</td><td>[2, 1]</td></tr>
+  <tr><td>flew</td><td>[2, 0]</td><td><strong>[0, 2]</strong></td><td>[2, 0]</td><td>[2, 0]</td></tr>
+</table></div>
+<p>The key change: flew's <strong>query</strong> is \([0, 2]\), very different from flew's <strong>key</strong> \([2, 0]\).</p>
+<p><strong>Step 2: scores for "flew"</strong> (its query against every key):</p>
+<ul>
+  <li>\(q_{\text{flew}} \cdot k_{\text{the}} = 0(0.2) + 2(0.2) = 0.4\)</li>
+  <li>\(q_{\text{flew}} \cdot k_{\text{bat}} = 0(1) + 2(1) = 2\)</li>
+  <li>\(q_{\text{flew}} \cdot k_{\text{flew}} = 0(2) + 2(0) = \mathbf{0}\)</li>
+</ul>
+<p><strong>Step 3: softmax.</strong> \(e^{0.4} = 1.49\), \(e^{2} = 7.39\), \(e^{0} = 1\), total \(= 9.88\):</p>
+<div class="tw"><table>
+  <tr><th>"flew" attends to</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><td>Naive (Section 3)</td><td>0.02</td><td>0.12</td><td><strong>0.86</strong></td></tr>
+  <tr><td>With Q/K (now)</td><td>0.15</td><td><strong>0.75</strong></td><td>0.10</td></tr>
+</table></div>
+<p>"flew" now spends 75% of its attention on "bat", the word it actually needs, and only 10% on itself.</p>
+<p><strong>Step 4: mix the values.</strong></p>
+<div class="math-block">$$y_{\text{flew}} = 0.15\,[0.4, 0.2] + 0.75\,[2, 1] + 0.10\,[2, 0] = [1.76,\; 0.78]$$</div>
+<p class="cap">(Using unrounded weights: \(0.151, 0.748, 0.101\).)</p>
+<p><strong>The full matrices</strong> for all three tokens:</p>
+<div class="tw"><table>
+  <tr><th>\(S = QK^{\top}\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.08</td><td>0.40</td><td>0.40</td></tr>
+  <tr><th>bat</th><td>0.40</td><td>2.00</td><td>2.00</td></tr>
+  <tr><th>flew</th><td>0.40</td><td>2.00</td><td><strong>0.00</strong></td></tr>
+</table></div>
+<div class="tw"><table>
+  <tr><th>\(A\)</th><th>the</th><th>bat</th><th>flew</th></tr>
+  <tr><th>the</th><td>0.27</td><td>0.37</td><td>0.37</td></tr>
+  <tr><th>bat</th><td>0.09</td><td>0.45</td><td>0.45</td></tr>
+  <tr><th>flew</th><td>0.15</td><td><strong>0.75</strong></td><td>0.10</td></tr>
+</table></div>
+<div class="tw"><table>
+  <tr><th>\(Y = AV\)</th><th>dim 1</th><th>dim 2</th></tr>
+  <tr><th>the</th><td>1.57</td><td>0.42</td></tr>
+  <tr><th>bat</th><td>1.85</td><td>0.47</td></tr>
+  <tr><th>flew</th><td>1.76</td><td>0.78</td></tr>
+</table></div>
+<div class="callout"><span class="label">Note</span>In this particular example \(S\) still happens to be symmetric (e.g. \(s_{\text{the,flew}} = s_{\text{flew,the}} = 0.4\)), because \(W_Q W_K^{\top} = W_Q\) is itself a symmetric matrix. This example fixes the <em>self-attention</em> problem; the next one shows <em>asymmetry</em>. In the demo below, change the top-right entry of \(W_Q\) to 2 and watch \(S\) become asymmetric.</div>
+
+<div class="demo" id="qkv">
+  <p class="demo-title">Try it: change the weight matrices and see attention change</p>
+  <div class="demo-bar">
+    <button class="btn" id="pre-naive" type="button">Naive: W<sub>Q</sub> = W<sub>K</sub> = I (Section 3)</button>
+    <button class="btn on" id="pre-fix" type="button">The fix from 6.1</button>
+    <span class="cap">or edit any number below</span>
+  </div>
+  <div class="wedit" id="wedit"></div>
+  <div class="demo-bar">
+    <span class="cap">Look from the point of view of:</span>
+    <span id="focus-btns" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+  </div>
+  <div class="mat-row" id="qkv-mats"></div>
+  <div class="qk">
+    <div><svg id="qk-svg" viewBox="0 0 360 360" role="img" aria-label="2-D plot of the focus token's query arrow and every token's key arrow."></svg></div>
+    <div>
+      <p class="sub-cap" style="margin-top:0" id="qk-title">Query vs keys</p>
+      <div class="bars" id="qk-bars"></div>
+      <div id="qk-work" style="font-size:14.5px"></div>
+    </div>
+  </div>
+  <p class="demo-status" id="qkv-status" aria-live="polite"></p>
+</div>
+
+<h3>6.2 Asymmetry in two lines</h3>
+<p>Take two tokens \(a = [1, 0]\) and \(b = [0, 1]\), with \(W_K = I\) (identity) and \(W_Q = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}\).</p>
+<ul>
+  <li>\(q_a = [1, 0] W_Q = [0, 1]\) and \(q_b = [0, 1] W_Q = [0, 0]\)</li>
+  <li>\(s_{ab} = q_a \cdot k_b = [0, 1] \cdot [0, 1] = \mathbf{1}\), so \(a\) is looking for \(b\).</li>
+  <li>\(s_{ba} = q_b \cdot k_a = [0, 0] \cdot [1, 0] = \mathbf{0}\), so \(b\) is not looking for \(a\).</li>
+</ul>
+<p>Like a pronoun and its noun: "it" searches for "glass", but "glass" isn't searching for "it". With a single shared vector (Section 3), this is impossible. In the demo above, compare entry (flew, the) with entry (the, flew) in \(S\) after editing \(W_Q\).</p>
+
+<h3>6.3 Shapes in a real model</h3>
+<p><strong>BERT-base</strong>, one attention head, a 128-token input: \(n = 128\), \(d_{model} = 768\), \(d_k = d_v = 64\).</p>
+<div class="tw"><table>
+  <tr><th>Matrix</th><th>Shape</th></tr>
+  <tr><td>\(X\)</td><td>\(128 \times 768\)</td></tr>
+  <tr><td>\(W_Q\), \(W_K\), \(W_V\)</td><td>\(768 \times 64\) each</td></tr>
+  <tr><td>\(Q\), \(K\), \(V\)</td><td>\(128 \times 64\) each</td></tr>
+  <tr><td>\(S\), \(A\)</td><td>\(128 \times 128\)</td></tr>
+  <tr><td>\(Y\)</td><td>\(128 \times 64\)</td></tr>
+</table></div>
+<p><strong>Parameters per head</strong>: \(3 \times 768 \times 64 = 147{,}456\). Across all 12 heads that's \(3 \times 768 \times 768 = 1{,}769{,}472\) per layer (biases ignored). For <strong>LLaMA-2 7B</strong> (\(d_{model} = 4096\)): \(3 \times 4096^2 = 50{,}331{,}648\) per layer.</p>
+
+<div class="demo" id="shapes">
+  <p class="demo-title">Try it: shapes and parameter counts for any model</p>
+  <div class="demo-bar">
+    <button class="btn on" type="button" data-preset="128,768,12">BERT-base</button>
+    <button class="btn" type="button" data-preset="1024,768,12">GPT-2 small</button>
+    <button class="btn" type="button" data-preset="4096,4096,32">LLaMA-2 7B</button>
+  </div>
+  <div class="calc-in">
+    <label>tokens \(n\) <input id="in-n" type="number" min="1" value="128"></label>
+    <label>\(d_{model}\) <input id="in-d" type="number" min="1" value="768"></label>
+    <label>heads \(h\) <input id="in-h" type="number" min="1" value="12"></label>
+  </div>
+  <div class="tw"><table class="shape-tbl" id="shape-out"></table></div>
+  <p class="demo-status" id="shape-status" aria-live="polite"></p>
+</div>
+
+<!-- 7 -->
+<h2 id="diagram"><span class="num">7.</span> Diagram</h2>
+<pre class="mermaid">
+flowchart LR
+    X["X<br/>n × d_model"] --> WQ["× W_Q"] --> Q["Q<br/>n × d_k"]
+    X --> WK["× W_K"] --> K["K<br/>n × d_k"]
+    X --> WV["× W_V"] --> V["V<br/>n × d_v"]
+    Q --> S["S = Q Kᵀ<br/>n × n"]
+    K --> S
+    S --> A["softmax rows<br/>A: n × n"]
+    A --> Y["Y = A V<br/>n × d_v"]
+    V --> Y
+</pre>
+
+<!-- 8 -->
+<h2 id="practice"><span class="num">8.</span> In practice</h2>
+<ul>
+  <li><strong>One big matrix.</strong> Implementations often store \(W_Q\), \(W_K\) and \(W_V\) side by side as one \(d_{model} \times 3d_k\) matrix (one multiplication on the GPU, then split the result into three).</li>
+  <li><strong>Biases.</strong> The original Transformer and BERT add a bias vector (\(xW_Q + b_Q\)). Many modern LLMs (e.g. the LLaMA family) leave the biases out.</li>
+  <li><strong>Many heads.</strong> A layer has \(h\) sets of \((W_Q, W_K, W_V)\), one per head, each with \(d_k = d_{model}/h\) (Section 6).</li>
+  <li><strong>Sharing keys and values.</strong> To save memory at inference time, some models let several query heads share one set of keys and values: multi-query attention (MQA) and grouped-query attention (GQA), Sections 6 and 14.</li>
+  <li><strong>Cross-attention.</strong> In an encoder–decoder model, \(Q\) comes from the decoder's tokens while \(K\) and \(V\) come from the encoder's output (Section 10). The formulas are identical; only the source of \(X\) differs.</li>
+</ul>
+
+<!-- 9 -->
+<h2 id="mistakes"><span class="num">9.</span> Common mistakes and misconceptions</h2>
+<ul class="mistakes">
+  <li class="mistake"><strong>"Q, K and V come from three different inputs."</strong> In <em>self</em>-attention all three are projections of the <strong>same</strong> \(X\). Only in cross-attention do \(Q\) and \(K, V\) come from different sequences.</li>
+  <li class="mistake"><strong>"Keys and values are the same thing."</strong> They come from the same tokens, but through <strong>different</strong> matrices. Keys decide <em>where</em> to look; values decide <em>what</em> is copied.</li>
+  <li class="mistake"><strong>"Each token has its own \(W_Q\)."</strong> No. One \(W_Q\) (per head, per layer) is shared by all tokens and all positions.</li>
+  <li class="mistake"><strong>"The attention weights are the values."</strong> The weights are \(A\) (how much to take); the values are \(V\) (what is taken). The output is \(AV\).</li>
+  <li class="mistake"><strong>"\(d_k\) must equal \(d_{model}\)."</strong> It can be any size; queries and keys just need to match each other. In practice \(d_k = d_{model}/h\).</li>
+</ul>
+
+<!-- 10 -->
+<h2 id="summary"><span class="num">10.</span> Summary</h2>
+<ul>
+  <li>Each token gets three learned projections: <strong>query</strong> (what I look for), <strong>key</strong> (how I'm found), <strong>value</strong> (what I hand over).</li>
+  <li>\(Q = XW_Q\), \(K = XW_K\), \(V = XW_V\); then \(S = QK^{\top}\), \(A = \text{softmax}_{\text{rows}}(S)\), \(Y = AV\).</li>
+  <li>Separate projections remove forced self-attention and allow <strong>asymmetric</strong> relevance (\(s_{ij} \ne s_{ji}\)).</li>
+  <li>The weights \(W_Q, W_K, W_V\) are <strong>learned and shared</strong> across positions; \(Q, K, V, A\) are <strong>computed per input</strong>.</li>
+  <li>Shapes: \(Q, K\) are \(n \times d_k\), \(V\) is \(n \times d_v\), \(A\) is \(n \times n\). Parameters per layer: \(3 \cdot d_{model} \cdot d_k \cdot h\) (= \(3d_{model}^2\) when \(d_k = d_{model}/h\)).</li>
+</ul>
+
+<!-- 11 -->
+<h2 id="check"><span class="num">11.</span> Check your understanding</h2>
+<ol>
+  <li>A layer has \(n = 10\) tokens, \(d_{model} = 512\) and \(d_k = d_v = 64\). Give the shapes of \(W_Q\), \(Q\), \(S\) and \(Y\).</li>
+  <li>With \(X\), \(W_K\) and \(W_V\) as in Section 6.1 but \(W_Q = W_K = I\) (the identity), what are the attention weights of "flew"? Which section's result do you get back?</li>
+  <li>If \(W_Q = W_K\), is the score matrix \(S\) symmetric? What does that mean for "it" and "glass"?</li>
+</ol>
+<details>
+  <summary>Show answers</summary>
+  <ol>
+    <li>\(W_Q\): \(512 \times 64\). \(Q\): \(10 \times 64\). \(S\): \(10 \times 10\). \(Y\): \(10 \times 64\). (Check with the shape calculator: \(n = 10\), \(d_{model} = 512\), \(h = 8\).)</li>
+    <li>With \(W_Q = W_K = I\) we get \(Q = K = X\), so the scores are exactly Section 3's: \([0.4, 2, 4]\), giving weights <strong>\([0.02, 0.12, 0.86]\)</strong>. It's the naive self-attention again; "flew" attends mostly to itself. (The output differs from Section 3 because \(V = XW_V \neq X\), but the weights are identical. Press "Naive" in the demo.)</li>
+    <li><strong>Yes.</strong> \(S = XW W^{\top} X^{\top}\), and \(W W^{\top}\) is symmetric, so \(s_{ij} = s_{ji}\). "it" and "glass" would then be forced to find each other <em>equally</em> relevant, which is the forced-symmetry problem again.</li>
+  </ol>
+</details>
+
+<!-- 12 -->
+<h2 id="reading"><span class="num">12.</span> Further reading</h2>
+<ol>
+  <li>Vaswani, A. et al. (2017). <strong>"Attention Is All You Need."</strong> <em>NeurIPS 2017.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv:1706.03762</a>. Section 3.2.1 defines attention with queries, keys and values.</li>
+  <li>Rush, A. (2018). <strong>"The Annotated Transformer."</strong> Harvard NLP. The original paper with line-by-line PyTorch code; see the attention function.</li>
+  <li>Alammar, J. <strong>"The Illustrated Transformer"</strong> (blog post, 2018). The section on self-attention in detail shows Q, K, V vectors visually.</li>
+  <li>Jurafsky, D., &amp; Martin, J. H. <strong><em>Speech and Language Processing</em></strong> (3rd edition draft), the chapter on Transformers: the query/key/value formulation of self-attention.</li>
+</ol>
+
+<p class="sign">Prepared by Akhil</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+  renderMathInElement(document.body, {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\(", right: "\\)", display: false }],
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+  mermaid.initialize({
+    startOnLoad: true, theme: "base",
+    themeVariables: { primaryColor: "#ffffff", primaryBorderColor: "#1b2fa8", primaryTextColor: "#1b2fa8", lineColor: "#1b2fa8", fontFamily: "Kalam, Segoe Print, cursive", fontSize: "16px" }
+  });
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.Motion;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canAnimate = !!(M && M.animate) && !reduce;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function fmt(v) { var r = Math.abs(v) < 0.005 ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(2); }
+  function vfmt(v) { return "[" + v.map(fmt).join(", ") + "]"; }
+  function mm(A, B) { return A.map(function (r) { return B[0].map(function (_, j) { return r.reduce(function (s, v, k) { return s + v * B[k][j]; }, 0); }); }); }
+  function T(A) { return A[0].map(function (_, j) { return A.map(function (r) { return r[j]; }); }); }
+  function softmax(r) { var m = Math.max.apply(null, r), e = r.map(function (v) { return Math.exp(v - m); }), s = e.reduce(function (a, b) { return a + b; }, 0); return e.map(function (v) { return v / s; }); }
+  function heat(v, scale) { var a = Math.min(1, Math.abs(v) / scale) * 0.85; return { bg: v >= 0 ? "rgba(27,47,168," + a.toFixed(3) + ")" : "rgba(214,120,30," + a.toFixed(3) + ")", fg: a > 0.45 ? "#fff" : "#1f2433" }; }
+
+  /* ---------- 1. Q/K/V explorer on the Section 3 sentence ---------- */
+  (function qkv() {
+    var root = document.getElementById("qkv");
+    if (!root) return;
+    var TOK = ["the", "bat", "flew"], X = [[0.2, 0.2], [1, 1], [2, 0]];
+    var PRESETS = {
+      naive: { WQ: [[1, 0], [0, 1]], WK: [[1, 0], [0, 1]], WV: [[1, 0], [1, 1]] },
+      fix:   { WQ: [[0, 1], [1, 0]], WK: [[1, 0], [0, 1]], WV: [[1, 0], [1, 1]] }
+    };
+    var W = JSON.parse(JSON.stringify(PRESETS.fix)), focus = 2;
+    var edit = document.getElementById("wedit"), inputs = {};
+    ["WQ", "WK", "WV"].forEach(function (name) {
+      var box = document.createElement("div");
+      box.innerHTML = '<p class="sub-cap" style="margin:0 0 4px">W<sub>' + name[1] + "</sub></p>";
+      var g = document.createElement("div"); g.className = "wgrid"; inputs[name] = [];
+      for (var i = 0; i < 2; i++) for (var j = 0; j < 2; j++) {
+        var inp = document.createElement("input"); inp.type = "number"; inp.step = "0.5"; inp.id = name + "-" + i + j;
+        inp.setAttribute("aria-label", "W" + name[1] + " row " + (i + 1) + " column " + (j + 1));
+        (function (a, b, el) { el.addEventListener("input", function () { var v = parseFloat(el.value); if (!isNaN(v)) { W[name][a][b] = v; setPreset(null); render(true); } }); })(i, j, inp);
+        g.appendChild(inp); inputs[name].push(inp);
+      }
+      box.appendChild(g); edit.appendChild(box);
+    });
+    var fb = document.getElementById("focus-btns");
+    var focusBtns = TOK.map(function (t, i) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = t; b.addEventListener("click", function () { focus = i; render(true); }); fb.appendChild(b); return b; });
+    var bNaive = document.getElementById("pre-naive"), bFix = document.getElementById("pre-fix");
+    function setPreset(p) { bNaive.classList.toggle("on", p === "naive"); bFix.classList.toggle("on", p === "fix"); }
+    function load(p) { W = JSON.parse(JSON.stringify(PRESETS[p])); setPreset(p); syncInputs(); render(true); }
+    function syncInputs() { ["WQ", "WK", "WV"].forEach(function (n) { inputs[n].forEach(function (el, k) { el.value = W[n][k >> 1][k & 1]; }); }); }
+    bNaive.addEventListener("click", function () { load("naive"); });
+    bFix.addEventListener("click", function () { load("fix"); });
+
+    function table(title, Mx, rows, cols, scale, opts) {
+      opts = opts || {};
+      var h = '<div><p class="sub-cap">' + title + '</p><div class="mat-scroll"><table class="mat"><tr><th></th>' + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr>";
+      Mx.forEach(function (r, i) {
+        h += '<tr class="' + (opts.focusRow === i ? "focus" : "") + '"><th class="r">' + rows[i] + "</th>" + r.map(function (v, j) {
+          var c = heat(v, scale); return '<td class="' + (opts.diag && i === j ? "diag" : "") + '" style="background:' + c.bg + ";color:" + c.fg + '">' + fmt(v) + "</td>";
+        }).join("") + "</tr>";
+      });
+      return h + "</table></div></div>";
+    }
+    // plot
+    var svg = document.getElementById("qk-svg"), C = 180, SC = 70;
+    function mk(n, a, p) { var e = document.createElementNS(SVGNS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+    var defs = mk("defs", {});
+    [["ak", "#1b2fa8"], ["aq", "#b07a00"]].forEach(function (m) { var mr = mk("marker", { id: m[0], viewBox: "0 0 10 10", refX: "8", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }, defs); mk("path", { d: "M0,0 L10,5 L0,10 z", fill: m[1] }, mr); });
+    mk("line", { x1: 10, y1: C, x2: 350, y2: C, "class": "axis" }); mk("line", { x1: C, y1: 10, x2: C, y2: 350, "class": "axis" });
+    mk("text", { x: 350, y: C - 6, "class": "axlbl", "text-anchor": "end" }).textContent = "dim 1";
+    mk("text", { x: C + 6, y: 20, "class": "axlbl" }).textContent = "dim 2";
+    var plot = mk("g", {});
+    function clampPt(v) { var m = Math.max(Math.abs(v[0]), Math.abs(v[1])); var s = m > 2.4 ? 2.4 / m : 1; return [v[0] * s, v[1] * s]; }
+
+    function render(anim) {
+      var Q = mm(X, W.WQ), K = mm(X, W.WK), V = mm(X, W.WV), S = mm(Q, T(K)), A = S.map(softmax), Y = mm(A, V);
+      focusBtns.forEach(function (b, i) { b.classList.toggle("on", i === focus); });
+      document.getElementById("qkv-mats").innerHTML =
+        table("Q = XW<sub>Q</sub>", Q, TOK, ["d1", "d2"], 2.5, { focusRow: focus }) +
+        table("K = XW<sub>K</sub>", K, TOK, ["d1", "d2"], 2.5) +
+        table("V = XW<sub>V</sub>", V, TOK, ["d1", "d2"], 2.5) +
+        table("S = QKᵀ", S, TOK, TOK, 4, { diag: true, focusRow: focus }) +
+        table("A = softmax(S)", A, TOK, TOK, 1, { diag: true, focusRow: focus }) +
+        table("Y = AV", Y, TOK, ["d1", "d2"], 2.5, { focusRow: focus });
+      // plot: focus query (gold) vs all keys (blue)
+      plot.innerHTML = "";
+      K.forEach(function (k, j) {
+        var p = clampPt(k);
+        mk("line", { x1: C, y1: C, x2: C + p[0] * SC, y2: C - p[1] * SC, "class": "karrow", "marker-end": "url(#ak)", opacity: 0.35 + A[focus][j] * 0.65 }, plot);
+        mk("text", { x: C + p[0] * SC + 6, y: C - p[1] * SC + (j === 0 ? 16 : -6), "class": "albl", fill: "#1b2fa8" }, plot).textContent = "k(" + TOK[j] + ")";
+      });
+      var q = clampPt(Q[focus]);
+      var qa = mk("line", { x1: C, y1: C, x2: C + q[0] * SC, y2: C - q[1] * SC, "class": "qarrow", "marker-end": "url(#aq)" }, plot);
+      mk("text", { x: C + q[0] * SC - 6, y: C - q[1] * SC - 8, "class": "albl", fill: "#b07a00", "text-anchor": "end" }, plot).textContent = "q(" + TOK[focus] + ")";
+      if (anim && canAnimate) M.animate(qa, { opacity: [0, 1] }, { duration: 0.4 });
+      document.getElementById("qk-title").textContent = "“" + TOK[focus] + "”’s query against every key";
+      document.getElementById("qk-bars").innerHTML = TOK.map(function (t, j) { return "<span>" + t + '</span><span class="bar"><i data-w="' + A[focus][j] + '"></i></span><b>' + A[focus][j].toFixed(2) + "</b>"; }).join("");
+      document.querySelectorAll("#qk-bars .bar > i").forEach(function (i) { var pct = (parseFloat(i.dataset.w) * 100).toFixed(1) + "%"; if (canAnimate) M.animate(i, { width: pct }, { duration: 0.45 }); else i.style.width = pct; });
+      document.getElementById("qk-work").innerHTML = "q(" + TOK[focus] + ") = " + vfmt(Q[focus]) + "<br>" + TOK.map(function (t, j) { return "q·k(" + t + ") = " + vfmt(Q[focus]) + "·" + vfmt(K[j]) + " = <strong>" + fmt(S[focus][j]) + "</strong>"; }).join("<br>") +
+        "<br>output y(" + TOK[focus] + ") = <strong>" + vfmt(Y[focus]) + "</strong>";
+      var self = A[focus][focus], top = A[focus].indexOf(Math.max.apply(null, A[focus]));
+      var sym = S.every(function (r, i) { return r.every(function (v, j) { return Math.abs(v - S[j][i]) < 1e-9; }); });
+      document.getElementById("qkv-status").textContent = "“" + TOK[focus] + "” gives " + (self * 100).toFixed(0) + "% of its attention to itself and the most to “" + TOK[top] + "” (" + (A[focus][top] * 100).toFixed(0) + "%). The score matrix S is " + (sym ? "symmetric (sᵢⱼ = sⱼᵢ), so relevance is forced to be mutual." : "not symmetric, so one token can look for another without being looked for in return.");
+      window.__qkv = { A: A, Y: Y, S: S, sym: sym };
+    }
+    syncInputs(); render(false);
+  })();
+
+  /* ---------- 2. Shapes and parameter counts ---------- */
+  (function shapes() {
+    var out = document.getElementById("shape-out");
+    if (!out) return;
+    var inN = document.getElementById("in-n"), inD = document.getElementById("in-d"), inH = document.getElementById("in-h");
+    var presetBtns = document.querySelectorAll("#shapes [data-preset]");
+    function n(v) { return Number(v).toLocaleString("en-US"); }
+    function render() {
+      var N = parseInt(inN.value, 10), D = parseInt(inD.value, 10), H = parseInt(inH.value, 10), st = document.getElementById("shape-status");
+      if (!(N > 0 && D > 0 && H > 0)) { st.textContent = "Enter positive whole numbers."; return; }
+      var dk = D / H, ok = Number.isInteger(dk);
+      var rows = [
+        ["X (input)", N + " × " + D, n(N * D) + " numbers"],
+        ["W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub> (one head)", D + " × " + (ok ? dk : dk.toFixed(2)), n(3 * D * dk) + " parameters"],
+        ["Q, K, V (one head)", N + " × " + (ok ? dk : dk.toFixed(2)) + " each", n(3 * N * dk) + " numbers"],
+        ["S and A (one head)", N + " × " + N, n(N * N) + " scores"],
+        ["Y (one head)", N + " × " + (ok ? dk : dk.toFixed(2)), n(N * dk) + " numbers"],
+        ["All " + H + " heads: Q/K/V weights", D + " × " + (3 * D), "<strong>" + n(3 * D * D) + " parameters per layer</strong>"],
+        ["All " + H + " heads: attention scores", H + " × " + N + " × " + N, n(H * N * N) + " scores per layer"]
+      ];
+      out.innerHTML = "<tr><th>What</th><th>Shape</th><th>Size</th></tr>" + rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>"; }).join("");
+      if (canAnimate) M.animate(out.querySelectorAll("td:nth-child(2), td:nth-child(3)"), { opacity: [0.3, 1] }, { duration: 0.3 });
+      st.innerHTML = (ok ? "d<sub>k</sub> = d<sub>model</sub> / h = " + D + " / " + H + " = <strong>" + dk + "</strong>. " : '<span class="warn-line">d<sub>model</sub> isn’t divisible by h, so real models would not use these numbers. </span>') +
+        "Notice the scores grow with n²: doubling n to " + n(2 * N) + " makes S " + n(4 * N * N) + " entries (4×), while the weight matrices don’t change at all.";
+      window.__shape = { dk: dk, perLayer: 3 * D * D, perHead: 3 * D * dk };
+    }
+    [inN, inD, inH].forEach(function (el) { el.addEventListener("input", function () { presetBtns.forEach(function (b) { b.classList.remove("on"); }); render(); }); });
+    presetBtns.forEach(function (b) { b.addEventListener("click", function () { var p = b.dataset.preset.split(","); inN.value = p[0]; inD.value = p[1]; inH.value = p[2]; presetBtns.forEach(function (x) { x.classList.toggle("on", x === b); }); render(); }); });
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
