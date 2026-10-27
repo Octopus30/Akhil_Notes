@@ -103,6 +103,6 @@ LoRA uses the paper's column-vector convention: $h = W_0x + \frac{\alpha}{r}BAx$
 
 ## F. ★ Challenge (bonus, 4 marks)
 
-1. Using the SVD $\Delta W = U\Sigma V^{\top}$, explain why the best rank-$r$ approximation keeps the $r$ largest singular values, and show where the error formula in C4 comes from (use the Frobenius norm).
+1. (Reminder: the **singular value decomposition** writes any matrix as $\Delta W = U\Sigma V^{\top} = \sum_i \sigma_i u_i v_i^{\top}$, a sum of rank-1 pieces along orthonormal directions $u_i$, $v_i$ with strengths $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$; `np.linalg.svd` computes it.) Using the SVD, explain why the best rank-$r$ approximation keeps the $r$ largest singular values, and show where the error formula in C4 comes from (use the Frobenius norm).
 2. Show that if **both** $A$ and $B$ started at 0, gradient descent could never move them. (Hint: compute $\partial h/\partial A$ and $\partial h/\partial B$.)
 3. Why scale by $\alpha/r$ rather than using $BA$ directly? Think about what happens to a good learning rate when you change $r$.

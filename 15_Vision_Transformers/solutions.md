@@ -89,6 +89,8 @@
 | Head $1024 \times 1000 + 1000$ | 1,025,000 |
 | **Total** | **304,326,632 ≈ 304M** |
 
+(The ViT paper's model table lists ViT-Large as 307M. Our recipe counts a 1,000-class head and no extra parts; small differences in what is counted explain the gap.)
+
 **C4.**
 1. *(1 mark)*
    - sunset: $0.28(0.6) + 0.96(0.8) = 0.936$
