@@ -157,7 +157,7 @@ Running the naive self-attention from Section 3 on both orders, "bat"'s output i
 | Order | Without positions | With sinusoidal positions |
 |---|---|---|
 | the bat flew | [1.38, 0.47] | [2.08, 1.04] |
-| flew bat the | [1.38, 0.47] | [1.89, 1.33] |
+| flew bat the | [1.38, 0.47] | [1.89, 1.32] |
 
 **Without positions** the outputs are identical, as Section 3 found. **With positions** they differ: the model can now tell the two orders apart.
 

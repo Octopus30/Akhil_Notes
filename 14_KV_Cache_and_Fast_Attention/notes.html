@@ -309,7 +309,7 @@ a { color: var(--ink); }
 
 <h3>6.3 A lower bound on decode speed</h3>
 <p>LLaMA-2 7B in 16-bit: \(6.74 \times 10^9 \times 2 = 13.5\) GB of weights. On an A100 GPU with about 2.0 TB/s of memory bandwidth, batch size 1, short context:</p>
-<div class="math-block">$$\frac{13.5 \times 10^9 \text{ bytes}}{2.0 \times 10^{12} \text{ bytes/s}} = 6.7 \text{ ms per token} \;\Rightarrow\; \text{at most} \approx 150 \text{ tokens/s}$$</div>
+<div class="math-block">$$\frac{13.5 \times 10^9 \text{ bytes}}{2.0 \times 10^{12} \text{ bytes/s}} = 6.75 \text{ ms per token} \;\Rightarrow\; \text{at most} \approx 150 \text{ tokens/s}$$</div>
 <p>No amount of extra arithmetic speed can beat this — the weights simply can't be read faster. Ways around it: <strong>quantize</strong> the weights (8-bit → half the bytes → about twice as fast, Section 17), and <strong>batch</strong> many users so each weight read produces many tokens.</p>
 
 <div class="demo" id="mem">
@@ -417,7 +417,7 @@ flowchart LR
 <ul>
   <li>Causal attention means past keys and values never change, so the <strong>KV cache</strong> stores them; each decode step computes \(q, k, v\) only for the new token (417× fewer K/V computations in our example).</li>
   <li>Cache size \(= 2 \times \text{layers} \times \text{KV heads} \times d_{\text{head}} \times \text{bytes} \times \text{tokens} \times \text{batch}\) — LLaMA-2 7B: 0.5 MB per token, 2 GiB per 4k-token conversation.</li>
-  <li>Decoding is <strong>memory-bandwidth bound</strong>: ≥ (weights + cache) / bandwidth per step (≈ 6.7 ms/token for a 7B model on an A100); batching and quantization help.</li>
+  <li>Decoding is <strong>memory-bandwidth bound</strong>: ≥ (weights + cache) / bandwidth per step (≈ 6.75 ms/token for a 7B model on an A100); batching and quantization help.</li>
   <li>Shrink the cache with <strong>GQA/MQA</strong>, <strong>quantization</strong>, <strong>sliding windows</strong>, <strong>PagedAttention</strong> and <strong>prefix caching</strong>.</li>
   <li><strong>FlashAttention</strong> tiles the computation and uses the <strong>online softmax</strong> (running max, sum, output with rescaling) to get exact attention in \(O(n)\) memory.</li>
 </ul>

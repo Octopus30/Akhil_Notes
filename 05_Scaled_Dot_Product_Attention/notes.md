@@ -210,9 +210,9 @@ Draw random queries and keys with independent standard-normal entries, 4,000 pai
 
 | $d_k$ | variance of $q \cdot k$ | typical size (std) | after ÷ $\sqrt{d_k}$ |
 |---|---|---|---|
-| 4 | 3.9 | 1.99 | 0.99 |
-| 64 | 62.2 | 7.89 | 0.99 |
-| 512 | 508.1 | 22.54 | 1.00 |
+| 4 | 4.0 | 2.00 | 1.00 |
+| 64 | 65.5 | 8.09 | 1.01 |
+| 512 | 518.4 | 22.77 | 1.01 |
 
 The variance tracks $d_k$ closely, as the formula in 5.3 predicts, and scaling brings the typical size back to about 1 every time.
 

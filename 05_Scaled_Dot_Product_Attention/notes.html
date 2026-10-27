@@ -387,9 +387,9 @@ pre.code .k { color: #1b2fa8; font-weight: 700; }
 <p>Draw random queries and keys with independent standard-normal entries, 4,000 pairs for each \(d_k\) (simulation, seed 0):</p>
 <div class="tw"><table>
   <tr><th>\(d_k\)</th><th>variance of \(q \cdot k\)</th><th>typical size (std)</th><th>after ÷ \(\sqrt{d_k}\)</th></tr>
-  <tr><td>4</td><td>3.9</td><td>1.99</td><td>0.99</td></tr>
-  <tr><td>64</td><td>62.2</td><td>7.89</td><td>0.99</td></tr>
-  <tr><td>512</td><td>508.1</td><td>22.54</td><td>1.00</td></tr>
+  <tr><td>4</td><td>4.0</td><td>2.00</td><td>1.00</td></tr>
+  <tr><td>64</td><td>65.5</td><td>8.09</td><td>1.01</td></tr>
+  <tr><td>512</td><td>518.4</td><td>22.77</td><td>1.01</td></tr>
 </table></div>
 <p>The variance tracks \(d_k\) closely, as the formula in 5.3 predicts, and scaling brings the typical size back to about 1 every time. The "why √d<sub>k</sub>" demo in 5.4 runs the same experiment live.</p>
 

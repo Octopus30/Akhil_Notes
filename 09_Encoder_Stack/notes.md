@@ -151,10 +151,10 @@ The full outputs:
 | Token | Layer 0 | Layer 1 | Layer 2 |
 |---|---|---|---|
 | the | [0.20, 0.20] | [1.33, 0.61] | [4.44, 1.21] |
-| bat | [1.00, 1.00] | [2.32, 1.46] | [5.61, 2.00] |
+| bat | [1.00, 1.00] | [2.32, 1.46] | [5.60, 2.00] |
 | flew | [2.00, 0.00] | [3.71, 0.20] | [7.37, 0.43] |
 
-**Sentence B: "the bat hit"** gives the mirror image (the two axes swap): bat → $[1.46, 2.32]$ after layer 1, $[2.00, 5.61]$ after layer 2.
+**Sentence B: "the bat hit"** gives the mirror image (the two axes swap): bat → $[1.46, 2.32]$ after layer 1, $[2.00, 5.60]$ after layer 2.
 
 **How similar is "bat" in the two sentences?** (cosine similarity)
 

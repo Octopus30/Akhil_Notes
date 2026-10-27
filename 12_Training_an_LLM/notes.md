@@ -159,7 +159,7 @@ $$\mathcal{L} = \frac{0.693 + 1.386 + 0.223 + 2.303}{4} = \mathbf{1.151}, \qquad
 
 On average the model is "as unsure as choosing among about 3 tokens". Notice one confident mistake (position 4, $P = 0.1$) contributes as much loss as the other three combined.
 
-**At the start of training** (uniform over 50,257 tokens): every $P = 1/50{,}257$, so $\mathcal{L} = \ln 50{,}257 = 10.83$ and perplexity 50,257.
+**At the start of training** (uniform over 50,257 tokens): every $P = 1/50{,}257$, so $\mathcal{L} = \ln 50{,}257 = 10.82$ and perplexity 50,257.
 
 ### 6.2 One AdamW step by hand
 

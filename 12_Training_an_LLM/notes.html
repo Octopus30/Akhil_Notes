@@ -303,7 +303,7 @@ $$</div>
 </table></div>
 <div class="math-block">$$\mathcal{L} = \frac{0.693 + 1.386 + 0.223 + 2.303}{4} = \mathbf{1.151}, \qquad \text{Perplexity} = e^{1.151} = \mathbf{3.16}$$</div>
 <p>On average the model is "as unsure as choosing among about 3 tokens". Notice one confident mistake (position 4, \(P = 0.1\)) contributes as much loss as the other three combined.</p>
-<p><strong>At the start of training</strong> (uniform over 50,257 tokens): every \(P = 1/50{,}257\), so \(\mathcal{L} = \ln 50{,}257 = 10.83\) and perplexity 50,257.</p>
+<p><strong>At the start of training</strong> (uniform over 50,257 tokens): every \(P = 1/50{,}257\), so \(\mathcal{L} = \ln 50{,}257 = 10.82\) and perplexity 50,257.</p>
 
 <div class="demo" id="loss">
   <p class="demo-title">Try it: how loss and perplexity react</p>
@@ -552,7 +552,7 @@ flowchart LR
       document.getElementById("loss-out").textContent = "loss = " + L.toFixed(3) + "   perplexity = " + (ppl > 1000 ? n(Math.round(ppl)) : ppl.toFixed(2));
       var worst = ls.indexOf(Math.max.apply(null, ls));
       document.getElementById("loss-status").textContent = "Red bars show each position’s −log P. The worst position (“" + TOK[worst] + "”) contributes " + (100 * ls[worst] / (L * ls.length)).toFixed(0) + "% of the total loss. " +
-        (ppl > 1000 ? "Uniform guessing over 50,257 tokens: loss ≈ 10.83, perplexity ≈ 50,257 — where every LLM starts." : "Perplexity " + ppl.toFixed(2) + " means the model is about as unsure as picking among " + ppl.toFixed(1) + " equally likely tokens.");
+        (ppl > 1000 ? "Uniform guessing over 50,257 tokens: loss ≈ 10.82, perplexity ≈ 50,257 — where every LLM starts." : "Perplexity " + ppl.toFixed(2) + " means the model is about as unsure as picking among " + ppl.toFixed(1) + " equally likely tokens.");
       window.__loss = { L: L, ppl: ppl };
     }
     document.querySelectorAll("#loss [data-pre]").forEach(function (b) { b.addEventListener("click", function () { p = PRE[b.dataset.pre].slice(); document.querySelectorAll("#loss [data-pre]").forEach(function (x) { x.classList.toggle("on", x === b); }); build(); }); });

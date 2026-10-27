@@ -142,7 +142,7 @@ Small count: generating 3 tokens after a 5-token prompt needs $5 + 6 + 7 = 18$ K
 
 LLaMA-2 7B in 16-bit: $6.74 \times 10^9 \times 2 = 13.5$ GB of weights. On an A100 GPU with about 2.0 TB/s of memory bandwidth, batch size 1, short context:
 
-$$\frac{13.5 \times 10^9 \text{ bytes}}{2.0 \times 10^{12} \text{ bytes/s}} = 6.7 \text{ ms per token} \;\Rightarrow\; \text{at most} \approx 150 \text{ tokens/s}$$
+$$\frac{13.5 \times 10^9 \text{ bytes}}{2.0 \times 10^{12} \text{ bytes/s}} = 6.75 \text{ ms per token} \;\Rightarrow\; \text{at most} \approx 150 \text{ tokens/s}$$
 
 No amount of extra arithmetic speed can beat this — the weights simply can't be read faster. Ways around it: **quantize** the weights (8-bit → half the bytes → about twice as fast, Section 17), and **batch** many users so each weight read produces many tokens.
 
@@ -218,7 +218,7 @@ flowchart LR
 
 - Causal attention means past keys and values never change, so the **KV cache** stores them; each decode step computes $q, k, v$ only for the new token (417× fewer K/V computations in our example).
 - Cache size $= 2 \times \text{layers} \times \text{KV heads} \times d_{\text{head}} \times \text{bytes} \times \text{tokens} \times \text{batch}$ — LLaMA-2 7B: 0.5 MB per token, 2 GiB per 4k-token conversation.
-- Decoding is **memory-bandwidth bound**: ≥ (weights + cache) / bandwidth per step (≈ 6.7 ms/token for a 7B model on an A100); batching and quantization help.
+- Decoding is **memory-bandwidth bound**: ≥ (weights + cache) / bandwidth per step (≈ 6.75 ms/token for a 7B model on an A100); batching and quantization help.
 - Shrink the cache with **GQA/MQA**, **quantization**, **sliding windows**, **PagedAttention** and **prefix caching**.
 - **FlashAttention** tiles the computation and uses the **online softmax** (running max, sum, output with rescaling) to get exact attention in $O(n)$ memory.
 
